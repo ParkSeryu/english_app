@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ExpressionReviewStats } from "@/components/ExpressionReviewStats";
+import { PronunciationButton } from "@/components/PronunciationButton";
 import { TopicFilterSelect } from "@/components/TopicFilterSelect";
 import { requireCurrentUser } from "@/lib/auth";
 import { getExpressionDueLabel } from "@/lib/expression-due-label";
@@ -53,23 +54,35 @@ export default async function ExpressionsPage({ searchParams }: { searchParams: 
                 const dueLabel = getExpressionDueLabel(expression);
 
                 return (
-                <Link key={expression.id} href={`/expressions/${expression.id}`} className="block rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-300 hover:shadow-card">
-                  <div className="flex items-start justify-between gap-3"><h3 className="text-xl font-black text-ink">{expression.english}</h3><ExpressionReviewStats expression={expression} variant="stacked" /></div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{expression.korean_prompt}</p>
-                  {dueLabel ? <p className="mt-3 inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{dueLabel}</p> : null}
-                  {expression.grammar_note ? <p className="mt-3 text-sm leading-6 text-slate-700"><span className="font-black text-slate-500">문법/패턴</span> {expression.grammar_note}</p> : null}
-                  {expression.examples.length > 0 ? (
-                    <div className="mt-3 space-y-1 rounded-2xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">
-                      <p className="font-black text-slate-500">비슷한 표현</p>
-                      {expression.examples.map((example) => (
-                        <div key={example.id}>
-                          <p className="font-semibold text-ink">{example.example_text}</p>
-                          {example.meaning_ko ? <p className="text-slate-600">{example.meaning_ko}</p> : null}
-                        </div>
-                      ))}
+                <article key={expression.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-300 hover:shadow-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                        <Link href={`/expressions/${expression.id}`} className="min-w-0">
+                          <h3 className="text-xl font-black text-ink">{expression.english}</h3>
+                        </Link>
+                        <PronunciationButton text={expression.english} className="w-fit shrink-0" />
+                      </div>
                     </div>
-                  ) : null}
-                </Link>
+                    <ExpressionReviewStats expression={expression} variant="stacked" />
+                  </div>
+                  <Link href={`/expressions/${expression.id}`} className="block">
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{expression.korean_prompt}</p>
+                    {dueLabel ? <p className="mt-3 inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{dueLabel}</p> : null}
+                    {expression.grammar_note ? <p className="mt-3 text-sm leading-6 text-slate-700"><span className="font-black text-slate-500">문법/패턴</span> {expression.grammar_note}</p> : null}
+                    {expression.examples.length > 0 ? (
+                      <div className="mt-3 space-y-1 rounded-2xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">
+                        <p className="font-black text-slate-500">비슷한 표현</p>
+                        {expression.examples.map((example) => (
+                          <div key={example.id}>
+                            <p className="font-semibold text-ink">{example.example_text}</p>
+                            {example.meaning_ko ? <p className="text-slate-600">{example.meaning_ko}</p> : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </Link>
+                </article>
                 );
               })}
             </section>

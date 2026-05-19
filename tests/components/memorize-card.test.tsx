@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/app/actions", () => ({
   recordExpressionReviewAction: vi.fn(async () => undefined),
@@ -47,6 +47,32 @@ type MemorizeCardModule = {
   MemorizeCard: ComponentType<{ expression: ExpressionCardForTest; returnTo?: string }>;
 };
 
+class MockSpeechSynthesisUtterance {
+  text: string;
+  lang = "";
+  rate = 1;
+
+  constructor(text: string) {
+    this.text = text;
+  }
+}
+
+function mockSpeechSynthesis() {
+  const cancel = vi.fn();
+  const speak = vi.fn();
+
+  Object.defineProperty(window, "speechSynthesis", {
+    configurable: true,
+    value: { cancel, speak }
+  });
+  Object.defineProperty(globalThis, "SpeechSynthesisUtterance", {
+    configurable: true,
+    value: MockSpeechSynthesisUtterance
+  });
+
+  return { cancel, speak };
+}
+
 const expression: ExpressionCardForTest = {
   id: "expression-1",
   expression_day_id: "day-1",
@@ -71,8 +97,14 @@ const expression: ExpressionCardForTest = {
 };
 
 describe("MemorizeCard", () => {
+  afterEach(() => {
+    Reflect.deleteProperty(window, "speechSynthesis");
+    Reflect.deleteProperty(globalThis, "SpeechSynthesisUtterance");
+  });
+
   it("shows Korean first, hides English until reveal, then exposes simple known/unknown controls", async () => {
     const user = userEvent.setup();
+    const speech = mockSpeechSynthesis();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
     render(<MemorizeCard expression={expression} />);
 
@@ -98,6 +130,11 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText(expression.structure_note ?? "")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /외웠음/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /모름/ })).toBeInTheDocument();
+
+    const pronunciationButton = await screen.findByRole("button", { name: /발음 듣기/ });
+    await user.click(pronunciationButton);
+    expect(speech.cancel).toHaveBeenCalledTimes(1);
+    expect(speech.speak).toHaveBeenCalledTimes(1);
 
     const reviewButtons = screen.getAllByRole("button").filter((button) => ["외웠음", "모름"].includes(button.textContent ?? ""));
     expect(reviewButtons.map((button) => button.textContent)).toEqual(["모름", "외웠음"]);

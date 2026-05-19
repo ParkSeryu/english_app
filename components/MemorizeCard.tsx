@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Fragment, useState, useTransition } from "react";
 
 import { recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
+import { PronunciationButton } from "@/components/PronunciationButton";
 import type { ExpressionCard } from "@/lib/types";
 
 type MemorizeCardProps = {
@@ -52,6 +53,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmi
           <div className="mt-6 rounded-[1.75rem] bg-gradient-to-br from-ink to-slate-800 p-5 text-white shadow-lg shadow-slate-200">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-200">영어 정답</p>
             <h1 className="mt-3 whitespace-pre-wrap text-2xl font-black leading-tight">{expression.english}</h1>
+            <PronunciationButton text={expression.english} variant="dark" className="mt-4" />
             <div className="my-5 h-px bg-white/15" />
             <p className="whitespace-pre-wrap text-lg font-semibold leading-7 text-slate-100">{expression.korean_prompt}</p>
           </div>
