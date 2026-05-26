@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { lapsedIntervalDays, nextDueAtForKnown, nextExpressionReviewSchedule, nextKnownIntervalDays, scheduleMemorizationQueue } from "@/lib/scheduling";
+import { nextDueAtForKnown, nextExpressionReviewSchedule, nextKnownIntervalDays, scheduleMemorizationQueue } from "@/lib/scheduling";
 import type { ExpressionCard } from "@/lib/types";
 
 function card(overrides: Partial<ExpressionCard>): ExpressionCard {
@@ -119,16 +119,15 @@ describe("Anki-lite interval policy", () => {
     expect(nextKnownIntervalDays(3)).toBe(7);
     expect(nextKnownIntervalDays(7)).toBe(14);
     expect(nextKnownIntervalDays(14)).toBe(30);
-    expect(nextKnownIntervalDays(30)).toBe(30);
+    expect(nextKnownIntervalDays(30)).toBe(60);
+    expect(nextKnownIntervalDays(60)).toBe(90);
+    expect(nextKnownIntervalDays(90)).toBe(90);
   });
 
-  it("demotes lapses by one interval without dropping learned cards below one day", () => {
-    expect(lapsedIntervalDays(0)).toBe(0);
-    expect(lapsedIntervalDays(1)).toBe(1);
-    expect(lapsedIntervalDays(3)).toBe(1);
-    expect(lapsedIntervalDays(7)).toBe(3);
-    expect(lapsedIntervalDays(14)).toBe(7);
-    expect(lapsedIntervalDays(30)).toBe(14);
+  it("keeps unknown cards due without reducing their interval", () => {
+    for (const intervalDays of [0, 1, 30, 90]) {
+      expect(nextExpressionReviewSchedule(card({ interval_days: intervalDays }), "unknown", now)).toEqual({ intervalDays, dueAt: null });
+    }
   });
 
   it("sets remembered cards due on the selected future Korean-midnight boundary", () => {
@@ -145,14 +144,30 @@ describe("Anki-lite interval policy", () => {
     expect(recovered).toEqual({ intervalDays: 1, dueAt: "2026-04-28T15:00:00.000Z" });
   });
 
-  it("demotes only the first same-day unknown and does not promote after unresolved lapses", () => {
-    const firstUnknown = nextExpressionReviewSchedule(card({ id: "mature", last_result: "known", last_reviewed_at: "2026-04-21T12:00:00.000Z", interval_days: 14 }), "unknown", now);
-    expect(firstUnknown).toEqual({ intervalDays: 7, dueAt: null });
+  it("does not reduce unknown intervals or promote after unresolved lapses", () => {
+    const firstUnknown = nextExpressionReviewSchedule(card({ id: "mature", last_result: "known", interval_days: 14 }), "unknown", now);
+    expect(firstUnknown).toEqual({ intervalDays: 14, dueAt: null });
 
-    const repeatedUnknown = nextExpressionReviewSchedule(card({ id: "mature", last_result: "unknown", last_reviewed_at: "2026-04-28T11:30:00.000Z", interval_days: 7 }), "unknown", now);
-    expect(repeatedUnknown).toEqual({ intervalDays: 7, dueAt: null });
+    const lapsedMatureCard = card({ id: "mature", last_result: "unknown", interval_days: 14 });
 
-    const recovered = nextExpressionReviewSchedule(card({ id: "mature", last_result: "unknown", last_reviewed_at: "2026-04-28T11:30:00.000Z", interval_days: 7 }), "known", now);
-    expect(recovered).toEqual({ intervalDays: 7, dueAt: "2026-05-04T15:00:00.000Z" });
+    const repeatedUnknown = nextExpressionReviewSchedule(lapsedMatureCard, "unknown", now);
+    expect(repeatedUnknown).toEqual({ intervalDays: 14, dueAt: null });
+
+    const recovered = nextExpressionReviewSchedule(lapsedMatureCard, "known", now);
+    expect(recovered).toEqual({ intervalDays: 14, dueAt: "2026-05-11T15:00:00.000Z" });
+  });
+
+  it("stretches mature cards through sixty and ninety day intervals", () => {
+    const sixtyDay = nextExpressionReviewSchedule(card({ id: "mature-30", last_result: "known", last_reviewed_at: "2026-03-29T12:00:00.000Z", interval_days: 30 }), "known", now);
+    expect(sixtyDay).toEqual({ intervalDays: 60, dueAt: "2026-06-26T15:00:00.000Z" });
+
+    const ninetyDay = nextExpressionReviewSchedule(card({ id: "mature-60", last_result: "known", last_reviewed_at: "2026-02-27T12:00:00.000Z", interval_days: 60 }), "known", now);
+    expect(ninetyDay).toEqual({ intervalDays: 90, dueAt: "2026-07-26T15:00:00.000Z" });
+
+    const capped = nextExpressionReviewSchedule(card({ id: "mature-90", last_result: "known", last_reviewed_at: "2026-01-28T12:00:00.000Z", interval_days: 90 }), "known", now);
+    expect(capped).toEqual({ intervalDays: 90, dueAt: "2026-07-26T15:00:00.000Z" });
+
+    const unknown = nextExpressionReviewSchedule(card({ id: "unknown-90", last_result: "known", last_reviewed_at: "2026-01-28T12:00:00.000Z", interval_days: 90 }), "unknown", now);
+    expect(unknown).toEqual({ intervalDays: 90, dueAt: null });
   });
 });

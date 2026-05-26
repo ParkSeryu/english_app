@@ -146,10 +146,13 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 7, known_count: 2 });
     expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 14, known_count: 3 });
     expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 30, known_count: 4 });
+    expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 60, known_count: 5 });
+    expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 90, known_count: 6 });
+    expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 90, known_count: 7 });
 
-    expect(await store.recordReviewResult(expressionId, "unknown")).toMatchObject({ interval_days: 14, unknown_count: 1, due_at: null });
-    expect(await store.recordReviewResult(expressionId, "unknown")).toMatchObject({ interval_days: 14, unknown_count: 2, due_at: null });
-    expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 14, known_count: 5, last_result: "known" });
+    expect(await store.recordReviewResult(expressionId, "unknown")).toMatchObject({ interval_days: 90, unknown_count: 1, due_at: null });
+    expect(await store.recordReviewResult(expressionId, "unknown")).toMatchObject({ interval_days: 90, unknown_count: 2, due_at: null });
+    expect(await store.recordReviewResult(expressionId, "known")).toMatchObject({ interval_days: 90, known_count: 8, last_result: "known" });
   });
 
   it("shares expression content while keeping progress, memos, and question notes per user", async () => {

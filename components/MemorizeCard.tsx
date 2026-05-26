@@ -5,6 +5,7 @@ import { Fragment, useState, useTransition } from "react";
 
 import { recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
 import { PronunciationButton } from "@/components/PronunciationButton";
+import { nextExpressionReviewSchedule } from "@/lib/scheduling";
 import type { ExpressionCard } from "@/lib/types";
 
 type MemorizeCardProps = {
@@ -16,6 +17,7 @@ type MemorizeCardProps = {
 export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmit }: MemorizeCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
+  const knownIntervalDays = nextExpressionReviewSchedule(expression, "known").intervalDays;
 
   function handleReview(result: "known" | "unknown") {
     if (result === "unknown") setRevealed(false);
@@ -73,8 +75,14 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmi
               </section>
             ) : null}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => handleReview("unknown")} className="min-h-14 w-full rounded-full border border-rose-200 bg-rose-50 px-5 py-3 font-black text-rose-700 transition hover:bg-rose-100">모름</button>
-              <button type="button" onClick={() => handleReview("known")} className="min-h-14 w-full rounded-full bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700">외웠음</button>
+              <button type="button" onClick={() => handleReview("unknown")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-5 py-3 font-black text-rose-700 transition hover:bg-rose-100">
+                <span>모름</span>
+                <span className="mt-0.5 text-xs font-black text-rose-500">오늘 다시</span>
+              </button>
+              <button type="button" onClick={() => handleReview("known")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700">
+                <span>외웠음</span>
+                <span className="mt-0.5 text-xs font-black text-emerald-100">{knownIntervalDays}일 뒤</span>
+              </button>
             </div>
           </div>
         </>
