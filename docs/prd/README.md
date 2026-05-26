@@ -14,6 +14,8 @@ Use individual feature folders as supporting artifacts for a tracker item. If a 
 
 A backlog item can be **pull-ready** when it already has enough PRD/test-spec detail to start, but it still stays under `backlog/` until it becomes active.
 
+If code implementation has started or an implementation PR is open, the feature is no longer backlog: move its folder to `active/` and move the tracker item to `Active` in the same branch/PR.
+
 ## Current Map
 
 | Area | Tracker | Folder | PRD | Test spec | Implementation plan | Notes |
@@ -65,3 +67,5 @@ The folder name identifies the feature. The lifecycle folder identifies whether 
 3. Create or update `prd.md` and `test-spec.md` before implementation if the work changes user-visible behavior, scheduling, persistence, auth, push, or schema.
 4. Move one feature folder to `active/` when implementation starts, and move the tracker item to `Active`.
 5. After verification, move the feature folder to `complete/` and record changed files plus commands/checks in `future-work.md`.
+
+Implementation PRs must not leave their own PRD under `backlog/`; lifecycle state should change in the same PR that starts or carries the implementation.
