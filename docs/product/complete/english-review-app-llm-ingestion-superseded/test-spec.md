@@ -2,7 +2,10 @@
 
 ## Source
 
-- PRD: `.omx/plans/prd-english-review-app-llm-ingestion.md`
+- Tracker: `docs/product/future-work.md`.
+- Lifecycle folder: `complete`; superseded test spec retained as historical context only unless a new tracker item revives this direction.
+- PRD: `docs/product/complete/english-review-app-llm-ingestion-superseded/prd.md`
+- Implementation plan: `docs/product/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
 - Rollback checkpoint: git commit `18440a0`
 
 ## Quality Gates
