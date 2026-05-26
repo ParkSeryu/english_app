@@ -1,80 +1,80 @@
-# PRD: Spaced Repetition Interval Policy for Memorize Queue
+# PRD: 암기 큐 간격 반복 정책
 
-## Status
+## 상태
 
-- Tracker item: T-003 in `docs/prd/future-work.md`.
-- Lifecycle folder: `active`; implementation is in progress on PR #5.
-- Parent complete baseline: `docs/prd/complete/daily-expression-memorization/prd.md`.
-- Test spec: covered by focused scheduling, memory-store, and memorize-card tests in the implementation PR.
-- Implementation plan: the approved scope is the narrow SRS policy change in PR #5.
+- 트래커 항목: `docs/prd/future-work.md`의 T-003.
+- 생명주기 폴더: `active`; PR #5에서 구현이 진행 중입니다.
+- 기준 문서: `docs/prd/complete/daily-expression-memorization/prd.md`.
+- 테스트 스펙: 구현 PR의 스케줄링, 메모리 저장소, 암기 카드 집중 테스트로 검증합니다.
+- 구현 계획: PR #5의 좁은 SRS 정책 변경 범위가 승인된 구현 범위입니다.
 
-## Problem
+## 문제
 
-The memorize queue should reduce review burden as the number of expressions grows. The previous lapse behavior made mature cards feel punishing because pressing `모름` reduced their long-term interval. Learners need a simple Ebbinghaus-inspired two-button SRS policy that keeps misses lightweight while still stretching remembered cards over longer intervals.
+표현 수가 늘어날수록 암기 큐의 복습 부담이 줄어야 합니다. 이전 정책에서는 익숙한 카드라도 `모름`을 누르면 장기 복습 간격이 줄어들어 부담이 커졌습니다. 학습자에게 필요한 것은 두 버튼(`모름`, `외웠음`)만 유지하면서, 틀린 카드는 가볍게 오늘 다시 보게 하고 외운 카드는 더 긴 간격으로 늘려 주는 단순한 에빙하우스 기반 SRS 정책입니다.
 
-## Goals
+## 목표
 
-- Keep the existing two-button UX: `모름` and `외웠음`.
-- Make the next review timing visible on the buttons.
-- Keep `모름` as a same-day retry without reducing the saved interval.
-- Stretch remembered mature cards beyond 30 days.
-- Avoid new rating buttons, dependencies, or schema changes.
-- Preserve existing queue/session behavior where unknown cards cycle to the back until remembered.
+- 기존 두 버튼 UX(`모름`, `외웠음`)를 유지합니다.
+- 버튼에 다음 복습 시점을 명시합니다.
+- `모름`은 저장된 간격을 줄이지 않고 오늘 다시 보는 처리로만 둡니다.
+- 잘 외운 성숙 카드의 복습 간격을 30일 이후까지 늘립니다.
+- 새 평가 버튼, 새 의존성, 스키마 변경을 추가하지 않습니다.
+- `모름` 카드를 현재 세션 큐 뒤로 보내고, 외울 때까지 다시 노출하는 기존 세션 동작을 유지합니다.
 
-## Non-goals
+## 비목표
 
-- Add FSRS/SM-2 ease factors, difficulty, stability, or new rating buttons.
-- Add `다시 / 어려움 / 좋음 / 쉬움` Anki-style choices.
-- Add push notifications or reminders.
-- Add new database columns or migrations.
-- Redesign the memorize card layout beyond timing helper text on the two existing buttons.
+- FSRS/SM-2의 ease factor, difficulty, stability 또는 새 평가 버튼을 추가하지 않습니다.
+- Anki식 `다시 / 어려움 / 좋음 / 쉬움` 4버튼 UX를 추가하지 않습니다.
+- 푸시 알림이나 리마인더를 추가하지 않습니다.
+- 새 DB 컬럼이나 마이그레이션을 추가하지 않습니다.
+- 기존 두 버튼에 보조 문구를 넣는 것 외에 암기 카드 레이아웃을 재설계하지 않습니다.
 
-## Policy
+## 정책
 
-### Interval ladder
+### 간격 ladder
 
-Use this bounded ladder:
+다음 제한된 ladder를 사용합니다.
 
 ```text
 1일 → 3일 → 7일 → 14일 → 30일 → 60일 → 90일
 ```
 
-The interval caps at `90일`.
+간격은 `90일`에서 상한 처리합니다.
 
-### `외웠음` behavior
+### `외웠음` 동작
 
-When the learner presses `외웠음`:
+학습자가 `외웠음`을 누르면 다음처럼 처리합니다.
 
-1. If the previous saved result is not `unknown`, promote to the next larger interval in the ladder.
-2. If the card has never been reviewed and the first answer is immediately `외웠음`, schedule it for `3일` later.
-3. If the previous saved result is `unknown`, treat this as recovery after a same-day miss and do not promote beyond the current saved interval; use at least `1일` for new/unlearned cards.
-4. Set `due_at` to the selected interval's Korean-midnight boundary.
-5. Remove the card from the active queue after the server refresh, as today.
+1. 이전 저장 결과가 `unknown`이 아니면 ladder의 다음 더 큰 간격으로 승급합니다.
+2. 한 번도 복습하지 않은 새 카드에서 첫 답변이 바로 `외웠음`이면 `3일` 뒤로 예약합니다.
+3. 이전 저장 결과가 `unknown`이면 같은 날 틀린 뒤 회복한 것으로 보고, 현재 저장된 간격보다 더 승급하지 않습니다. 단, 새 카드나 아직 학습되지 않은 카드는 최소 `1일`을 사용합니다.
+4. 선택된 간격의 한국 시간 자정 경계로 `due_at`을 설정합니다.
+5. 서버 갱신 후에는 현재처럼 카드를 활성 큐에서 제거합니다.
 
-Examples:
+예시:
 
-| Previous state | Action | New interval | Next due label |
+| 이전 상태 | 동작 | 새 간격 | 다음 표시 |
 | --- | --- | ---: | --- |
-| New card, no previous `모름` | `외웠음` | 3 | `3일 뒤` |
-| New card after one or more `모름` | `외웠음` | 1 | `1일 뒤` |
-| 14-day card, no previous `모름` | `외웠음` | 30 | `30일 뒤` |
-| 30-day card, no previous `모름` | `외웠음` | 60 | `60일 뒤` |
-| 60-day card, no previous `모름` | `외웠음` | 90 | `90일 뒤` |
-| 90-day card, no previous `모름` | `외웠음` | 90 | `90일 뒤` |
-| 14-day card after one or more `모름` | `외웠음` | 14 | `14일 뒤` |
+| 새 카드, 이전 `모름` 없음 | `외웠음` | 3 | `3일 뒤` |
+| 새 카드, `모름` 1회 이상 후 | `외웠음` | 1 | `1일 뒤` |
+| 14일 카드, 이전 `모름` 없음 | `외웠음` | 30 | `30일 뒤` |
+| 30일 카드, 이전 `모름` 없음 | `외웠음` | 60 | `60일 뒤` |
+| 60일 카드, 이전 `모름` 없음 | `외웠음` | 90 | `90일 뒤` |
+| 90일 카드, 이전 `모름` 없음 | `외웠음` | 90 | `90일 뒤` |
+| 14일 카드, `모름` 1회 이상 후 | `외웠음` | 14 | `14일 뒤` |
 
-### `모름` behavior
+### `모름` 동작
 
-When the learner presses `모름`:
+학습자가 `모름`을 누르면 다음처럼 처리합니다.
 
-1. Keep the saved `interval_days` unchanged.
-2. Set `due_at = null` so the expression remains immediately due today.
-3. Move the card to the back of the current browser queue, preserving the current session behavior.
-4. Do not demote the interval on the first miss or repeated same-day misses.
+1. 저장된 `interval_days`를 그대로 유지합니다.
+2. 표현이 오늘 즉시 다시 복습 대상에 남도록 `due_at = null`로 설정합니다.
+3. 현재 브라우저 큐에서는 기존 세션 동작처럼 카드를 뒤로 보냅니다.
+4. 첫 `모름`이나 같은 날 반복 `모름` 모두 간격을 강등하지 않습니다.
 
-Examples:
+예시:
 
-| Previous interval | `모름` result interval | Next due label |
+| 이전 간격 | `모름` 후 간격 | 다음 표시 |
 | ---: | ---: | --- |
 | 90 | 90 | `오늘 다시` |
 | 60 | 60 | `오늘 다시` |
@@ -85,55 +85,55 @@ Examples:
 | 1 | 1 | `오늘 다시` |
 | 0 | 0 | `오늘 다시` |
 
-### Button timing labels
+### 버튼 시점 표시
 
-After the answer is revealed, show both action and timing:
+정답을 공개한 뒤 두 버튼 모두 동작과 시점을 함께 보여줍니다.
 
-- `모름` button: `오늘 다시`
-- `외웠음` button: `{next interval}일 뒤`
+- `모름` 버튼: `오늘 다시`
+- `외웠음` 버튼: `{다음 간격}일 뒤`
 
-The `외웠음` label must use the same scheduling function as the saved review result so the UI and persistence stay consistent.
+`외웠음` 버튼의 시점 표시는 저장 로직과 같은 스케줄링 함수를 사용해야 하며, UI와 저장 데이터가 같은 의미를 가져야 합니다.
 
-### Queue eligibility
+### 큐 포함 조건
 
-`/memorize` should include:
+`/memorize`는 다음 표현을 포함해야 합니다.
 
-- never-reviewed expressions,
-- expressions with `due_at = null`,
-- expressions whose `due_at <= now`.
+- 아직 한 번도 복습하지 않은 표현
+- `due_at = null`인 표현
+- `due_at <= now`인 표현
 
-Known expressions with future `due_at` must stay out of the queue. For old rows with `last_result = known` but missing `due_at`, keep the existing safe fallback behavior.
+미래 `due_at`을 가진 `known` 표현은 큐에 나오면 안 됩니다. 과거 row 중 `last_result = known`이지만 `due_at`이 없는 경우에는 기존 안전 fallback 동작을 유지합니다.
 
-## Data model
+## 데이터 모델
 
-No schema change is required for this version.
+이번 버전에서는 스키마 변경이 필요하지 않습니다.
 
-Use existing `expression_progress` fields:
+기존 `expression_progress` 필드를 사용합니다.
 
-- `interval_days` — current ladder interval or `0` for unlearned/relearning new cards.
-- `last_result` — identifies unresolved lapse state (`unknown`) before the next `외웠음`.
-- `due_at` — source of truth for queue reappearance.
+- `interval_days` — 현재 ladder 간격 또는 아직 학습/재학습 전인 카드의 `0`.
+- `last_result` — 다음 `외웠음` 전까지 아직 회복되지 않은 실패 상태(`unknown`)를 식별합니다.
+- `due_at` — 큐에 다시 나타나는 시점의 기준값입니다.
 
-## Acceptance criteria
+## 수용 기준
 
-- A new expression marked immediately `외웠음` receives `interval_days = 3` and a `due_at` three Korean calendar days later.
-- A new expression marked `모름` one or more times, then `외웠음`, receives `interval_days = 1` and a next-day Korean-midnight `due_at`.
-- A 14-day expression marked immediately `외웠음` receives `interval_days = 30`.
-- A 30-day expression marked immediately `외웠음` receives `interval_days = 60`.
-- A 60-day expression marked immediately `외웠음` receives `interval_days = 90`.
-- A 90-day expression marked immediately `외웠음` remains capped at `interval_days = 90`.
-- Any expression marked `모름` keeps its previous `interval_days` and receives `due_at = null`.
-- Unknown expressions remain due and can still be cycled to the back of the client-side queue.
-- The revealed memorize card shows `모름 / 오늘 다시` and `외웠음 / N일 뒤`.
-- Existing tests, lint, typecheck, build, and a live `/memorize` route check pass.
+- 새 표현을 바로 `외웠음`으로 표시하면 `interval_days = 3`이 되고, 한국 달력 기준 3일 뒤 `due_at`이 설정됩니다.
+- 새 표현을 `모름`으로 한 번 이상 표시한 뒤 `외웠음`으로 표시하면 `interval_days = 1`이 되고, 다음 날 한국 시간 자정 `due_at`이 설정됩니다.
+- 14일 표현을 바로 `외웠음`으로 표시하면 `interval_days = 30`이 됩니다.
+- 30일 표현을 바로 `외웠음`으로 표시하면 `interval_days = 60`이 됩니다.
+- 60일 표현을 바로 `외웠음`으로 표시하면 `interval_days = 90`이 됩니다.
+- 90일 표현을 바로 `외웠음`으로 표시하면 `interval_days = 90`으로 상한 상태를 유지합니다.
+- 어떤 표현이든 `모름`으로 표시하면 이전 `interval_days`를 유지하고 `due_at = null`이 됩니다.
+- unknown 표현은 due 상태로 남고, 클라이언트 큐 뒤로 순환될 수 있습니다.
+- 정답이 공개된 암기 카드에는 `모름 / 오늘 다시`, `외웠음 / N일 뒤`가 표시됩니다.
+- 기존 테스트, lint, typecheck, build, 실제 `/memorize` 경로 확인이 통과합니다.
 
-## Verification plan
+## 검증 계획
 
-- Unit-test interval promotion, no-demotion `모름`, recovery after unresolved lapses, capped 90-day intervals, and Korean-midnight `due_at` calculation in `lib/scheduling.ts`.
-- Integration-test `MemoryExpressionStore.recordReviewResult()` for interval promotion through 60/90 and `모름` interval preservation.
-- Component-test `MemorizeCard` timing helper labels.
-- Run `npm run lint`.
-- Run `npm run typecheck`.
-- Run `npm test`.
-- Run `npm run clean:runtime && npm run build`.
-- Start the Next dev server bound to `0.0.0.0` and exercise `/memorize` locally and externally.
+- `lib/scheduling.ts`에서 간격 승급, `모름` 간격 미강등, 아직 회복되지 않은 실패 상태의 회복, 90일 상한, 한국 시간 자정 `due_at` 계산을 단위 테스트합니다.
+- `MemoryExpressionStore.recordReviewResult()`에서 60/90일 승급과 `모름` 간격 유지 동작을 통합 테스트합니다.
+- `MemorizeCard`의 버튼 시점 보조 문구를 컴포넌트 테스트합니다.
+- `npm run lint`를 실행합니다.
+- `npm run typecheck`를 실행합니다.
+- `npm test`를 실행합니다.
+- `npm run clean:runtime && npm run build`를 실행합니다.
+- Next dev 서버를 `0.0.0.0`에 바인딩하고 `/memorize`를 로컬/외부에서 확인합니다.
