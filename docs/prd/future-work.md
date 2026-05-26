@@ -105,7 +105,50 @@
 
 ## Active
 
-_현재 진행 중인 작업이 있으면 여기에 1개만 둡니다._
+### T-003: 에빙하우스 망각곡선 기반 복습 알고리즘 적용
+
+- Status: Active
+- Priority: High
+- Workstream: Retention Algorithm
+- Surface: scheduling logic, persistence, tests, memorize UI
+- Pull readiness:
+  - [x] User value is clear: 표현이 많아져도 `모름`이 장기 복습 간격을 깎지 않아 부담이 줄어듭니다.
+  - [x] Acceptance criteria are testable.
+  - [x] Required data/schema changes are identified: schema change 없음.
+  - [x] Required live route/action checks are identified: `/memorize` live route and button-label flow.
+- Artifacts:
+  - PRD: `docs/prd/active/spaced-repetition-interval-policy/prd.md`
+  - Test spec: implementation PR covers focused scheduling, memory-store, and memorize-card tests
+  - Implementation plan: PR #5 narrow SRS policy change
+- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `모름`으로 장기 간격이 줄어드는 부담을 제거하기 위해서입니다.
+- Scope:
+  - `외웠음`은 1 → 3 → 7 → 14 → 30 → 60 → 90일 간격으로 늘립니다.
+  - `모름`은 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
+  - `/memorize` 버튼에 `오늘 다시` / `N일 뒤`를 명시합니다.
+  - 기존 progress 데이터와 호환되게 schema 변경 없이 처리합니다.
+- Non-goals:
+  - 완전한 SM-2/FSRS 구현
+  - 머신러닝 개인화
+  - 푸쉬 알림 발송
+  - Anki식 4버튼 UI
+- Acceptance criteria:
+  - [x] 새 복습 간격 정책이 문서화됩니다.
+  - [x] `외웠음`은 다음 복습일을 1/3/7/14/30/60/90일 ladder에 맞게 뒤로 미룹니다.
+  - [x] `모름`은 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
+  - [x] 기존 progress 데이터가 깨지지 않습니다.
+  - [x] 버튼에 다음 시점이 명시됩니다.
+- Verification:
+  - [x] scheduler/priority 단위 테스트
+  - [x] memory store 테스트
+  - [x] memorize card component 테스트
+  - [x] `npm run lint`
+  - [x] `npm run typecheck`
+  - [x] `npm test`
+  - [x] `npm run clean:runtime && npm run build`
+  - [x] `/memorize` live route smoke check
+- Notes / links:
+  - PR: https://github.com/ParkSeryu/english_app/pull/5
+  - 관련 기존 문서: `docs/prd/complete/daily-expression-memorization/prd.md`
 
 ## Backlog
 
@@ -145,45 +188,6 @@ _현재 진행 중인 작업이 있으면 여기에 1개만 둡니다._
   - [ ] `/memorize` live route smoke check
 - Notes / links:
   - 망각곡선 알고리즘 변경 전에 먼저 정책을 정하면 SRS 큐 기준이 단순해집니다.
-
-### T-003: 에빙하우스 망각곡선 기반 복습 알고리즘 적용
-
-- Status: Backlog
-- Priority: High
-- Workstream: Retention Algorithm
-- Surface: scheduling logic, persistence, tests, possibly schema
-- Pull readiness:
-  - [ ] User value is clear: 사용자가 잊어버리기 쉬운 시점에 더 자연스럽게 복습합니다.
-  - [ ] Acceptance criteria are testable.
-  - [ ] Required data/schema changes are identified.
-  - [ ] Required live route/action checks are identified.
-- Artifacts:
-  - PRD: `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
-  - Test spec: extend `docs/prd/complete/daily-expression-memorization/test-spec.md` or create a focused test spec before active work
-  - Implementation plan: TBD before moving to `Active`
-- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하기 위해서입니다.
-- Scope:
-  - 현재 Anki-lite 성공 간격 정책을 검토하고 새 interval 정책을 정의합니다.
-  - `외웠음` / `모름` 결과가 다음 복습일과 우선순위에 어떻게 반영되는지 정합니다.
-  - 기존 사용자 progress 데이터와 호환되는 전환 방식을 정합니다.
-- Non-goals:
-  - 완전한 SM-2 구현
-  - 머신러닝 개인화
-  - 푸쉬 알림 발송
-- Acceptance criteria:
-  - [ ] 새 복습 간격 정책이 문서화됩니다.
-  - [ ] `외웠음`은 다음 복습일을 망각곡선 정책에 맞게 뒤로 미룹니다.
-  - [ ] `모름`은 즉시/근시일 복습 대상으로 남고 우선순위가 올라갑니다.
-  - [ ] 기존 progress 데이터가 깨지지 않습니다.
-- Verification:
-  - [ ] scheduler/priority 단위 테스트
-  - [ ] memoization queue 테스트
-  - [ ] `npm run lint`
-  - [ ] `npm run typecheck`
-  - [ ] `/memorize` live route smoke check
-- Notes / links:
-  - 관련 기존 문서: `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
-  - 신규회원 완충 정책과 큐 우선순위가 충돌하지 않게 같이 검토해야 합니다.
 
 ### T-004: 앱 푸쉬 알림 추가
 
@@ -257,7 +261,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - PRD 문서 인덱스를 추가했습니다.
   - 기존 문서에 tracker, lifecycle, parent/child artifact 관계를 명시했습니다.
   - superseded 문서와 complete 문서를 구분했습니다.
-  - T-003 SRS 문서가 `pull-ready backlog` 상태이고 tracker가 최종 상태 기준임을 명시했습니다.
+  - T-003 SRS 문서의 tracker 우선 원칙을 명시했습니다.
 - Non-goals: 앱 코드 변경, PRD 내용 재작성, 새 기능 구현
 - Changed files:
   - `docs/prd/README.md`
@@ -268,7 +272,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
-  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
 - Verification:
   - `git diff --check`
   - `python3` PRD-doc whitespace/final-newline check
@@ -294,7 +298,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
-  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
   - `docs/prd/backlog/new-member-learning-load/README.md`
   - `docs/prd/backlog/push-notifications/README.md`
 - Verification:
@@ -319,7 +323,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/future-work.md`
   - `docs/prd/active/README.md`
   - `docs/prd/backlog/new-member-learning-load/README.md`
-  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
   - `docs/prd/backlog/push-notifications/README.md`
   - `docs/prd/complete/daily-expression-memorization/prd.md`
   - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
@@ -348,7 +352,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/future-work.md`
   - `docs/prd/active/README.md`
   - `docs/prd/backlog/new-member-learning-load/README.md`
-  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
   - `docs/prd/backlog/push-notifications/README.md`
   - `docs/prd/complete/daily-expression-memorization/prd.md`
   - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
