@@ -2,7 +2,7 @@
 
 ## Status
 
-- Tracker item: T-002 in `docs/product/future-work.md`.
+- Tracker item: T-002 in `docs/prd/future-work.md`.
 - Lifecycle folder: `backlog`.
 - Artifact state: brief only; create `prd.md` and `test-spec.md` before implementation if this becomes active work.
 

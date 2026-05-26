@@ -2,10 +2,10 @@
 
 ## Status
 
-- Tracker item: T-003 in `docs/product/future-work.md`.
+- Tracker item: T-003 in `docs/prd/future-work.md`.
 - Lifecycle folder: `backlog`; this policy PRD is pull-ready, but implementation should not be considered `Active` until T-003 is moved forward in the tracker.
-- Parent complete baseline: `docs/product/complete/daily-expression-memorization/prd.md`.
-- Test spec: extend `docs/product/complete/daily-expression-memorization/test-spec.md` or create a focused test spec before T-003 becomes `Active`.
+- Parent complete baseline: `docs/prd/complete/daily-expression-memorization/prd.md`.
+- Test spec: extend `docs/prd/complete/daily-expression-memorization/test-spec.md` or create a focused test spec before T-003 becomes `Active`.
 - Implementation plan: TBD when T-003 is pulled into `Active`.
 - Prior planning note: originally approved for isolated worktree `feature/srs-interval-policy`; the current tracker state takes precedence.
 

@@ -2,11 +2,11 @@
 
 ## Status
 
-- Tracker: `docs/product/future-work.md`.
+- Tracker: `docs/prd/future-work.md`.
 - Lifecycle folder: `complete`; baseline implementation artifact for historical execution context and regression-safe future changes.
 - Mode: team execution complete.
-- Source PRD: `docs/product/complete/daily-expression-memorization/prd.md`.
-- Source test spec: `docs/product/complete/daily-expression-memorization/test-spec.md`.
+- Source PRD: `docs/prd/complete/daily-expression-memorization/prd.md`.
+- Source test spec: `docs/prd/complete/daily-expression-memorization/test-spec.md`.
 - Prior implementation checkpoint: `f96eebd`.
 - Implementation checkpoint: team-complete merge `6f6fb14`, final fix commit follows this document update.
 
@@ -191,7 +191,7 @@ Integration owner responsibilities:
 ## Launch Hint
 
 ```text
-$team 3:executor "Implement docs/product/complete/daily-expression-memorization/implementation-plan.md. Split lanes into schema/store, UI, and tests. Preserve approval-gated LLM ingestion, shared expression content, per-user progress RLS, Korean-first memorization, unknown-weighted queue, and Questions GNB tab."
+$team 3:executor "Implement docs/prd/complete/daily-expression-memorization/implementation-plan.md. Split lanes into schema/store, UI, and tests. Preserve approval-gated LLM ingestion, shared expression content, per-user progress RLS, Korean-first memorization, unknown-weighted queue, and Questions GNB tab."
 ```
 
 ## Risks

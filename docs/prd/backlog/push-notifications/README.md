@@ -2,7 +2,7 @@
 
 ## Status
 
-- Tracker item: T-004 in `docs/product/future-work.md`.
+- Tracker item: T-004 in `docs/prd/future-work.md`.
 - Lifecycle folder: `backlog`.
 - Artifact state: brief only; browser/PWA constraints must be confirmed before `prd.md` and `test-spec.md` are created.
 

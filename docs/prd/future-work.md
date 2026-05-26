@@ -7,7 +7,7 @@
 - 이 문서는 **작업 후보와 우선순위의 기준점**입니다.
 - 실제 구현이 시작되면, 큰 작업은 별도 PRD / test-spec / implementation-plan 문서로 분리합니다.
 - 완료 보고는 구현 PR/커밋이 아니라 이 문서의 `Complete` 섹션에도 남겨서 맥락을 잃지 않게 합니다.
-- 문서 전체 지도는 `docs/product/README.md`에서 확인합니다.
+- 문서 전체 지도는 `docs/prd/README.md`에서 확인합니다.
 
 ## Operating Rule
 
@@ -121,7 +121,7 @@ _현재 진행 중인 작업이 있으면 여기에 1개만 둡니다._
   - [ ] Required data/schema changes are identified.
   - [ ] Required live route/action checks are identified.
 - Artifacts:
-  - Brief: `docs/product/backlog/new-member-learning-load/README.md`
+  - Brief: `docs/prd/backlog/new-member-learning-load/README.md`
   - PRD: TBD before moving to `Active`
   - Test spec: TBD before moving to `Active`
   - Implementation plan: TBD after PRD/test-spec
@@ -158,8 +158,8 @@ _현재 진행 중인 작업이 있으면 여기에 1개만 둡니다._
   - [ ] Required data/schema changes are identified.
   - [ ] Required live route/action checks are identified.
 - Artifacts:
-  - PRD: `docs/product/backlog/spaced-repetition-interval-policy/prd.md`
-  - Test spec: extend `docs/product/complete/daily-expression-memorization/test-spec.md` or create a focused test spec before active work
+  - PRD: `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - Test spec: extend `docs/prd/complete/daily-expression-memorization/test-spec.md` or create a focused test spec before active work
   - Implementation plan: TBD before moving to `Active`
 - Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하기 위해서입니다.
 - Scope:
@@ -182,7 +182,7 @@ _현재 진행 중인 작업이 있으면 여기에 1개만 둡니다._
   - [ ] `npm run typecheck`
   - [ ] `/memorize` live route smoke check
 - Notes / links:
-  - 관련 기존 문서: `docs/product/backlog/spaced-repetition-interval-policy/prd.md`
+  - 관련 기존 문서: `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
   - 신규회원 완충 정책과 큐 우선순위가 충돌하지 않게 같이 검토해야 합니다.
 
 ### T-004: 앱 푸쉬 알림 추가
@@ -197,7 +197,7 @@ _현재 진행 중인 작업이 있으면 여기에 1개만 둡니다._
   - [ ] Required data/schema changes are identified.
   - [ ] Required live route/action checks are identified.
 - Artifacts:
-  - Brief: `docs/product/backlog/push-notifications/README.md`
+  - Brief: `docs/prd/backlog/push-notifications/README.md`
   - PRD: TBD before moving to `Active`
   - Test spec: TBD before moving to `Active`
   - Implementation plan: TBD after browser/PWA constraints are confirmed
@@ -239,96 +239,124 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
 - Priority: Medium
 - Why: 앞으로 해야 할 작업의 맥락, 우선순위, 완료 기준을 잃지 않기 위해 문서 기반 관리가 필요했습니다.
 - Scope:
-  - `docs/product/future-work.md`를 작업 추적 기준점으로 추가했습니다.
-  - 기존 product 문서들과 연결할 수 있도록 pull system, workstream, artifact rule을 정의했습니다.
+  - `docs/prd/future-work.md`를 작업 추적 기준점으로 추가했습니다.
+  - 기존 PRD 문서들과 연결할 수 있도록 pull system, workstream, artifact rule을 정의했습니다.
 - Non-goals: 별도 이슈 트래커, 자동화, 앱 UI 변경
 - Changed files:
-  - `docs/product/future-work.md`
+  - `docs/prd/future-work.md`
 - Verification:
   - `git diff --check`
   - 문서 내용 직접 확인
 
-### 2026-05-26 — T-005: product 문서 생명주기와 연결 구조 정리
+### 2026-05-26 — T-005: PRD 문서 생명주기와 연결 구조 정리
 
 - Status: Complete
 - Priority: Medium
 - Why: 기존 PRD/test-spec/implementation-plan 문서가 원장 기반 pull system과 연결되어야 다음 작업을 안전하게 당겨올 수 있습니다.
 - Scope:
-  - product 문서 인덱스를 추가했습니다.
+  - PRD 문서 인덱스를 추가했습니다.
   - 기존 문서에 tracker, lifecycle, parent/child artifact 관계를 명시했습니다.
   - superseded 문서와 complete 문서를 구분했습니다.
   - T-003 SRS 문서가 `pull-ready backlog` 상태이고 tracker가 최종 상태 기준임을 명시했습니다.
 - Non-goals: 앱 코드 변경, PRD 내용 재작성, 새 기능 구현
 - Changed files:
-  - `docs/product/README.md`
-  - `docs/product/future-work.md`
-  - `docs/product/complete/daily-expression-memorization/prd.md`
-  - `docs/product/complete/daily-expression-memorization/implementation-plan.md`
-  - `docs/product/complete/daily-expression-memorization/test-spec.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/prd.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
-  - `docs/product/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/README.md`
+  - `docs/prd/future-work.md`
+  - `docs/prd/complete/daily-expression-memorization/prd.md`
+  - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
+  - `docs/prd/complete/daily-expression-memorization/test-spec.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
+  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
 - Verification:
   - `git diff --check`
-  - `python3` product-doc whitespace/final-newline check
+  - `python3` PRD-doc whitespace/final-newline check
   - 문서 헤더/인덱스 직접 확인
 
-### 2026-05-26 — T-006: product 문서를 feature/lifecycle 폴더 구조로 정리
+### 2026-05-26 — T-006: PRD 문서를 feature/lifecycle 폴더 구조로 정리
 
 - Status: Complete
 - Priority: Medium
 - Why: PRD/test-spec/implementation-plan이 루트에 섞여 있으면 어떤 문서가 한 기능 묶음인지 파악하기 어렵습니다.
 - Scope:
-  - active, backlog, complete 기준의 폴더 구조로 product 문서를 이동했습니다.
+  - active, backlog, complete 기준의 폴더 구조로 PRD 문서를 이동했습니다.
   - 각 feature 폴더 안에서 `prd.md`, `test-spec.md`, `implementation-plan.md`처럼 안정적인 파일명을 사용하도록 정리했습니다.
-  - 문서 내부 참조와 product 인덱스를 새 경로에 맞게 갱신했습니다.
+  - 문서 내부 참조와 PRD 인덱스를 새 경로에 맞게 갱신했습니다.
 - Non-goals: 앱 코드 변경, 문서 내용 자체의 제품 결정 변경
 - Changed files:
-  - `docs/product/README.md`
-  - `docs/product/active/README.md`
-  - `docs/product/future-work.md`
-  - `docs/product/complete/daily-expression-memorization/prd.md`
-  - `docs/product/complete/daily-expression-memorization/implementation-plan.md`
-  - `docs/product/complete/daily-expression-memorization/test-spec.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/prd.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
-  - `docs/product/backlog/spaced-repetition-interval-policy/prd.md`
-  - `docs/product/backlog/new-member-learning-load/README.md`
-  - `docs/product/backlog/push-notifications/README.md`
+  - `docs/prd/README.md`
+  - `docs/prd/active/README.md`
+  - `docs/prd/future-work.md`
+  - `docs/prd/complete/daily-expression-memorization/prd.md`
+  - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
+  - `docs/prd/complete/daily-expression-memorization/test-spec.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
+  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/backlog/new-member-learning-load/README.md`
+  - `docs/prd/backlog/push-notifications/README.md`
 - Verification:
   - `git diff --check`
-  - `python3` product-doc whitespace/final-newline check
-  - old product path reference search
-  - product markdown local path existence check
+  - `python3` PRD-doc whitespace/final-newline check
+  - old PRD path reference search
+  - PRD markdown local path existence check
 
-### 2026-05-26 — T-007: product 문서를 active/backlog/complete 구조로 단순화
+### 2026-05-26 — T-007: PRD 문서를 active/backlog/complete 구조로 단순화
 
 - Status: Complete
 - Priority: Medium
 - Why: `baseline/ready-to-pull/archive`보다 `active/backlog/complete`가 작업 상태를 직관적으로 보여줍니다.
 - Scope:
-  - product 문서를 `active/`, `backlog/`, `complete/` 폴더 기준으로 재배치했습니다.
+  - PRD 문서를 `active/`, `backlog/`, `complete/` 폴더 기준으로 재배치했습니다.
   - `active/README.md`를 추가해 빈 active 폴더의 운영 규칙을 기록했습니다.
   - 아직 PRD가 없는 backlog 항목에도 feature brief README를 추가했습니다.
-  - product 인덱스와 문서 내부 링크를 새 경로에 맞게 갱신했습니다.
+  - PRD 인덱스와 문서 내부 링크를 새 경로에 맞게 갱신했습니다.
 - Non-goals: 앱 코드 변경, 새 기능 구현, 제품 요구사항 변경
 - Changed files:
-  - `docs/product/README.md`
-  - `docs/product/future-work.md`
-  - `docs/product/active/README.md`
-  - `docs/product/backlog/new-member-learning-load/README.md`
-  - `docs/product/backlog/spaced-repetition-interval-policy/prd.md`
-  - `docs/product/backlog/push-notifications/README.md`
-  - `docs/product/complete/daily-expression-memorization/prd.md`
-  - `docs/product/complete/daily-expression-memorization/implementation-plan.md`
-  - `docs/product/complete/daily-expression-memorization/test-spec.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/prd.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
-  - `docs/product/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
+  - `docs/prd/README.md`
+  - `docs/prd/future-work.md`
+  - `docs/prd/active/README.md`
+  - `docs/prd/backlog/new-member-learning-load/README.md`
+  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/backlog/push-notifications/README.md`
+  - `docs/prd/complete/daily-expression-memorization/prd.md`
+  - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
+  - `docs/prd/complete/daily-expression-memorization/test-spec.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
 - Verification:
   - `git diff --check`
-  - `python3` product-doc whitespace/final-newline check
+  - `python3` PRD-doc whitespace/final-newline check
   - old lifecycle folder reference search
-  - product markdown local path existence check
+  - PRD markdown local path existence check
+
+### 2026-05-26 — T-008: 문서 루트 이름을 docs/prd로 변경
+
+- Status: Complete
+- Priority: Medium
+- Why: 이전 문서 루트보다 `docs/prd`가 현재 문서 묶음의 역할을 더 직접적으로 보여줍니다.
+- Scope:
+  - 이전 문서 루트를 `docs/prd/`로 이동했습니다.
+  - repo 문서 안의 이전 경로 참조를 `docs/prd/...`로 갱신했습니다.
+  - 인덱스 제목과 운영 문구를 PRD 기준으로 정리했습니다.
+- Non-goals: 앱 코드 변경, SRS 구현, 제품 요구사항 변경
+- Changed files:
+  - `docs/prd/README.md`
+  - `docs/prd/future-work.md`
+  - `docs/prd/active/README.md`
+  - `docs/prd/backlog/new-member-learning-load/README.md`
+  - `docs/prd/backlog/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/backlog/push-notifications/README.md`
+  - `docs/prd/complete/daily-expression-memorization/prd.md`
+  - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
+  - `docs/prd/complete/daily-expression-memorization/test-spec.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
+  - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
+- Verification:
+  - `git diff --check`
+  - `python3` PRD-doc whitespace/final-newline/path-reference check
+  - old docs root reference search outside `.omx`

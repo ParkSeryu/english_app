@@ -2,10 +2,10 @@
 
 ## Source
 
-- Tracker: `docs/product/future-work.md`.
+- Tracker: `docs/prd/future-work.md`.
 - Lifecycle folder: `complete`; baseline test spec for the current daily-expression MVP.
-- PRD: `docs/product/complete/daily-expression-memorization/prd.md`
-- Implementation plan: `docs/product/complete/daily-expression-memorization/implementation-plan.md`
+- PRD: `docs/prd/complete/daily-expression-memorization/prd.md`
+- Implementation plan: `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
 - Checkpoint before rebuild: `f96eebd`
 
 ## Quality Gates

@@ -2,13 +2,13 @@
 
 ## Status
 
-- Tracker: `docs/product/future-work.md`.
+- Tracker: `docs/prd/future-work.md`.
 - Lifecycle folder: `complete`; this document is the current implemented product baseline that future tracker items must preserve unless they explicitly change it.
 - Document family:
-  - Implementation plan: `docs/product/complete/daily-expression-memorization/implementation-plan.md`
-  - Test spec: `docs/product/complete/daily-expression-memorization/test-spec.md`
+  - Implementation plan: `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
+  - Test spec: `docs/prd/complete/daily-expression-memorization/test-spec.md`
 - Canonical PRD: this document drives the next build direction. Superseded docs are retained for history only and must not drive new implementation.
-- Supersedes: `docs/product/complete/english-review-app-llm-ingestion-superseded/prd.md` for the next build direction.
+- Supersedes: `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md` for the next build direction.
 - Rollback checkpoints:
   - `18440a0` previous card MVP checkpoint.
   - `f96eebd` lesson-ingestion implementation checkpoint.

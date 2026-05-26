@@ -1,8 +1,8 @@
-# Product Documentation Index
+# PRD Documentation Index
 
 ## Source of Truth
 
-`docs/product/future-work.md` is the work queue and portfolio source of truth.
+`docs/prd/future-work.md` is the work queue and portfolio source of truth.
 
 Use individual feature folders as supporting artifacts for a tracker item. If a document and the tracker disagree about whether work is active, the tracker wins.
 
@@ -27,7 +27,7 @@ A backlog item can be **pull-ready** when it already has enough PRD/test-spec de
 ## Folder Structure
 
 ```text
-docs/product/
+docs/prd/
   README.md
   future-work.md
   active/

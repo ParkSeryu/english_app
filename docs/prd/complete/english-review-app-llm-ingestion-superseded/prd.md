@@ -2,12 +2,12 @@
 
 ## Status
 
-- Tracker: `docs/product/future-work.md`.
+- Tracker: `docs/prd/future-work.md`.
 - Lifecycle folder: `complete`; superseded historical planning context only. Do not use this document to drive new implementation unless a new tracker item explicitly revives it.
-- Superseded by: `docs/product/complete/daily-expression-memorization/prd.md`.
+- Superseded by: `docs/prd/complete/daily-expression-memorization/prd.md`.
 - Document family:
-  - Implementation plan: `docs/product/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
-  - Test spec: `docs/product/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
+  - Implementation plan: `docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md`
+  - Test spec: `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
 - Workflow: replanning after rollback checkpoint commit `18440a0`.
 - Previous MVP direction: user manually enters cards in the app.
 - Revised direction: user tells an LLM what they learned; the LLM structures and inserts lesson data into the app; the app focuses on review, memorization, and user notes.
