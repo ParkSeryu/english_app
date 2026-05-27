@@ -107,52 +107,7 @@
 
 ## Active
 
-### T-003: 에빙하우스 망각곡선 기반 복습 알고리즘 적용
-
-- Status: Active
-- Priority: High
-- Workstream: Retention Algorithm
-- Surface: scheduling logic, persistence, tests, memorize UI
-- Pull readiness:
-  - [x] User value is clear: 표현이 많아져도 `다시`가 장기 복습 간격을 깎지 않고, `어려움`은 한 단계만 낮추며 `쉬움`은 장기 간격까지 늘려 부담이 줄어듭니다.
-  - [x] Acceptance criteria are testable.
-  - [x] Required data/schema changes are identified: schema change 없음.
-  - [x] Required live route/action checks are identified: `/memorize` live route and button-label flow.
-- Artifacts:
-  - PRD: `docs/prd/active/spaced-repetition-interval-policy/prd.md`
-  - Test spec: implementation PR covers focused scheduling, memory-store, and memorize-card tests
-  - Implementation plan: PR #5 narrow SRS policy change
-- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `다시`로 장기 간격이 줄어드는 부담을 제거하고, `어려움`과 `쉬움`을 구분하기 위해서입니다.
-- Scope:
-  - 버튼은 `다시 / 어려움 / 쉬움` 세 개로 구성합니다.
-  - `다시`는 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
-  - `어려움`은 interval을 한 단계 낮추고, `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90 → 180 → 365일 ladder로 늘립니다.
-  - `/memorize` 버튼에 `오늘 다시` / `N일 뒤`를 명시합니다.
-  - 기존 progress 데이터와 호환되게 schema 변경 없이 처리합니다.
-- Non-goals:
-  - 완전한 SM-2/FSRS 구현
-  - 머신러닝 개인화
-  - 푸쉬 알림 발송
-  - Anki식 `다시 / 어려움 / 좋음 / 쉬움` 4버튼 UI
-- Acceptance criteria:
-  - [x] 새 복습 간격 정책이 문서화됩니다.
-  - [x] `쉬움`은 다음 복습일을 1/3/7/14/30/60/90/180/365일 ladder에 맞게 뒤로 미룹니다.
-  - [x] `어려움`은 interval을 한 단계 낮춰 너무 빨리 늘리지 않습니다.
-  - [x] `다시`는 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
-  - [x] 기존 progress 데이터가 깨지지 않습니다.
-  - [x] 버튼에 다음 시점이 명시됩니다.
-- Verification:
-  - [x] scheduler/priority 단위 테스트
-  - [x] memory store 테스트
-  - [x] memorize card component 테스트
-  - [x] `npm run lint`
-  - [x] `npm run typecheck`
-  - [x] `npm test`
-  - [x] `npm run clean:runtime && npm run build`
-  - [x] `/memorize` live route smoke check
-- Notes / links:
-  - PR: https://github.com/ParkSeryu/english_app/pull/5
-  - 관련 기존 문서: `docs/prd/complete/daily-expression-memorization/prd.md`
+_현재 진행 중인 작업은 없습니다._
 
 ## Backlog
 
@@ -203,6 +158,69 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-05-27 — T-003: 에빙하우스 망각곡선 기반 복습 알고리즘 적용
+
+- Status: Complete
+- PR: https://github.com/ParkSeryu/english_app/pull/5
+- Merge commit: `f213ffb`
+- Dev sync commit: `2b0346b`
+- Priority: High
+- Workstream: Retention Algorithm
+- Surface: scheduling logic, persistence, tests, memorize UI
+- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `다시`로 장기 간격이 줄어드는 부담을 제거하고, `어려움`과 `쉬움`을 구분하기 위해서입니다.
+- Scope:
+  - 버튼은 `다시 / 어려움 / 쉬움` 세 개로 구성했습니다.
+  - `다시`는 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
+  - `어려움`은 interval을 한 단계 낮추고, `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90 → 180 → 365일 ladder로 늘립니다.
+  - `/memorize` 버튼에 `오늘 다시` / `N일 뒤`를 명시했습니다.
+  - 기존 progress 데이터와 호환되게 schema 변경 없이 처리했습니다.
+- Non-goals:
+  - 완전한 SM-2/FSRS 구현
+  - 머신러닝 개인화
+  - 푸쉬 알림 발송
+  - Anki식 `다시 / 어려움 / 좋음 / 쉬움` 4버튼 UI
+- Acceptance criteria:
+  - [x] 새 복습 간격 정책이 문서화됩니다.
+  - [x] `쉬움`은 다음 복습일을 1/3/7/14/30/60/90/180/365일 ladder에 맞게 뒤로 미룹니다.
+  - [x] `어려움`은 interval을 한 단계 낮춰 너무 빨리 늘리지 않습니다.
+  - [x] `다시`는 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
+  - [x] 기존 progress 데이터가 깨지지 않습니다.
+  - [x] 버튼에 다음 시점이 명시됩니다.
+- Changed files:
+  - `app/actions.ts`
+  - `components/MemorizeCard.tsx`
+  - `components/MemorizeQueue.tsx`
+  - `lib/scheduling.ts`
+  - `lib/review-result.ts`
+  - `lib/types.ts`
+  - `lib/use-cases/expressions.ts`
+  - `lib/expression-store/*`
+  - `tests/components/memorize-card.test.tsx`
+  - `tests/components/memorize-queue.test.tsx`
+  - `tests/components/review-card.test.tsx`
+  - `tests/integration/memory-expression-store.test.ts`
+  - `tests/unit/scheduling.test.ts`
+  - `docs/prd/complete/spaced-repetition-interval-policy/prd.md`
+  - `docs/prd/future-work.md`
+  - `docs/prd/README.md`
+- Verification:
+  - [x] `git diff --check` — passed
+  - [x] `npm test -- tests/unit/scheduling.test.ts tests/integration/memory-expression-store.test.ts tests/components/memorize-card.test.tsx` — 28 passed
+  - [x] `npm run lint` — passed
+  - [x] `npm run typecheck` — passed
+  - [x] `npm test` — 160 passed, 1 skipped
+  - [x] `npm run clean:runtime && npm run build` — passed
+  - [x] `HEAD http://127.0.0.1:3010/memorize` — 200
+  - [x] `HEAD http://172.22.48.149:3010/memorize` — 200
+  - [x] Playwright live route smoke confirmed `다시/오늘 다시`, `어려움/1일 뒤`, `쉬움/3일 뒤`
+  - [x] Vercel deployment checks passed on `main` and `dev`
+- Remaining risks:
+  - Hosted Supabase write smoke was not rerun for this code-only scheduling change; no schema/data migration is required.
+  - Dev Supabase Preview currently reports pre-existing remote migration version drift (`20260504014420`, `20260504014422`) even though `npm run db:status:dev` reports pending 0 / mismatch 0.
+- Notes / links:
+  - PRD: `docs/prd/complete/spaced-repetition-interval-policy/prd.md`
+  - 관련 기존 문서: `docs/prd/complete/daily-expression-memorization/prd.md`
 
 ### 2026-05-27 — T-002: 신규회원 학습량 완충
 
