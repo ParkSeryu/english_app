@@ -2,6 +2,9 @@ export const STUDY_STATUSES = ["new", "learning", "memorized", "confusing"] as c
 export type StudyStatus = (typeof STUDY_STATUSES)[number];
 export const REVIEW_MODES = ["meaning-to-expression", "expression-to-meaning", "structure-to-pattern"] as const;
 export type ReviewMode = (typeof REVIEW_MODES)[number];
+export const EXPRESSION_REVIEW_RESULTS = ["again", "hard", "easy", "known", "unknown"] as const;
+export type ExpressionReviewResult = (typeof EXPRESSION_REVIEW_RESULTS)[number];
+export type StoredExpressionReviewResult = "known" | "unknown";
 
 export type UserIdentity = {
   id: string;
@@ -60,7 +63,7 @@ export type ExpressionCard = {
   known_count: number;
   unknown_count: number;
   review_count: number;
-  last_result: "known" | "unknown" | null;
+  last_result: StoredExpressionReviewResult | null;
   last_reviewed_at: string | null;
   /** Next time this learner should see the expression again. Null means immediately due. */
   due_at: string | null;
@@ -97,7 +100,7 @@ export type ExpressionProgress = {
   known_count: number;
   unknown_count: number;
   review_count: number;
-  last_result: "known" | "unknown" | null;
+  last_result: StoredExpressionReviewResult | null;
   last_reviewed_at: string | null;
   /** Next time this learner should see the expression again. Null means immediately due. */
   due_at: string | null;

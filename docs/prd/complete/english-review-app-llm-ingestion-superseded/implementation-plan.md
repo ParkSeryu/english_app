@@ -2,9 +2,11 @@
 
 ## Status
 
+- Tracker: `docs/prd/future-work.md`.
+- Lifecycle folder: `complete`; superseded implementation plan retained as historical context only unless a new tracker item revives this direction.
 - Mode: planning handoff before implementation.
-- Source PRD: `docs/product/prd-english-review-app-llm-ingestion.md`.
-- Source test spec: `docs/product/test-spec-english-review-app-llm-ingestion.md`.
+- Source PRD: `docs/prd/complete/english-review-app-llm-ingestion-superseded/prd.md`.
+- Source test spec: `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`.
 - Rollback checkpoint: `18440a0 Preserve current review app before replanning`.
 - Current direction commits: `cafe09e` and `7cb64b7`.
 - Execution rule: do **not** insert LLM-created lesson data until the user gives an explicit save/insert approval.
@@ -468,13 +470,13 @@ Suggested lanes:
 ### Ralph
 
 ```text
-$ralph Implement docs/product/implementation-plan-english-review-app-llm-ingestion.md. Preserve the approval gate, owner-scoped RLS, Vercel Hobby + Supabase Free constraints, and no voice/pronunciation scope. Verify lint, typecheck, tests, build, e2e, RLS, and ingestion auth/approval behavior.
+$ralph Implement docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md. Preserve the approval gate, owner-scoped RLS, Vercel Hobby + Supabase Free constraints, and no voice/pronunciation scope. Verify lint, typecheck, tests, build, e2e, RLS, and ingestion auth/approval behavior.
 ```
 
 ### Team
 
 ```text
-$team Implement docs/product/implementation-plan-english-review-app-llm-ingestion.md with lanes: schema/RLS, ingestion API, review UI, tests/e2e, docs. Require integration owner to resolve conflicts and final Ralph/verifier pass before completion.
+$team Implement docs/prd/complete/english-review-app-llm-ingestion-superseded/implementation-plan.md with lanes: schema/RLS, ingestion API, review UI, tests/e2e, docs. Require integration owner to resolve conflicts and final Ralph/verifier pass before completion.
 ```
 
 ## Team Verification Path

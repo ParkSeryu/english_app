@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { nextExpressionReviewSchedule, scheduleMemorizationQueue } from "@/lib/scheduling";
+import { isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
 import type {
   CardMemoInput,
   PersonalExpressionInput,
@@ -10,6 +11,7 @@ import type {
   ExpressionDay,
   ExpressionIngestionPayload,
   ExpressionProgress,
+  ExpressionReviewResult,
   IngestionRun,
   QuestionNote,
   QuestionNoteInput,
@@ -121,7 +123,7 @@ export class MemoryExpressionStore implements ExpressionStore {
     };
   }
 
-  async recordReviewResult(id: string, result: "known" | "unknown") {
+  async recordReviewResult(id: string, result: ExpressionReviewResult) {
     const located = this.findMutableExpression(id);
     if (!located) throw new Error("Expression not found");
     const timestamp = nowIso();
@@ -131,7 +133,7 @@ export class MemoryExpressionStore implements ExpressionStore {
       memoryState().expressionProgress.push(progress);
     }
     const schedule = nextExpressionReviewSchedule(progress, result, new Date(timestamp));
-    if (result === "known") {
+    if (isRememberedReviewResult(result)) {
       progress.known_count += 1;
     } else {
       progress.unknown_count += 1;
@@ -139,7 +141,7 @@ export class MemoryExpressionStore implements ExpressionStore {
     progress.interval_days = schedule.intervalDays;
     progress.due_at = schedule.dueAt;
     progress.review_count += 1;
-    progress.last_result = result;
+    progress.last_result = storedReviewResult(result);
     progress.last_reviewed_at = timestamp;
     progress.updated_at = timestamp;
     return requireEntity(await this.getExpression(id), "Expression not found");
@@ -373,4 +375,3 @@ export class MemoryExpressionStore implements ExpressionStore {
     return null;
   }
 }
-

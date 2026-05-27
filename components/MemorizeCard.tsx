@@ -5,20 +5,24 @@ import { Fragment, useState, useTransition } from "react";
 
 import { recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
 import { PronunciationButton } from "@/components/PronunciationButton";
-import type { ExpressionCard } from "@/lib/types";
+import { nextExpressionReviewSchedule } from "@/lib/scheduling";
+import { isAgainReviewResult } from "@/lib/review-result";
+import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 type MemorizeCardProps = {
   expression: ExpressionCard;
   returnTo?: string;
-  onReviewSubmit?: (result: "known" | "unknown") => void;
+  onReviewSubmit?: (result: ExpressionReviewResult) => void;
 };
 
 export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmit }: MemorizeCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
+  const hardIntervalDays = nextExpressionReviewSchedule(expression, "hard").intervalDays;
+  const easyIntervalDays = nextExpressionReviewSchedule(expression, "easy").intervalDays;
 
-  function handleReview(result: "known" | "unknown") {
-    if (result === "unknown") setRevealed(false);
+  function handleReview(result: ExpressionReviewResult) {
+    if (isAgainReviewResult(result)) setRevealed(false);
 
     if (onReviewSubmit) {
       onReviewSubmit(result);
@@ -72,9 +76,19 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmi
                 </ul>
               </section>
             ) : null}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => handleReview("unknown")} className="min-h-14 w-full rounded-full border border-rose-200 bg-rose-50 px-5 py-3 font-black text-rose-700 transition hover:bg-rose-100">모름</button>
-              <button type="button" onClick={() => handleReview("known")} className="min-h-14 w-full rounded-full bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700">외웠음</button>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <button type="button" onClick={() => handleReview("again")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-5 py-3 font-black text-rose-700 transition hover:bg-rose-100">
+                <span>다시</span>
+                <span className="mt-0.5 text-xs font-black text-rose-500">오늘 다시</span>
+              </button>
+              <button type="button" onClick={() => handleReview("hard")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-5 py-3 font-black text-amber-700 transition hover:bg-amber-100">
+                <span>어려움</span>
+                <span className="mt-0.5 text-xs font-black text-amber-500">{hardIntervalDays}일 뒤</span>
+              </button>
+              <button type="button" onClick={() => handleReview("easy")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700">
+                <span>쉬움</span>
+                <span className="mt-0.5 text-xs font-black text-emerald-100">{easyIntervalDays}일 뒤</span>
+              </button>
             </div>
           </div>
         </>
