@@ -147,7 +147,7 @@ describe("MemorizeCard", () => {
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
 
-    expect(screen.getByRole("button", { name: /어려움.*30일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /어려움.*14일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /쉬움.*60일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
   });

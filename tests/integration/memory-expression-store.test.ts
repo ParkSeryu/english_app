@@ -136,7 +136,7 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(switchedKnown).toMatchObject({ unknown_count: 2, known_count: 1, review_count: 3, last_result: "known", interval_days: 1 });
   });
 
-  it("promotes easy recalls, keeps hard recalls at the current interval, and preserves lapses", async () => {
+  it("promotes easy recalls, steps hard recalls down one interval, and preserves lapses", async () => {
     const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
     const store = new MemoryExpressionStore(userA);
     const { expressionDay } = await store.approveDraft((await store.createDraft(payload)).id, "저장해");
@@ -146,14 +146,17 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 7, known_count: 2 });
     expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 14, known_count: 3 });
     expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 30, known_count: 4 });
-    expect(await store.recordReviewResult(expressionId, "hard")).toMatchObject({ interval_days: 30, known_count: 5 });
-    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 60, known_count: 6 });
-    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 90, known_count: 7 });
+    expect(await store.recordReviewResult(expressionId, "hard")).toMatchObject({ interval_days: 14, known_count: 5 });
+    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 30, known_count: 6 });
+    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 60, known_count: 7 });
     expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 90, known_count: 8 });
+    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 180, known_count: 9 });
+    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 365, known_count: 10 });
+    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 365, known_count: 11 });
 
-    expect(await store.recordReviewResult(expressionId, "again")).toMatchObject({ interval_days: 90, unknown_count: 1, due_at: null });
-    expect(await store.recordReviewResult(expressionId, "again")).toMatchObject({ interval_days: 90, unknown_count: 2, due_at: null });
-    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 90, known_count: 9, last_result: "known" });
+    expect(await store.recordReviewResult(expressionId, "again")).toMatchObject({ interval_days: 365, unknown_count: 1, due_at: null });
+    expect(await store.recordReviewResult(expressionId, "again")).toMatchObject({ interval_days: 365, unknown_count: 2, due_at: null });
+    expect(await store.recordReviewResult(expressionId, "easy")).toMatchObject({ interval_days: 365, known_count: 12, last_result: "known" });
   });
 
   it("shares expression content while keeping progress, memos, and question notes per user", async () => {

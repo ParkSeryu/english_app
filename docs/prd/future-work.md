@@ -114,7 +114,7 @@
 - Workstream: Retention Algorithm
 - Surface: scheduling logic, persistence, tests, memorize UI
 - Pull readiness:
-  - [x] User value is clear: 표현이 많아져도 `다시`가 장기 복습 간격을 깎지 않고, `어려움`과 `쉬움`을 구분해 부담이 줄어듭니다.
+  - [x] User value is clear: 표현이 많아져도 `다시`가 장기 복습 간격을 깎지 않고, `어려움`은 한 단계만 낮추며 `쉬움`은 장기 간격까지 늘려 부담이 줄어듭니다.
   - [x] Acceptance criteria are testable.
   - [x] Required data/schema changes are identified: schema change 없음.
   - [x] Required live route/action checks are identified: `/memorize` live route and button-label flow.
@@ -126,7 +126,7 @@
 - Scope:
   - 버튼은 `다시 / 어려움 / 쉬움` 세 개로 구성합니다.
   - `다시`는 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
-  - `어려움`은 현재 interval을 유지하고, `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90일 ladder로 늘립니다.
+  - `어려움`은 interval을 한 단계 낮추고, `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90 → 180 → 365일 ladder로 늘립니다.
   - `/memorize` 버튼에 `오늘 다시` / `N일 뒤`를 명시합니다.
   - 기존 progress 데이터와 호환되게 schema 변경 없이 처리합니다.
 - Non-goals:
@@ -136,8 +136,8 @@
   - Anki식 `다시 / 어려움 / 좋음 / 쉬움` 4버튼 UI
 - Acceptance criteria:
   - [x] 새 복습 간격 정책이 문서화됩니다.
-  - [x] `쉬움`은 다음 복습일을 1/3/7/14/30/60/90일 ladder에 맞게 뒤로 미룹니다.
-  - [x] `어려움`은 현재 interval을 유지해 너무 빨리 늘리지 않습니다.
+  - [x] `쉬움`은 다음 복습일을 1/3/7/14/30/60/90/180/365일 ladder에 맞게 뒤로 미룹니다.
+  - [x] `어려움`은 interval을 한 단계 낮춰 너무 빨리 늘리지 않습니다.
   - [x] `다시`는 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
   - [x] 기존 progress 데이터가 깨지지 않습니다.
   - [x] 버튼에 다음 시점이 명시됩니다.
