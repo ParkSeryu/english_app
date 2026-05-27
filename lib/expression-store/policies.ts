@@ -98,7 +98,17 @@ export function expressionUrl(card: ExpressionCard) {
 }
 
 export function toDaySummary(day: ExpressionDay): ExpressionDaySummary {
-  return { id: day.id, owner_id: day.owner_id, title: day.title, source_note: day.source_note, day_date: day.day_date, created_by: day.created_by };
+  return {
+    id: day.id,
+    owner_id: day.owner_id,
+    title: day.title,
+    source_note: day.source_note,
+    day_date: day.day_date,
+    created_by: day.created_by,
+    folder_id: day.folder_id,
+    folder: day.folder,
+    folder_path: day.folder_path
+  };
 }
 
 export function calculateStats(dayCount: number, expressions: ExpressionStatsCard[], questions: QuestionStats[]): DashboardStats {

@@ -19,7 +19,9 @@ type MemorizeCardProps = {
 export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onReviewSubmit }: MemorizeCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
+  const topicContext = formatTopicContext(expression);
   const hardIntervalDays = nextExpressionReviewSchedule(expression, "hard").intervalDays;
+  const okayIntervalDays = nextExpressionReviewSchedule(expression, "okay").intervalDays;
   const easyIntervalDays = nextExpressionReviewSchedule(expression, "easy").intervalDays;
 
   function revealAnswer() {
@@ -47,9 +49,21 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
 
   return (
     <article className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-5">
-      <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 sm:text-xs">
-        <span>외움 {expression.known_count}회</span>
-        <span>틀림 {expression.unknown_count}회</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {topicContext ? (
+            <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50/80 px-3 py-1.5">
+              <span className="shrink-0 text-[10px] font-black tracking-[0.08em] text-teal-600">토픽:</span>
+              <span className="truncate text-xs font-black text-ink sm:text-sm">{topicContext}</span>
+            </div>
+          ) : (
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">암기 카드</p>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-0.5 text-[11px] font-bold text-slate-500 sm:text-xs">
+          <span>외움 {expression.known_count}회</span>
+          <span>틀림 {expression.unknown_count}회</span>
+        </div>
       </div>
 
       {!revealed ? (
@@ -82,18 +96,22 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
                 </ul>
               </section>
             ) : null}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-sm font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
-                <span>다시</span>
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
+              <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-1.5 py-2 text-[13px] font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                <span>모름</span>
                 <span className="mt-0.5 text-[11px] font-black text-rose-500 sm:text-xs">오늘 다시</span>
               </button>
-              <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-2 py-2 text-sm font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+              <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-1.5 py-2 text-[13px] font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>어려움</span>
                 <span className="mt-0.5 text-[11px] font-black text-amber-500 sm:text-xs">{hardIntervalDays}일 뒤</span>
               </button>
-              <button type="button" onClick={() => handleReview("easy")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl bg-emerald-600 px-2 py-2 text-sm font-black leading-tight text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+              <button type="button" onClick={() => handleReview("okay")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-1.5 py-2 text-[13px] font-black leading-tight text-sky-700 transition hover:bg-sky-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                <span>알긴암</span>
+                <span className="mt-0.5 text-[11px] font-black text-sky-500 sm:text-xs">{okayIntervalDays}일 뒤</span>
+              </button>
+              <button type="button" onClick={() => handleReview("easy")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-1.5 py-2 text-[13px] font-black leading-tight text-emerald-700 transition hover:bg-emerald-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>쉬움</span>
-                <span className="mt-0.5 text-[11px] font-black text-emerald-100 sm:text-xs">{easyIntervalDays}일 뒤</span>
+                <span className="mt-0.5 text-[11px] font-black text-emerald-500 sm:text-xs">{easyIntervalDays}일 뒤</span>
               </button>
             </div>
           </div>
@@ -101,6 +119,17 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
       )}
     </article>
   );
+}
+
+function formatTopicContext(expression: ExpressionCard) {
+  const day = expression.day;
+  if (!day) return null;
+
+  const folderParts = Array.isArray(day.folder_path) ? day.folder_path.filter(Boolean) : [];
+  const topicName = folderParts[folderParts.length - 1] ?? "";
+  const title = day.title.trim();
+
+  return [topicName, title].filter(Boolean).join(" ");
 }
 
 function Info({ title, body }: { title: string; body: ReactNode }) {
