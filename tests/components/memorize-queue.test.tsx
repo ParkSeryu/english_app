@@ -68,7 +68,7 @@ describe("MemorizeQueue", () => {
     expectPromptVisible("첫 번째 한국어");
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expect(screen.queryByText("First answer")).not.toBeInTheDocument();
     expectPromptAbsent("첫 번째 한국어");
@@ -82,14 +82,14 @@ describe("MemorizeQueue", () => {
     render(<MemorizeQueue expressions={[first, second, third]} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
     await waitFor(() => expect(inPlaceReviewAction).toHaveBeenCalledTimes(1));
 
     expect(inPlaceReviewAction).toHaveBeenNthCalledWith(1, first.id, "again");
     expectPromptVisible("두 번째 한국어");
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
     await waitFor(() => expect(inPlaceReviewAction).toHaveBeenCalledTimes(2));
 
     expect(inPlaceReviewAction).toHaveBeenNthCalledWith(2, second.id, "again");
@@ -104,7 +104,7 @@ describe("MemorizeQueue", () => {
     expect(screen.getByText("복습할 표현 3개")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expect(screen.getByText("복습할 표현 3개")).toBeInTheDocument();
 
@@ -119,12 +119,12 @@ describe("MemorizeQueue", () => {
     render(<MemorizeQueue expressions={[first, second]} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expectPromptVisible("두 번째 한국어");
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expectPromptVisible("첫 번째 한국어");
     expect(screen.getByText("틀림 1회")).toBeInTheDocument();
@@ -177,7 +177,7 @@ describe("MemorizeQueue", () => {
     const { unmount } = render(<MemorizeQueue expressions={[first, second, third]} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
     await waitFor(() => expect(window.sessionStorage.getItem("english:memorize-session:v1")).toContain(second.id));
 
     unmount();
@@ -209,7 +209,7 @@ describe("MemorizeQueue", () => {
     const { rerender } = render(<MemorizeQueue expressions={[first, second, third]} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
 
     rerender(<MemorizeQueue expressions={[second, third, first]} deferredIds={[first.id]} />);
 
