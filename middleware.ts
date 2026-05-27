@@ -119,7 +119,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (data?.user) {
-    setTrustedAuthHeaders(requestHeaders, { id: data.user.id, email: data.user.email });
+    setTrustedAuthHeaders(requestHeaders, { id: data.user.id, email: data.user.email, createdAt: data.user.created_at });
   }
 
   if (data?.user && pathname === "/login") {

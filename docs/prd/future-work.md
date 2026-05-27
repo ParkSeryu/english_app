@@ -156,43 +156,6 @@
 
 ## Backlog
 
-### T-002: 신규회원 학습량 완충
-
-- Status: Backlog
-- Priority: High
-- Workstream: Onboarding Load
-- Surface: UI, queue scheduling, per-user progress
-- Pull readiness:
-  - [ ] User value is clear: 신규회원이 첫 방문에서 과도한 카드 수에 압도되지 않고 작은 첫 세션을 완료할 수 있습니다.
-  - [ ] Acceptance criteria are testable.
-  - [ ] Required data/schema changes are identified.
-  - [ ] Required live route/action checks are identified.
-- Artifacts:
-  - Brief: `docs/prd/backlog/new-member-learning-load/README.md`
-  - PRD: TBD before moving to `Active`
-  - Test spec: TBD before moving to `Active`
-  - Implementation plan: TBD after PRD/test-spec
-- Why: 신규 유입 사용자는 기존 누적 표현을 한 번에 마주치면 학습을 시작하기 어렵습니다.
-- Scope:
-  - 첫 학습 세션에서 노출할 카드 수 제한 또는 단계적 해금 정책을 정합니다.
-  - 기존 사용자와 신규 사용자의 큐 경험 차이를 정의합니다.
-  - `/memorize`에서 신규회원이 작은 단위로 시작하는지 확인합니다.
-- Non-goals:
-  - 전체 온보딩 튜토리얼 구축
-  - 랭킹, streak, 결제, 관리자 UI
-  - 푸쉬 알림 구현
-- Acceptance criteria:
-  - [ ] 신규/진행 이력이 적은 사용자는 첫 세션에서 제한된 수의 카드만 받습니다.
-  - [ ] 기존 사용자의 due queue가 의도치 않게 줄어들지 않습니다.
-  - [ ] 제한 정책이 코드와 문서에 같은 의미로 기록됩니다.
-- Verification:
-  - [ ] 큐 생성 로직 테스트
-  - [ ] `npm run lint`
-  - [ ] `npm run typecheck`
-  - [ ] `/memorize` live route smoke check
-- Notes / links:
-  - 망각곡선 알고리즘 변경 전에 먼저 정책을 정하면 SRS 큐 기준이 단순해집니다.
-
 ### T-004: 앱 푸쉬 알림 추가
 
 - Status: Backlog
@@ -240,6 +203,54 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-05-27 — T-002: 신규회원 학습량 완충
+
+- Status: Complete
+- Priority: High
+- Workstream: Onboarding Load
+- Surface: auth context, UI-visible topic lists, queue scheduling, per-user progress reads
+- Why: 신규 유입 사용자가 가입 이전에 누적된 shared 토픽 전체를 한 번에 마주치지 않고, 가입 이후 추가된 토픽부터 학습을 시작하게 하기 위해서입니다.
+- Scope:
+  - Supabase auth `created_at`을 `UserIdentity.createdAt`으로 전달합니다.
+  - 비소유 shared 토픽은 `expression_days.created_at >= user.createdAt`일 때만 노출합니다.
+  - `/memorize`, `/expressions`, 홈 최근 토픽/통계가 같은 노출 기준을 사용합니다.
+- Non-goals:
+  - DB schema migration
+  - 카드 수 기반 단계적 해금/레벨 시스템
+  - 전체 온보딩 튜토리얼
+  - 푸쉬 알림
+- Acceptance criteria:
+  - [x] 신규 사용자는 가입 이전 shared 토픽의 카드를 `/memorize`에서 받지 않습니다.
+  - [x] 가입 이후 shared 토픽은 목록과 큐에 정상 표시됩니다.
+  - [x] 기존/테스트처럼 가입 시각이 없는 user context는 기존 readable topic 동작을 유지합니다.
+  - [x] 제한 정책이 코드와 문서에 같은 의미로 기록됩니다.
+- Changed files:
+  - `middleware.ts`
+  - `lib/auth.ts`
+  - `lib/auth-context.ts`
+  - `lib/types.ts`
+  - `lib/expression-store/mappers.ts`
+  - `lib/expression-store/memory-store.ts`
+  - `lib/expression-store/policies.ts`
+  - `lib/expression-store/supabase-store.ts`
+  - `tests/integration/memory-expression-store.test.ts`
+  - `docs/prd/future-work.md`
+  - `docs/prd/complete/new-member-learning-load/*`
+- Verification:
+  - [x] `npm test -- tests/integration/memory-expression-store.test.ts` — 11 passed
+  - [x] `npm run typecheck` — passed
+  - [x] `npm run lint` — passed
+  - [x] `npm test` — 161 passed, 1 skipped
+  - [x] `npm run build` — passed
+  - [x] `POST http://127.0.0.1:3012/test/reset` — 200
+  - [x] `POST http://127.0.0.1:3012/test/seed-approved-expression-day` — 200
+  - [x] `HEAD http://127.0.0.1:3012/memorize` — 200
+  - [x] `GET http://127.0.0.1:3012/memorize` — rendered seeded memorization card
+  - [x] `HEAD http://172.22.48.149:3012/memorize` — 200
+- Remaining risks:
+  - Existing users with a real Supabase `created_at` after older shared topics will no longer see those older shared topics unless they own them. This matches the requested signup-date policy but is intentionally not a progressive unlock system.
+
 
 ### 2026-05-26 — T-001: 향후 작업 목록을 이 문서로 관리하기
 

@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 async function importModule<T>(specifier: string): Promise<T> {
   return import(/* @vite-ignore */ specifier) as Promise<T>;
 }
 
-type UserIdentity = { id: string; email?: string };
+type UserIdentity = { id: string; email?: string; createdAt?: string | null };
 type ReviewResult = "again" | "hard" | "easy" | "known" | "unknown";
 type QuestionStatus = "open" | "asked" | "answered";
 
@@ -89,6 +89,10 @@ describe("MemoryExpressionStore daily expression behavior", () => {
   beforeEach(async () => {
     const { resetMemoryExpressionStoreForTests } = await importModule<StoreModule>("@/lib/expression-store");
     resetMemoryExpressionStoreForTests();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("drafts, revises, and only inserts expression days after explicit approval", async () => {
@@ -189,6 +193,37 @@ describe("MemoryExpressionStore daily expression behavior", () => {
 
     expect(await storeB.listQuestionNotes()).toEqual([]);
     await expect(storeB.updateQuestionNote(question.id, { status: "asked" })).rejects.toThrow("Question note not found");
+  });
+
+  it("shows new learners only shared topics created after their signup time", async () => {
+    const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
+    const topicOwnerStore = new MemoryExpressionStore(userB);
+
+    vi.setSystemTime(new Date("2026-05-01T00:00:00.000Z"));
+    const oldTopic = await topicOwnerStore.approveDraft((await topicOwnerStore.createDraft({
+      ...payload,
+      expression_day: { ...payload.expression_day, title: "가입 전 토픽", day_date: "20260501" }
+    })).id, "이대로 앱에 넣어줘");
+
+    vi.setSystemTime(new Date("2026-05-03T00:00:00.000Z"));
+    const newTopic = await topicOwnerStore.approveDraft((await topicOwnerStore.createDraft({
+      ...payload,
+      expression_day: { ...payload.expression_day, title: "가입 후 토픽", day_date: "20260503" }
+    })).id, "이대로 앱에 넣어줘");
+
+    const newLearnerStore = new MemoryExpressionStore({ ...userA, createdAt: "2026-05-02T00:00:00.000Z" });
+    const visibleDays = await newLearnerStore.listExpressionDays();
+
+    expect(visibleDays.map((day) => day.id)).toEqual([newTopic.expressionDay.id]);
+    expect(await newLearnerStore.getExpressionDay(oldTopic.expressionDay.id)).toBeNull();
+    expect(await newLearnerStore.getExpression(oldTopic.expressionDay.expressions[0].id)).toBeNull();
+    expect((await newLearnerStore.getMemorizationQueue()).map((expression) => expression.id)).toEqual(newTopic.expressionDay.expressions.map((expression) => expression.id));
+    expect(await newLearnerStore.getDashboardStats()).toMatchObject({
+      total: newTopic.expressionDay.expressions.length
+    });
+
+    const legacyContextStore = new MemoryExpressionStore(userA);
+    expect((await legacyContextStore.listExpressionDays()).map((day) => day.id)).toEqual([newTopic.expressionDay.id, oldTopic.expressionDay.id]);
   });
 
 

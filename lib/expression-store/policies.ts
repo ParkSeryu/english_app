@@ -7,7 +7,8 @@ import type {
   ExpressionDaySummary,
   ExpressionIngestionPayload,
   ExpressionProgress,
-  QuestionNote
+  QuestionNote,
+  UserIdentity
 } from "@/lib/types";
 
 export type ExpressionStatsCard = Pick<ExpressionCard, "id" | "is_memorization_enabled" | "known_count" | "unknown_count" | "review_count" | "last_result" | "last_reviewed_at" | "due_at" | "interval_days" | "source_order" | "created_at">;
@@ -98,7 +99,38 @@ export function expressionUrl(card: ExpressionCard) {
 }
 
 export function toDaySummary(day: ExpressionDay): ExpressionDaySummary {
-  return { id: day.id, owner_id: day.owner_id, title: day.title, source_note: day.source_note, day_date: day.day_date, created_by: day.created_by };
+  return { id: day.id, owner_id: day.owner_id, title: day.title, source_note: day.source_note, day_date: day.day_date, created_at: day.created_at, created_by: day.created_by };
+}
+
+function timestampOrNull(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+type LearnerVisibleDay = {
+  owner_id?: string | null;
+  created_at?: string | null;
+};
+
+export function canLearnerSeeExpressionDay(day: LearnerVisibleDay, user: Pick<UserIdentity, "id" | "createdAt">) {
+  if (day.owner_id === user.id) return true;
+
+  const signupAt = timestampOrNull(user.createdAt);
+  if (signupAt === null) return true;
+
+  const topicCreatedAt = timestampOrNull(day.created_at);
+  if (topicCreatedAt === null) return true;
+
+  return topicCreatedAt >= signupAt;
+}
+
+export function filterExpressionDaysForLearner<T extends LearnerVisibleDay>(days: T[], user: Pick<UserIdentity, "id" | "createdAt">) {
+  return days.filter((day) => canLearnerSeeExpressionDay(day, user));
+}
+
+export function filterExpressionCardsForLearner<T extends { day?: LearnerVisibleDay | null }>(cards: T[], user: Pick<UserIdentity, "id" | "createdAt">) {
+  return cards.filter((card) => !card.day || canLearnerSeeExpressionDay(card.day, user));
 }
 
 export function calculateStats(dayCount: number, expressions: ExpressionStatsCard[], questions: QuestionStats[]): DashboardStats {

@@ -24,6 +24,7 @@ import {
   applyProgress,
   assertPayload,
   calculateStats,
+  canLearnerSeeExpressionDay,
   defaultProgress,
   expressionUrl,
   normalizeGrammarNote,
@@ -67,7 +68,7 @@ export class MemoryExpressionStore implements ExpressionStore {
   }
 
   private canReadDay(day: ExpressionDay) {
-    return day.created_by === "llm" || day.owner_id === this.user.id;
+    return (day.created_by === "llm" || day.owner_id === this.user.id) && canLearnerSeeExpressionDay(day, this.user);
   }
 
   private canReadExpression(day: ExpressionDay, card: ExpressionCard) {
