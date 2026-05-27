@@ -217,7 +217,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - [x] Vercel deployment checks passed on `main` and `dev`
 - Remaining risks:
   - Hosted Supabase write smoke was not rerun for this code-only scheduling change; no schema/data migration is required.
-  - Dev Supabase Preview currently reports pre-existing remote migration version drift (`20260504014420`, `20260504014422`) even though `npm run db:status:dev` reports pending 0 / mismatch 0.
+  - Historical Supabase CLI migration drift (`20260504014420`, `20260504014422`) was reconciled with no-op compatibility migrations and baselined in dev; no schema/data migration was required.
 - Notes / links:
   - PRD: `docs/prd/complete/spaced-repetition-interval-policy/prd.md`
   - 관련 기존 문서: `docs/prd/complete/daily-expression-memorization/prd.md`
