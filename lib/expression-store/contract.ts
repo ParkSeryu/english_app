@@ -4,6 +4,7 @@ import type {
   DashboardStats,
   ExpressionCard,
   ExpressionDay,
+  ExpressionReviewResult,
   ExpressionIngestionPayload,
   PersonalExpressionInput,
   PersonalExpressionUpdateInput,
@@ -24,7 +25,7 @@ export interface ExpressionStore {
     recentDays: ExpressionDay[];
     queue: ExpressionCard[];
   }>;
-  recordReviewResult(id: string, result: "known" | "unknown"): Promise<ExpressionCard>;
+  recordReviewResult(id: string, result: ExpressionReviewResult): Promise<ExpressionCard>;
   updateExpressionMemo(id: string, input: CardMemoInput): Promise<ExpressionCard>;
   createPersonalExpression(input: PersonalExpressionInput): Promise<ExpressionCard>;
   updatePersonalExpression(id: string, input: PersonalExpressionUpdateInput): Promise<ExpressionCard>;

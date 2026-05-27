@@ -1,13 +1,14 @@
-import type { ExpressionCard } from "@/lib/types";
+import { isAgainReviewResult, isHardReviewResult } from "@/lib/review-result";
+import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 type MemorizationCandidate = Pick<ExpressionCard, "id" | "unknown_count" | "known_count" | "last_reviewed_at" | "last_result" | "source_order" | "due_at" | "interval_days"> &
   Partial<Pick<ExpressionCard, "created_at" | "is_memorization_enabled">>;
 
-type ReviewSchedulingState = Pick<MemorizationCandidate, "interval_days" | "last_result" | "last_reviewed_at">;
+type ReviewSchedulingState = Pick<MemorizationCandidate, "interval_days" | "last_result">;
 
 const DEFAULT_LIMIT = 300;
 const KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
-const KNOWN_INTERVAL_DAYS = [1, 3, 7, 14, 30] as const;
+const KNOWN_INTERVAL_DAYS = [1, 3, 7, 14, 30, 60, 90, 180, 365] as const;
 
 function koreanDateKey(date: Date) {
   return new Date(date.getTime() + KOREA_TIME_OFFSET_MS).toISOString().slice(0, 10);
@@ -21,12 +22,6 @@ function koreanMidnightAfterDays(now: Date, intervalDays: number) {
 
 function isSameKoreanDay(a: Date, b: Date) {
   return koreanDateKey(a) === koreanDateKey(b);
-}
-
-function reviewedOnSameKoreanDay(reviewedAt: string | null | undefined, now: Date) {
-  if (!reviewedAt) return false;
-  const reviewed = new Date(reviewedAt);
-  return Number.isFinite(reviewed.getTime()) && isSameKoreanDay(reviewed, now);
 }
 
 function timeRank(value: string | null | undefined, fallback: number) {
@@ -65,9 +60,20 @@ export function nextKnownIntervalDays(currentIntervalDays: number) {
   return KNOWN_INTERVAL_DAYS.find((intervalDays) => intervalDays > currentIntervalDays) ?? KNOWN_INTERVAL_DAYS[KNOWN_INTERVAL_DAYS.length - 1];
 }
 
-export function lapsedIntervalDays(currentIntervalDays: number) {
-  if (currentIntervalDays <= 0) return 0;
-  return [...KNOWN_INTERVAL_DAYS].reverse().find((intervalDays) => intervalDays < currentIntervalDays) ?? KNOWN_INTERVAL_DAYS[0];
+export function nextHardIntervalDays(currentIntervalDays: number) {
+  if (currentIntervalDays <= 0) return KNOWN_INTERVAL_DAYS[0];
+
+  let previousIntervalDays: number = KNOWN_INTERVAL_DAYS[0];
+  for (const intervalDays of KNOWN_INTERVAL_DAYS) {
+    if (currentIntervalDays <= intervalDays) return previousIntervalDays;
+    previousIntervalDays = intervalDays;
+  }
+
+  return KNOWN_INTERVAL_DAYS[KNOWN_INTERVAL_DAYS.length - 1];
+}
+
+function currentOrMinimumIntervalDays(currentIntervalDays: number) {
+  return Math.max(currentIntervalDays, KNOWN_INTERVAL_DAYS[0]);
 }
 
 export function nextDueAtForUnknown() {
@@ -79,14 +85,12 @@ export function nextDueAtForKnown(intervalDays: number, now = new Date()) {
   return koreanMidnightAfterDays(now, intervalDays).toISOString();
 }
 
-export function nextExpressionReviewSchedule(current: ReviewSchedulingState, result: "known" | "unknown", now = new Date()) {
-  if (result === "unknown") {
-    const alreadyFailedToday = current.last_result === "unknown" && reviewedOnSameKoreanDay(current.last_reviewed_at, now);
-    const intervalDays = alreadyFailedToday ? current.interval_days : lapsedIntervalDays(current.interval_days);
-    return { intervalDays, dueAt: nextDueAtForUnknown() };
+export function nextExpressionReviewSchedule(current: ReviewSchedulingState, result: ExpressionReviewResult, now = new Date()) {
+  if (isAgainReviewResult(result)) {
+    return { intervalDays: current.interval_days, dueAt: nextDueAtForUnknown() };
   }
 
-  const intervalDays = current.last_result === "unknown" ? Math.max(current.interval_days, KNOWN_INTERVAL_DAYS[0]) : nextKnownIntervalDays(current.interval_days);
+  const intervalDays = isHardReviewResult(result) ? nextHardIntervalDays(current.interval_days) : current.last_result === "unknown" ? currentOrMinimumIntervalDays(current.interval_days) : nextKnownIntervalDays(current.interval_days);
   return { intervalDays, dueAt: nextDueAtForKnown(intervalDays, now) };
 }
 

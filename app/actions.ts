@@ -11,7 +11,7 @@ import { getExpressionStore } from "@/lib/lesson-store";
 import { createPersonalExpression, deletePersonalExpression, recordExpressionReview, updateExpressionMemo, updatePersonalExpression } from "@/lib/use-cases/expressions";
 import { createQuestionNote, updateQuestionNote, updateQuestionStatus } from "@/lib/use-cases/questions";
 import { passwordResetRedirectUrl } from "@/lib/site-url";
-import { type ActionState, type QuestionNoteStatus } from "@/lib/types";
+import { type ActionState, type ExpressionReviewResult, type QuestionNoteStatus } from "@/lib/types";
 
 function revalidateAppPaths() {
   revalidatePath("/");
@@ -79,19 +79,19 @@ export async function deletePersonalExpressionAction(expressionId: string): Prom
   redirect(targetPath);
 }
 
-async function recordExpressionReviewForCurrentUser(expressionId: string, result: "known" | "unknown") {
+async function recordExpressionReviewForCurrentUser(expressionId: string, result: ExpressionReviewResult) {
   const user = await requireCurrentUser();
   await recordExpressionReview(getExpressionStore(user), expressionId, result);
   revalidateAppPaths();
   revalidatePath(`/expressions/${expressionId}`);
 }
 
-export async function recordExpressionReviewAction(expressionId: string, result: "known" | "unknown", returnTo = "/memorize") {
+export async function recordExpressionReviewAction(expressionId: string, result: ExpressionReviewResult, returnTo = "/memorize") {
   await recordExpressionReviewForCurrentUser(expressionId, result);
   redirect(returnTo.startsWith("/") ? returnTo : "/memorize");
 }
 
-export async function recordExpressionReviewInPlaceAction(expressionId: string, result: "known" | "unknown") {
+export async function recordExpressionReviewInPlaceAction(expressionId: string, result: ExpressionReviewResult) {
   await recordExpressionReviewForCurrentUser(expressionId, result);
   return { ok: true };
 }

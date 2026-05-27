@@ -23,6 +23,13 @@ This repo follows the workspace-level OMX/autonomous-agent instructions. The fol
 - Preserve existing behavior and placement by default; only alter behavior that is directly required by the latest user instruction.
 - When correcting a mistaken change, restore the previous behavior exactly unless the user gives a new replacement direction.
 
+## PRD lifecycle discipline
+
+- When implementation starts for a tracked PRD item, move that feature folder to `docs/prd/active/<feature>/` and move the matching tracker item in `docs/prd/future-work.md` to `Active` in the same branch/PR.
+- Do not leave in-progress implementation work under `docs/prd/backlog/`; backlog is only for candidate, planned, or pull-ready work that is not currently being implemented.
+- If a PR is open for the implementation, the PRD/tracker must say `Active` until the work is merged/verified or explicitly paused/returned to backlog.
+- When the work is finished and verified, move the feature folder to `docs/prd/complete/<feature>/` and record changed files, verification commands, and remaining risks in `docs/prd/future-work.md`.
+
 ## Working tree isolation on request
 
 - If the user explicitly asks to proceed with a separated working tree, create or use a separate `git worktree` before making task changes.
