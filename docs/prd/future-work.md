@@ -168,23 +168,25 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
 - Priority: High
 - Workstream: Retention Algorithm
 - Surface: scheduling logic, persistence, tests, memorize UI
-- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `다시`로 장기 간격이 줄어드는 부담을 제거하고, `어려움`과 `쉬움`을 구분하기 위해서입니다.
+- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `모름`으로 장기 간격이 줄어드는 부담을 제거하고, `어려움`/`알긴암`/`쉬움`을 구분하기 위해서입니다.
 - Scope:
-  - 버튼은 `다시 / 어려움 / 쉬움` 세 개로 구성했습니다.
-  - `다시`는 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
-  - `어려움`은 interval을 한 단계 낮추고, `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90 → 180 → 365일 ladder로 늘립니다.
+  - 버튼은 후속 변경으로 `모름 / 어려움 / 알긴암 / 쉬움` 네 개로 구성했습니다.
+  - `모름`은 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
+  - `어려움`은 interval을 한 단계 낮추고, `알긴암`은 현재 interval을 유지하되 0일이면 1일 뒤로 보냅니다.
+  - `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90 → 180 → 365일 ladder에서 한 단계 늘립니다.
   - `/memorize` 버튼에 `오늘 다시` / `N일 뒤`를 명시했습니다.
   - 기존 progress 데이터와 호환되게 schema 변경 없이 처리했습니다.
 - Non-goals:
   - 완전한 SM-2/FSRS 구현
   - 머신러닝 개인화
   - 푸쉬 알림 발송
-  - Anki식 `다시 / 어려움 / 좋음 / 쉬움` 4버튼 UI
+  - Anki식 `다시 / 어려움 / 좋음 / 쉬움` 명칭과 ease-factor 계산
 - Acceptance criteria:
   - [x] 새 복습 간격 정책이 문서화됩니다.
   - [x] `쉬움`은 다음 복습일을 1/3/7/14/30/60/90/180/365일 ladder에 맞게 뒤로 미룹니다.
+  - [x] `알긴암`은 오늘 다시 보지 않고 현재 interval을 유지합니다.
   - [x] `어려움`은 interval을 한 단계 낮춰 너무 빨리 늘리지 않습니다.
-  - [x] `다시`는 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
+  - [x] `모름`은 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
   - [x] 기존 progress 데이터가 깨지지 않습니다.
   - [x] 버튼에 다음 시점이 명시됩니다.
 - Changed files:
@@ -213,7 +215,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - [x] `npm run clean:runtime && npm run build` — passed
   - [x] `HEAD http://127.0.0.1:3010/memorize` — 200
   - [x] `HEAD http://172.22.48.149:3010/memorize` — 200
-  - [x] Playwright live route smoke confirmed `다시/오늘 다시`, `어려움/1일 뒤`, `쉬움/3일 뒤`
+  - [x] Playwright live route smoke confirmed review buttons and `/memorize` behavior
   - [x] Vercel deployment checks passed on `main` and `dev`
 - Remaining risks:
   - Hosted Supabase write smoke was not rerun for this code-only scheduling change; no schema/data migration is required.
