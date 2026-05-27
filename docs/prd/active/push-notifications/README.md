@@ -3,8 +3,8 @@
 ## Status
 
 - Tracker item: T-004 in `docs/prd/future-work.md`.
-- Lifecycle folder: `backlog`.
-- Artifact state: brief only; browser/PWA constraints must be confirmed before `prd.md` and `test-spec.md` are created.
+- Lifecycle folder: `active`.
+- Artifact state: MVP implementation branch for opt-in web push review reminders.
 
 ## Why
 
@@ -12,7 +12,7 @@
 
 ## First Slice Direction
 
-웹 푸쉬 가능 범위, 권한 요청 UX, push subscription 저장/해지, due 알림 스케줄링 방식을 먼저 결정합니다.
+웹 푸쉬 가능 범위, 권한 요청 UX, push subscription 저장/해지, due 알림 스케줄링 방식을 최소 MVP로 구현합니다.
 
 ## Initial Verification Shape
 

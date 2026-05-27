@@ -11,6 +11,8 @@ import { getExpressionStore } from "@/lib/lesson-store";
 import { createPersonalExpression, deletePersonalExpression, recordExpressionReview, updateExpressionMemo, updatePersonalExpression } from "@/lib/use-cases/expressions";
 import { createQuestionNote, updateQuestionNote, updateQuestionStatus } from "@/lib/use-cases/questions";
 import { passwordResetRedirectUrl } from "@/lib/site-url";
+import { disablePushSubscriptionForUser, savePushSubscriptionForUser } from "@/lib/push/subscriptions";
+import { sendTestPushNotificationForUser } from "@/lib/push/send";
 import { type ActionState, type ExpressionReviewResult, type QuestionNoteStatus } from "@/lib/types";
 
 function revalidateAppPaths() {
@@ -125,6 +127,41 @@ export async function updateQuestionNoteAction(questionId: string, _previousStat
     await updateQuestionNote(getExpressionStore(user), questionId, parsed.data);
     revalidateAppPaths();
     return { ok: true, message: "질문거리와 답변 메모를 저장했습니다." };
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+
+export async function savePushSubscriptionAction(subscription: unknown): Promise<ActionState> {
+  try {
+    const user = await requireCurrentUser();
+    const headerStore = await headers();
+    await savePushSubscriptionForUser(user, subscription, headerStore.get("user-agent"));
+    revalidatePath("/");
+    return { ok: true, message: "복습 알림을 켰습니다." };
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+export async function disablePushSubscriptionAction(endpoint?: string | null): Promise<ActionState> {
+  try {
+    const user = await requireCurrentUser();
+    await disablePushSubscriptionForUser(user, endpoint);
+    revalidatePath("/");
+    return { ok: true, message: "복습 알림을 껐습니다." };
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+export async function sendTestPushNotificationAction(): Promise<ActionState> {
+  try {
+    const user = await requireCurrentUser();
+    const summary = await sendTestPushNotificationForUser(user);
+    if (summary.sent === 0) return { ok: false, message: "켜진 알림 구독을 찾지 못했습니다. 알림을 다시 켜 주세요." };
+    return { ok: true, message: "테스트 알림을 보냈습니다." };
   } catch (error) {
     return errorState(error);
   }

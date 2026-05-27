@@ -2,8 +2,11 @@ import Link from "next/link";
 import { cache, Suspense } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
+import { PushNotificationSettings } from "@/components/PushNotificationSettings";
 import { getCurrentUser } from "@/lib/auth";
 import { hasSupabaseEnv } from "@/lib/env";
+import { getVapidPublicKey } from "@/lib/push/env";
+import { listPushSubscriptionsForUser } from "@/lib/push/subscriptions";
 import { getExpressionStore } from "@/lib/lesson-store";
 import type { ExpressionDaySummary } from "@/lib/types";
 import type { UserIdentity } from "@/lib/types";
@@ -35,8 +38,24 @@ export default async function DashboardPage() {
       <Suspense fallback={<DashboardSectionsSkeleton />}>
         <DashboardSections user={user} />
       </Suspense>
+
+      <Suspense fallback={null}>
+        <PushNotificationPanel user={user} />
+      </Suspense>
     </div>
   );
+}
+
+
+async function PushNotificationPanel({ user }: { user: UserIdentity }) {
+  let initiallyEnabled = false;
+  try {
+    initiallyEnabled = (await listPushSubscriptionsForUser(user)).length > 0;
+  } catch {
+    initiallyEnabled = false;
+  }
+
+  return <PushNotificationSettings vapidPublicKey={getVapidPublicKey()} initiallyEnabled={initiallyEnabled} />;
 }
 
 function PublicDashboard() {

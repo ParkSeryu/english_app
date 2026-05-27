@@ -39,94 +39,24 @@
 - 필요한 PRD / test-spec / migration 여부가 표시됩니다.
 - 작업 크기가 너무 크면 1~3일 안에 끝낼 수 있는 첫 Slice로 줄입니다.
 
-### Active로 시작할 때
-
-- `Active`에는 한 번에 1개만 둡니다.
-- 관련 문서/PRD/test-spec 링크를 연결합니다.
-- 구현 브랜치나 PR이 생긴 순간부터 `backlog/`가 아니라 `active/`에 둡니다.
-- 구현 후 검증 명령과 live route 확인 결과를 `Complete`에 남깁니다.
-
-## Artifact Rule
-
-- `future-work.md`: 무엇을 할지, 어떤 순서로 당겨올지 관리하는 원장
-- `<lifecycle>/<feature>/prd.md`: 왜/무엇을 만들지 정의하는 요구사항 문서
-- `<lifecycle>/<feature>/test-spec.md`: 완료 기준을 어떻게 검증할지 정의하는 문서
-- `<lifecycle>/<feature>/implementation-plan.md`: 이미 승인된 PRD/test-spec를 어떻게 구현할지 쪼갠 실행 문서
-- `README.md`: 문서들의 현재 역할과 생명주기 지도
-
-큰 작업을 `Active`로 옮기기 전에는 PRD/test-spec가 있는지 확인하고, 없으면 먼저 문서화합니다.
-
-## Workstreams
-
-현재 큰 방향은 세 갈래입니다.
-
-1. **Retention Algorithm**: 망각곡선/SRS 알고리즘 개선
-2. **Engagement Push**: 앱 푸쉬 알림으로 복습 타이밍을 알려주기
-3. **Onboarding Load**: 신규회원이 한 번에 너무 많은 표현을 외우지 않게 완충하기
-
-권장 진행 순서:
-
-1. 신규회원 배려의 최소 Slice를 먼저 정합니다. 학습 진입 장벽을 줄이는 효과가 가장 즉시적입니다.
-2. 그 다음 망각곡선 알고리즘을 조정합니다. 신규회원 정책과 큐 정책이 서로 영향을 주기 때문입니다.
-3. 마지막으로 푸쉬를 붙입니다. 푸쉬는 권한, 브라우저 지원, 스케줄링, 배포 환경 확인이 필요해 가장 외부 의존성이 큽니다.
-
-## Status Definitions
-
-- `Backlog`: 언젠가 할 수 있지만 아직 확정하지 않은 작업
-- `Active`: 현재 진행 중인 작업
-- `Blocked`: 외부 결정, 계정, 데이터, 배포 권한 등이 없어 멈춘 작업
-- `Complete`: 완료 및 검증까지 끝난 작업
-
-## Task Template
-
-```md
-### T-000: 작업 제목
-
-- Status:
-- Priority: High | Medium | Low
-- Workstream:
-- Surface:
-- Pull readiness:
-  - [ ] User value is clear.
-  - [ ] Acceptance criteria are testable.
-  - [ ] Required data/schema changes are identified.
-  - [ ] Required live route/action checks are identified.
-- Artifacts:
-  - PRD:
-  - Test spec:
-  - Implementation plan:
-- Why:
-- Scope:
-- Non-goals:
-- Acceptance criteria:
-  - [ ]
-- Verification:
-  - [ ]
-- Notes / links:
-```
-
-## Active
-
-_현재 진행 중인 작업은 없습니다._
-
-## Backlog
+### Active
 
 ### T-004: 앱 푸쉬 알림 추가
 
-- Status: Backlog
+- Status: Active
 - Priority: Medium
 - Workstream: Engagement Push
 - Surface: browser push/PWA, permissions, scheduling, server action/API, persistence, deployment
 - Pull readiness:
-  - [ ] User value is clear: 사용자가 복습할 시간에 앱 밖에서도 알림을 받습니다.
-  - [ ] Acceptance criteria are testable.
-  - [ ] Required data/schema changes are identified.
-  - [ ] Required live route/action checks are identified.
+  - [x] User value is clear: 사용자가 복습할 시간에 앱 밖에서도 알림을 받습니다.
+  - [x] Acceptance criteria are testable.
+  - [x] Required data/schema changes are identified: `push_subscriptions` migration 필요.
+  - [x] Required live route/action checks are identified: `/` 알림 카드, `/api/cron/review-reminders`, 테스트 알림 action.
 - Artifacts:
-  - Brief: `docs/prd/backlog/push-notifications/README.md`
-  - PRD: TBD before moving to `Active`
-  - Test spec: TBD before moving to `Active`
-  - Implementation plan: TBD after browser/PWA constraints are confirmed
+  - Brief: `docs/prd/active/push-notifications/README.md`
+  - PRD: `docs/prd/active/push-notifications/prd.md`
+  - Test spec: `docs/prd/active/push-notifications/test-spec.md`
+  - Implementation plan: `docs/prd/active/push-notifications/implementation-plan.md`
 - Why: 복습 앱은 사용자가 돌아오는 타이밍이 중요하며, due 상태를 앱 밖에서 알려줄 필요가 있습니다.
 - Scope:
   - 웹 푸쉬 가능 범위와 브라우저/PWA 제약을 확인합니다.
@@ -138,20 +68,27 @@ _현재 진행 중인 작업은 없습니다._
   - 마케팅 캠페인/세그먼트 자동화
   - 이메일/SMS 알림
 - Acceptance criteria:
-  - [ ] 사용자가 명시적으로 동의한 경우에만 push subscription이 저장됩니다.
-  - [ ] due review가 있는 사용자에게 테스트 알림을 보낼 수 있습니다.
-  - [ ] 알림 권한 거부/해지 상태가 앱을 깨뜨리지 않습니다.
-  - [ ] production/dev Supabase 환경 적용 범위가 분리되어 기록됩니다.
+  - [x] 사용자가 명시적으로 동의한 경우에만 push subscription이 저장됩니다.
+  - [x] due review가 있는 사용자에게 테스트 알림을 보낼 수 있습니다.
+  - [x] 알림 권한 거부/해지 상태가 앱을 깨뜨리지 않습니다.
+  - [x] production/dev Supabase 환경 적용 범위가 분리되어 기록됩니다.
 - Verification:
-  - [ ] push subscription 저장/삭제 테스트
-  - [ ] permission UI 테스트
-  - [ ] scheduled send 또는 manual send smoke check
-  - [ ] `npm run lint`
-  - [ ] `npm run typecheck`
-  - [ ] affected route live check
+  - [x] push subscription 저장/삭제 테스트
+  - [x] permission UI 테스트
+  - [x] scheduled send 또는 manual send smoke check
+  - [x] `npm run lint`
+  - [x] `npm run typecheck`
+  - [x] affected route live check
 - Notes / links:
   - 외부 제약이 많으므로 구현 전에 별도 PRD/test-spec가 필요합니다.
   - DB 변경이 필요하면 `supabase/migrations/*.sql`과 migration ledger로 관리합니다.
+  - Dev Supabase(`uixpyibcpleuwsgemdno`, `.env.local`)에는 `20260527113000_push_subscriptions.sql` migration을 적용했습니다.
+  - Main/production Supabase에는 아직 적용하지 않았습니다. production 배포 전 별도 status/migrate 확인이 필요합니다.
+  - PR 검증: `npm run lint`, `npm run typecheck`, `npm test`, `npm run verify:rls`, `npm run clean:runtime && npm run build`, live smoke(`/`, `/memorize`, cron 401) 통과.
+
+## Backlog
+
+_현재 backlog 작업은 없습니다._
 
 ## Blocked
 

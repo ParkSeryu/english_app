@@ -43,3 +43,38 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+
+self.addEventListener("push", (event) => {
+  let payload = { title: "영어공부", body: "오늘 복습할 표현이 있어요.", url: "/memorize", tag: "english-review" };
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch {
+      payload.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: payload.tag || "english-review",
+      data: { url: payload.url || "/memorize" }
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/memorize", self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const existingClient = clients.find((client) => client.url === targetUrl || client.url.startsWith(`${targetUrl}?`));
+      if (existingClient) return existingClient.focus();
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
