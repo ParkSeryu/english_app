@@ -159,6 +159,59 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
 
+### 2026-05-27 — T-006: 카카오 소셜 로그인 추가
+
+- Status: Complete
+- Priority: High
+- Workstream: Auth Onboarding
+- Surface: auth, login UI, server action, Supabase OAuth provider configuration
+- Why: 한국어 사용자에게 익숙한 카카오 계정 진입점을 제공해 이메일/비밀번호 입력 부담을 줄이기 위해서입니다.
+- Scope:
+  - `/login` 화면에 `카카오로 계속하기` 버튼을 추가했습니다.
+  - Supabase Auth `kakao` OAuth provider로 로그인 흐름을 시작합니다.
+  - OAuth 완료 후 기존 `/auth/callback`에서 세션을 교환합니다.
+  - `/login?next=...`의 safe 내부 경로를 OAuth callback으로 전달합니다.
+  - provider 미설정/오류 응답은 로그인 화면 메시지로 표시합니다.
+- Non-goals:
+  - Google/Naver/Apple 등 추가 provider
+  - Kakao Developers 또는 Supabase Dashboard credential 자동 설정
+  - 계정 병합/프로필 동기화/추가 Kakao API 호출
+  - DB schema/RLS 변경
+- Acceptance criteria:
+  - [x] 로그인 화면에 카카오 로그인 버튼이 표시됩니다.
+  - [x] Kakao 버튼은 Supabase `signInWithOAuth({ provider: "kakao" })` 흐름을 시작합니다.
+  - [x] OAuth `redirectTo`는 기존 `/auth/callback`과 safe `next` 정책을 사용합니다.
+  - [x] provider 미설정 오류가 앱을 깨뜨리지 않고 사용자 메시지로 표시됩니다.
+  - [x] 기존 이메일 로그인/회원가입/비밀번호 재설정 UI가 유지됩니다.
+  - [x] 실제 Kakao 로그인 성공에 필요한 dev/main Supabase 및 Kakao 설정 값이 문서화됩니다.
+- Changed files:
+  - `app/actions.ts`
+  - `app/login/page.tsx`
+  - `components/AuthPanel.tsx`
+  - `lib/site-url.ts`
+  - `tests/components/auth-panel.test.tsx`
+  - `tests/unit/auth-actions.test.ts`
+  - `tests/unit/site-url.test.ts`
+  - `docs/supabase-setup.md`
+  - `docs/prd/README.md`
+  - `docs/prd/future-work.md`
+  - `docs/prd/complete/kakao-social-login/*`
+- Verification:
+  - [x] `npm test -- tests/components/auth-panel.test.tsx tests/unit/auth-actions.test.ts tests/unit/site-url.test.ts tests/security/auth-callback.test.ts` — 35 passed
+  - [x] `npm run lint` — passed
+  - [x] `npm run typecheck` — passed
+  - [x] `npm test` — 167 passed, 1 skipped
+  - [x] `HEAD http://127.0.0.1:3000/login` — 200
+  - [x] `GET http://127.0.0.1:3000/login` — rendered `카카오로 계속하기`
+  - [x] `GET http://127.0.0.1:3000/login?next=%2Fmemorize%3Fdefer%3Dcard-1` — rendered hidden `next=/memorize?defer=card-1`
+  - [x] `HEAD http://172.22.48.149:3000/login` — 200
+- Remaining risks:
+  - Real Kakao OAuth success was not exercised because Kakao Developers and Supabase Kakao provider credentials are external setup and were not available in this coding environment.
+  - Dev and main Supabase projects must be configured separately before production use.
+- Notes / links:
+  - PRD: `docs/prd/complete/kakao-social-login/prd.md`
+  - Setup guide: `docs/supabase-setup.md#kakao-social-login-setup`
+
 ### 2026-05-27 — T-003: 에빙하우스 망각곡선 기반 복습 알고리즘 적용
 
 - Status: Complete

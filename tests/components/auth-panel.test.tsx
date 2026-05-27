@@ -13,6 +13,7 @@ vi.mock("react", async () => {
 
 vi.mock("@/app/actions", () => ({
   signInAction: vi.fn(),
+  signInWithKakaoAction: vi.fn(),
   signUpAction: vi.fn(),
   resetPasswordAction: vi.fn()
 }));
@@ -25,8 +26,17 @@ describe("AuthPanel", () => {
 
     expect(screen.getByRole("heading", { name: "로그인" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "회원가입" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "카카오로 계속하기" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "회원가입" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "아이디·비밀번호 찾기" })).toBeInTheDocument();
+  });
+
+  it("passes a safe next path through the Kakao login form", () => {
+    render(<AuthPanel next="/memorize?defer=card-1" />);
+
+    const nextInput = screen.getByDisplayValue("/memorize?defer=card-1");
+    expect(nextInput).toHaveAttribute("type", "hidden");
+    expect(nextInput).toHaveAttribute("name", "next");
   });
 
   it("moves signup behind the small signup link instead of showing two forms at once", () => {

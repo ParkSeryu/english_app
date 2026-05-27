@@ -1,3 +1,5 @@
+import { safeSameOriginRedirectPath } from "@/lib/safe-redirect";
+
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
 type HeaderReader = Pick<Headers, "get">;
@@ -48,4 +50,11 @@ export function resolveAppOrigin(headers: HeaderReader, env: SiteUrlEnv = proces
 
 export function passwordResetRedirectUrl(headers: HeaderReader, env: SiteUrlEnv = process.env) {
   return `${resolveAppOrigin(headers, env)}/auth/callback?next=/auth/update-password`;
+}
+
+export function authCallbackRedirectUrl(headers: HeaderReader, next = "/", env: SiteUrlEnv = process.env) {
+  const origin = resolveAppOrigin(headers, env);
+  const callbackUrl = new URL("/auth/callback", origin);
+  callbackUrl.searchParams.set("next", safeSameOriginRedirectPath(next, origin));
+  return callbackUrl.toString();
 }

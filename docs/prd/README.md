@@ -23,6 +23,7 @@ If code implementation has started or an implementation PR is open, the feature 
 | Daily expression memorization MVP | Foundation | `complete/` | `complete/daily-expression-memorization/prd.md` | `complete/daily-expression-memorization/test-spec.md` | `complete/daily-expression-memorization/implementation-plan.md` | Current product baseline. Preserve unless a tracker item explicitly changes it. |
 | New-member learning load | T-002 | `complete/` | `complete/new-member-learning-load/prd.md` | `complete/new-member-learning-load/test-spec.md` | `complete/new-member-learning-load/implementation-plan.md` | Completed signup-date based onboarding load reduction. |
 | Ebbinghaus/SRS interval policy | T-003 | `complete/` | `complete/spaced-repetition-interval-policy/prd.md` | Focused scheduling, memory-store, and memorize-card tests in PR #5 | PR #5 | Completed 3-button SRS policy: `다시` keeps interval, `어려움` steps down, `쉬움` stretches to 365 days. |
+| Kakao social login | T-006 | `complete/` | `complete/kakao-social-login/prd.md` | `complete/kakao-social-login/test-spec.md` | `complete/kakao-social-login/implementation-plan.md` | Completed first social login code slice using Supabase Kakao OAuth; external Kakao/Supabase provider setup remains required for real sign-in. |
 | Push notifications | T-004 | `backlog/` | TBD | TBD | TBD | Brief: `backlog/push-notifications/README.md`. Needs browser/PWA permission and scheduling decisions before implementation. |
 | LLM-assisted lesson ingestion predecessor | Historical | `complete/` | `complete/english-review-app-llm-ingestion-superseded/prd.md` | `complete/english-review-app-llm-ingestion-superseded/test-spec.md` | `complete/english-review-app-llm-ingestion-superseded/implementation-plan.md` | Superseded historical planning context. |
 
@@ -49,6 +50,11 @@ docs/prd/
       implementation-plan.md
     spaced-repetition-interval-policy/
       prd.md
+    kakao-social-login/
+      README.md
+      prd.md
+      test-spec.md
+      implementation-plan.md
     english-review-app-llm-ingestion-superseded/
       prd.md
       test-spec.md

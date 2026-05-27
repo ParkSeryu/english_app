@@ -25,6 +25,25 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-or-anon-key
    - `card_examples`
 8. Confirm policies allow authenticated users to read shared expression content while managing only their own progress/questions. Locally, run `npm run verify:rls` if Docker is available.
 
+## Kakao social login setup
+
+The app includes a Kakao OAuth entry point on `/login`, but actual sign-in succeeds only after each Supabase environment has Kakao credentials configured.
+
+For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production project (`ccawzrrkxuirrwvaecvw`) separately:
+
+1. In Kakao Developers, create or open the app for this service.
+2. Copy the Kakao **REST API key**; Supabase uses it as the Kakao provider client ID.
+3. Enable Kakao Login and activate the Kakao Login Client Secret.
+4. Register the Supabase Auth callback URL in Kakao Login Redirect URI:
+   - Dev: `https://uixpyibcpleuwsgemdno.supabase.co/auth/v1/callback`
+   - Main/production: `https://ccawzrrkxuirrwvaecvw.supabase.co/auth/v1/callback`
+5. In Supabase Dashboard > Authentication > Providers > Kakao, enable Kakao and enter the REST API key plus Kakao Login Client Secret.
+6. In Supabase Auth URL configuration, allow the app callback URL for each deployed app origin, for example:
+   - `http://localhost:3000/auth/callback`
+   - the production deployment URL ending in `/auth/callback`
+
+If Kakao `account_email` consent is not available, configure the Supabase Kakao provider to allow users without an email before testing real sign-in.
+
 ## Minimum env for login and app usage
 
 The browser/server auth path only needs the public Supabase project URL and publishable/anon key:

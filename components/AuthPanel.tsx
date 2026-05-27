@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import { resetPasswordAction, signInAction, signUpAction } from "@/app/actions";
+import { resetPasswordAction, signInAction, signInWithKakaoAction, signUpAction } from "@/app/actions";
 
 const initialState = { ok: false, message: "" };
 
@@ -13,33 +13,54 @@ function FeedbackMessage({ ok, message }: { ok: boolean; message?: string }) {
   return <p className={`mt-3 text-sm leading-6 ${ok ? "text-emerald-700" : "text-red-700"}`}>{message}</p>;
 }
 
-export function AuthPanel() {
+export function AuthPanel({ next = "/" }: { next?: string }) {
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [signInState, signIn, signInPending] = useActionState(signInAction, initialState);
+  const [kakaoState, signInWithKakao, kakaoPending] = useActionState(signInWithKakaoAction, initialState);
   const [signUpState, signUp, signUpPending] = useActionState(signUpAction, initialState);
   const [resetState, resetPassword, resetPending] = useActionState(resetPasswordAction, initialState);
 
   return (
     <section className="mx-auto max-w-sm rounded-3xl border border-slate-200 bg-white px-5 py-6 shadow-card sm:px-6" aria-label="인증">
       {mode === "sign-in" ? (
-        <form action={signIn}>
-          <h2 className="text-center text-2xl font-black text-ink">로그인</h2>
+        <>
+          <form action={signIn}>
+            <h2 className="text-center text-2xl font-black text-ink">로그인</h2>
 
-          <label className="mt-7 block text-sm font-semibold text-slate-700" htmlFor="signin-email">
-            이메일
-          </label>
-          <input id="signin-email" name="email" type="email" autoComplete="email" required className="input" />
+            <label className="mt-7 block text-sm font-semibold text-slate-700" htmlFor="signin-email">
+              이메일
+            </label>
+            <input id="signin-email" name="email" type="email" autoComplete="email" required className="input" />
 
-          <label className="mt-4 block text-sm font-semibold text-slate-700" htmlFor="signin-password">
-            비밀번호
-          </label>
-          <input id="signin-password" name="password" type="password" autoComplete="current-password" required className="input" />
+            <label className="mt-4 block text-sm font-semibold text-slate-700" htmlFor="signin-password">
+              비밀번호
+            </label>
+            <input id="signin-password" name="password" type="password" autoComplete="current-password" required className="input" />
 
-          <FeedbackMessage ok={Boolean(signInState.ok)} message={signInState.message} />
+            <FeedbackMessage ok={Boolean(signInState.ok)} message={signInState.message} />
 
-          <button type="submit" disabled={Boolean(signInPending)} className="btn-primary mt-5 w-full">
-            {signInPending ? "로그인 중…" : "로그인"}
-          </button>
+            <button type="submit" disabled={Boolean(signInPending)} className="btn-primary mt-5 w-full">
+              {signInPending ? "로그인 중…" : "로그인"}
+            </button>
+          </form>
+
+          <div className="my-5 flex items-center gap-3 text-xs font-bold text-slate-400">
+            <span className="h-px flex-1 bg-slate-100" />
+            또는
+            <span className="h-px flex-1 bg-slate-100" />
+          </div>
+
+          <form action={signInWithKakao}>
+            <input type="hidden" name="next" value={next} />
+            <FeedbackMessage ok={Boolean(kakaoState.ok)} message={kakaoState.message} />
+            <button
+              type="submit"
+              disabled={Boolean(kakaoPending)}
+              className="w-full rounded-2xl bg-[#FEE500] px-4 py-3 text-center text-sm font-black text-[#191919] shadow-sm transition hover:bg-[#FDDC3F] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}
+            </button>
+          </form>
 
           <div className="mt-4 text-center">
             <button type="button" onClick={() => setMode("help")} className="text-sm font-bold text-slate-500 underline-offset-4 hover:text-teal-700 hover:underline">
@@ -53,7 +74,7 @@ export function AuthPanel() {
               회원가입
             </button>
           </div>
-        </form>
+        </>
       ) : null}
 
       {mode === "sign-up" ? (
