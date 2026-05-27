@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { MemorizeCard } from "@/components/MemorizeCard";
@@ -126,25 +126,6 @@ function reconcileQueueState(signature: string, expressions: ExpressionCard[], d
   };
 }
 
-function reconcileCurrentQueueState(signature: string, expressions: ExpressionCard[], deferredIds: string[], current: QueueState): QueueState {
-  const fallback = defaultQueueState(signature, expressions, deferredIds);
-  const validIds = new Set(fallback.queueIds);
-  const currentQueueIds = current.queueIds.filter((id) => validIds.has(id));
-  const currentQueueIdSet = new Set(currentQueueIds);
-  const queueIds = [...currentQueueIds, ...fallback.queueIds.filter((id) => !currentQueueIdSet.has(id))];
-  const activeId = current.activeId && queueIds.includes(current.activeId) ? current.activeId : (queueIds[0] ?? null);
-  const normalizedDeferredIds = normalizeDeferredIds([...fallback.deferredIds, ...current.deferredIds], expressions);
-  const optimisticUnknownCounts = Object.fromEntries(Object.entries(current.optimisticUnknownCounts).filter(([id]) => validIds.has(id)));
-
-  return {
-    signature,
-    queueIds,
-    activeId,
-    deferredIds: normalizedDeferredIds,
-    optimisticUnknownCounts
-  };
-}
-
 function advanceQueue(queueIds: string[], activeId: string, result: ExpressionReviewResult) {
   const activeIndex = Math.max(queueIds.indexOf(activeId), 0);
   const withoutActive = queueIds.filter((id) => id !== activeId);
@@ -169,20 +150,13 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
   const propsSignature = useMemo(() => queueSignature(expressions, initialDeferredIds), [expressions, initialDeferredIds]);
   const fallbackState = useMemo(() => defaultQueueState(propsSignature, expressions, initialDeferredIds), [propsSignature, expressions, initialDeferredIds]);
   const [sessionState, setSessionState] = useState<QueueState>(fallbackState);
-  const hasUserInteractedRef = useRef(false);
-  const activeState = useMemo(
-    () => sessionState.signature === propsSignature ? sessionState : reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, sessionState),
-    [expressions, initialDeferredIds, propsSignature, sessionState]
-  );
+  const activeState = sessionState.signature === propsSignature ? sessionState : fallbackState;
   const queue = withOptimisticUnknownCounts(orderedExpressions(expressions, activeState.queueIds), activeState.optimisticUnknownCounts);
   const remainingCount = activeState.queueIds.length;
   const activeExpression = queue.find((expression) => expression.id === activeState.activeId) ?? queue[0];
 
   useEffect(() => {
-    setSessionState((current) => {
-      if (hasUserInteractedRef.current) return reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, current);
-      return reconcileQueueState(propsSignature, expressions, initialDeferredIds, readStoredQueueState(storageKey));
-    });
+    setSessionState(reconcileQueueState(propsSignature, expressions, initialDeferredIds, readStoredQueueState(storageKey)));
   }, [expressions, initialDeferredIds, propsSignature, storageKey]);
 
   useEffect(() => {
@@ -192,21 +166,16 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
 
   if (!activeExpression) {
     return (
-      <div className="space-y-4 sm:space-y-5">
+      <div className="space-y-5">
         <MemorizeQueueHeader remainingCount={remainingCount} />
         <EmptyState title="암기할 표현이 없습니다" body="배운 표현이 생기면 한국어 힌트로 바로 복습할 수 있습니다." actionHref="/expressions" actionLabel="표현 모아보기" />
       </div>
     );
   }
 
-  function handleReveal() {
-    hasUserInteractedRef.current = true;
-  }
-
   function handleReviewSubmit(result: ExpressionReviewResult) {
-    hasUserInteractedRef.current = true;
     setSessionState((current) => {
-      const currentState = current.signature === propsSignature ? current : reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, current);
+      const currentState = current.signature === propsSignature ? current : fallbackState;
       const nextQueue = advanceQueue(currentState.queueIds, activeExpression.id, result);
       return {
         signature: propsSignature,
@@ -225,12 +194,11 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
   }
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-5">
       <MemorizeQueueHeader remainingCount={remainingCount} />
       <MemorizeCard
         key={activeExpression.id}
         expression={activeExpression}
-        onReveal={handleReveal}
         onReviewSubmit={handleReviewSubmit}
       />
     </div>
@@ -239,9 +207,9 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
 
 function MemorizeQueueHeader({ remainingCount }: { remainingCount: number }) {
   return (
-    <header className="flex items-end justify-between gap-3 sm:block">
-      <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] text-ink sm:text-3xl">오늘의 복습</h1>
-      <p className="text-sm font-semibold text-slate-500 sm:mt-2">복습할 표현 {remainingCount}개</p>
+    <header>
+      <h1 className="text-3xl font-black leading-tight tracking-[-0.03em] text-ink">오늘의 복습</h1>
+      <p className="mt-2 text-sm font-semibold text-slate-500">복습할 표현 {remainingCount}개</p>
     </header>
   );
 }

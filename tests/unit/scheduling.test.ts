@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nextDueAtForKnown, nextExpressionReviewSchedule, nextHardIntervalDays, nextKnownIntervalDays, nextOkayIntervalDays, scheduleMemorizationQueue } from "@/lib/scheduling";
+import { nextDueAtForKnown, nextExpressionReviewSchedule, nextHardIntervalDays, nextKnownIntervalDays, scheduleMemorizationQueue } from "@/lib/scheduling";
 import type { ExpressionCard } from "@/lib/types";
 
 function card(overrides: Partial<ExpressionCard>): ExpressionCard {
@@ -145,30 +145,21 @@ describe("Anki-lite interval policy", () => {
     expect(nextExpressionReviewSchedule(card({ id: "hard-mature", last_result: "known", interval_days: 30 }), "hard", now)).toEqual({ intervalDays: 14, dueAt: "2026-05-11T15:00:00.000Z" });
   });
 
-  it("keeps okay cards at the current interval with a one-day minimum", () => {
-    expect(nextOkayIntervalDays(0)).toBe(1);
-    expect(nextOkayIntervalDays(1)).toBe(1);
-    expect(nextOkayIntervalDays(7)).toBe(7);
-    expect(nextOkayIntervalDays(30)).toBe(30);
-    expect(nextExpressionReviewSchedule(card({ id: "okay-new" }), "okay", now)).toEqual({ intervalDays: 1, dueAt: "2026-04-28T15:00:00.000Z" });
-    expect(nextExpressionReviewSchedule(card({ id: "okay-mature", last_result: "known", interval_days: 30 }), "okay", now)).toEqual({ intervalDays: 30, dueAt: "2026-05-27T15:00:00.000Z" });
-  });
-
   it("sets remembered cards due on the selected future Korean-midnight boundary", () => {
     expect(nextDueAtForKnown(1, new Date("2026-04-28T14:50:00.000Z"))).toBe("2026-04-28T15:00:00.000Z");
     expect(nextDueAtForKnown(3, new Date("2026-04-28T14:50:00.000Z"))).toBe("2026-04-30T15:00:00.000Z");
     expect(nextDueAtForKnown(7, new Date("2026-04-28T15:01:00.000Z"))).toBe("2026-05-05T15:00:00.000Z");
   });
 
-  it("schedules easy recalls one ladder step out", () => {
+  it("schedules new easy recalls three days out and recovered new lapses one day out", () => {
     const direct = nextExpressionReviewSchedule(card({ id: "direct-new" }), "easy", now);
     expect(direct).toEqual({ intervalDays: 3, dueAt: "2026-04-30T15:00:00.000Z" });
 
     const recovered = nextExpressionReviewSchedule(card({ id: "recovered-new", last_result: "unknown", last_reviewed_at: "2026-04-28T11:30:00.000Z", interval_days: 0 }), "easy", now);
-    expect(recovered).toEqual({ intervalDays: 3, dueAt: "2026-04-30T15:00:00.000Z" });
+    expect(recovered).toEqual({ intervalDays: 1, dueAt: "2026-04-28T15:00:00.000Z" });
   });
 
-  it("does not reduce again intervals and lets okay maintain lapsed intervals", () => {
+  it("does not reduce again intervals or promote after unresolved lapses", () => {
     const firstAgain = nextExpressionReviewSchedule(card({ id: "mature", last_result: "known", interval_days: 14 }), "again", now);
     expect(firstAgain).toEqual({ intervalDays: 14, dueAt: null });
 
@@ -177,11 +168,8 @@ describe("Anki-lite interval policy", () => {
     const repeatedAgain = nextExpressionReviewSchedule(lapsedMatureCard, "again", now);
     expect(repeatedAgain).toEqual({ intervalDays: 14, dueAt: null });
 
-    const okayRecovered = nextExpressionReviewSchedule(lapsedMatureCard, "okay", now);
-    expect(okayRecovered).toEqual({ intervalDays: 14, dueAt: "2026-05-11T15:00:00.000Z" });
-
-    const easyRecovered = nextExpressionReviewSchedule(lapsedMatureCard, "easy", now);
-    expect(easyRecovered).toEqual({ intervalDays: 30, dueAt: "2026-05-27T15:00:00.000Z" });
+    const recovered = nextExpressionReviewSchedule(lapsedMatureCard, "easy", now);
+    expect(recovered).toEqual({ intervalDays: 14, dueAt: "2026-05-11T15:00:00.000Z" });
 
     const hardRecovered = nextExpressionReviewSchedule(lapsedMatureCard, "hard", now);
     expect(hardRecovered).toEqual({ intervalDays: 7, dueAt: "2026-05-04T15:00:00.000Z" });

@@ -1,4 +1,4 @@
-import { isAgainReviewResult, isHardReviewResult, isOkayReviewResult } from "@/lib/review-result";
+import { isAgainReviewResult, isHardReviewResult } from "@/lib/review-result";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 type MemorizationCandidate = Pick<ExpressionCard, "id" | "unknown_count" | "known_count" | "last_reviewed_at" | "last_result" | "source_order" | "due_at" | "interval_days"> &
@@ -76,10 +76,6 @@ function currentOrMinimumIntervalDays(currentIntervalDays: number) {
   return Math.max(currentIntervalDays, KNOWN_INTERVAL_DAYS[0]);
 }
 
-export function nextOkayIntervalDays(currentIntervalDays: number) {
-  return currentOrMinimumIntervalDays(currentIntervalDays);
-}
-
 export function nextDueAtForUnknown() {
   // Unknown cards stay due; the active review session moves them to the back until remembered.
   return null;
@@ -94,7 +90,7 @@ export function nextExpressionReviewSchedule(current: ReviewSchedulingState, res
     return { intervalDays: current.interval_days, dueAt: nextDueAtForUnknown() };
   }
 
-  const intervalDays = isHardReviewResult(result) ? nextHardIntervalDays(current.interval_days) : isOkayReviewResult(result) ? nextOkayIntervalDays(current.interval_days) : nextKnownIntervalDays(current.interval_days);
+  const intervalDays = isHardReviewResult(result) ? nextHardIntervalDays(current.interval_days) : current.last_result === "unknown" ? currentOrMinimumIntervalDays(current.interval_days) : nextKnownIntervalDays(current.interval_days);
   return { intervalDays, dueAt: nextDueAtForKnown(intervalDays, now) };
 }
 

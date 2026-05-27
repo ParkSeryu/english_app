@@ -2,7 +2,7 @@ export const STUDY_STATUSES = ["new", "learning", "memorized", "confusing"] as c
 export type StudyStatus = (typeof STUDY_STATUSES)[number];
 export const REVIEW_MODES = ["meaning-to-expression", "expression-to-meaning", "structure-to-pattern"] as const;
 export type ReviewMode = (typeof REVIEW_MODES)[number];
-export const EXPRESSION_REVIEW_RESULTS = ["again", "hard", "okay", "easy", "known", "unknown"] as const;
+export const EXPRESSION_REVIEW_RESULTS = ["again", "hard", "easy", "known", "unknown"] as const;
 export type ExpressionReviewResult = (typeof EXPRESSION_REVIEW_RESULTS)[number];
 export type StoredExpressionReviewResult = "known" | "unknown";
 

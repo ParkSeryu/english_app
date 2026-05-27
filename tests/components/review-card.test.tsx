@@ -44,7 +44,7 @@ describe("MemorizeCard", () => {
     inPlaceReviewAction.mockClear();
   });
 
-  it("hides English before reveal and then shows again/hard/okay/easy controls", async () => {
+  it("hides English before reveal and then shows again/hard/easy controls", async () => {
     const user = userEvent.setup();
     render(<MemorizeCard expression={expression} />);
 
@@ -56,9 +56,8 @@ describe("MemorizeCard", () => {
     expect(screen.queryByRole("button", { name: /정답 보기/ })).not.toBeInTheDocument();
     expect(screen.getByText(expression.english)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /어려움/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /알긴암/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /쉬움/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /모름/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /다시/ })).toBeInTheDocument();
   });
 
   it("uses the redirecting review action when it is not inside an optimistic queue", async () => {
@@ -66,7 +65,7 @@ describe("MemorizeCard", () => {
     render(<MemorizeCard expression={expression} returnTo="/review/confusing" />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /모름/ }));
+    await user.click(screen.getByRole("button", { name: /다시/ }));
 
     await waitFor(() => expect(redirectReviewAction).toHaveBeenCalledWith(expression.id, "again", "/review/confusing"));
     expect(inPlaceReviewAction).not.toHaveBeenCalled();
