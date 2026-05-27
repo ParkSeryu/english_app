@@ -1,6 +1,7 @@
 import { MissingSupabaseServiceRoleEnvError } from "@/lib/env";
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { nextExpressionReviewSchedule, scheduleMemorizationQueue } from "@/lib/scheduling";
+import { isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service";
 import type {
@@ -12,6 +13,7 @@ import type {
   ExpressionDaySummary,
   ExpressionIngestionPayload,
   ExpressionProgress,
+  ExpressionReviewResult,
   PersonalExpressionUpdateInput,
   QuestionNote,
   QuestionNoteInput,
@@ -496,7 +498,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
     };
   }
 
-  async recordReviewResult(id: string, result: "known" | "unknown") {
+  async recordReviewResult(id: string, result: ExpressionReviewResult) {
     const existing = requireEntity(await this.getExpression(id), "Expression not found");
     const current = (await this.progressForOne(id)) ?? defaultProgress(this.user.id, id, existing.created_at);
     const timestamp = nowIso();
@@ -509,10 +511,10 @@ export class SupabaseExpressionStore implements ExpressionStore {
           expression_id: id,
           user_memo: current.user_memo ?? null,
           is_memorization_enabled: current.is_memorization_enabled,
-          known_count: result === "known" ? current.known_count + 1 : current.known_count,
-          unknown_count: result === "unknown" ? current.unknown_count + 1 : current.unknown_count,
+          known_count: isRememberedReviewResult(result) ? current.known_count + 1 : current.known_count,
+          unknown_count: isRememberedReviewResult(result) ? current.unknown_count : current.unknown_count + 1,
           review_count: current.review_count + 1,
-          last_result: result,
+          last_result: storedReviewResult(result),
           last_reviewed_at: timestamp,
           interval_days: schedule.intervalDays,
           due_at: schedule.dueAt,
@@ -843,4 +845,3 @@ export class SupabaseExpressionStore implements ExpressionStore {
     return data ? normalizeIngestionRun(data as SupabaseIngestionRunRow) : null;
   }
 }
-

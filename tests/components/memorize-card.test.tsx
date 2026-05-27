@@ -102,7 +102,7 @@ describe("MemorizeCard", () => {
     Reflect.deleteProperty(globalThis, "SpeechSynthesisUtterance");
   });
 
-  it("shows Korean first, hides English until reveal, then exposes simple known/unknown controls", async () => {
+  it("shows Korean first, hides English until reveal, then exposes 다시/어려움/쉬움 controls", async () => {
     const user = userEvent.setup();
     const speech = mockSpeechSynthesis();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
@@ -128,27 +128,28 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("구조")).not.toBeInTheDocument();
     expect(screen.queryByText(expression.nuance_note ?? "")).not.toBeInTheDocument();
     expect(screen.queryByText(expression.structure_note ?? "")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /외웠음.*1일 뒤/s })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /모름.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /쉬움.*1일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
 
     const pronunciationButton = await screen.findByRole("button", { name: /발음 듣기/ });
     await user.click(pronunciationButton);
     expect(speech.cancel).toHaveBeenCalledTimes(1);
     expect(speech.speak).toHaveBeenCalledTimes(1);
 
-    const reviewButtons = screen.getAllByRole("button").filter((button) => /^(모름|외웠음)/.test(button.textContent ?? ""));
-    expect(reviewButtons.map((button) => button.textContent)).toEqual(["모름오늘 다시", "외웠음1일 뒤"]);
+    const reviewButtons = screen.getAllByRole("button").filter((button) => /^(다시|어려움|쉬움)/.test(button.textContent ?? ""));
+    expect(reviewButtons.map((button) => button.textContent)).toEqual(["다시오늘 다시", "어려움1일 뒤", "쉬움1일 뒤"]);
   });
 
-  it("shows the next longer review interval on the remembered button", async () => {
+  it("shows hard and easy review intervals on remembered buttons", async () => {
     const user = userEvent.setup();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
     render(<MemorizeCard expression={{ ...expression, last_result: "known", interval_days: 30 }} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
 
-    expect(screen.getByRole("button", { name: /외웠음.*60일 뒤/s })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /모름.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /어려움.*30일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /쉬움.*60일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
   });
 
   it("hides the answer again after marking an expression unknown", async () => {
@@ -159,7 +160,7 @@ describe("MemorizeCard", () => {
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
     expect(screen.getByText(expression.english)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /모름/ }));
+    await user.click(screen.getByRole("button", { name: /다시/ }));
 
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /정답 보기/ })).toBeInTheDocument();

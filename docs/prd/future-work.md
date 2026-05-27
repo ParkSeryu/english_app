@@ -114,7 +114,7 @@
 - Workstream: Retention Algorithm
 - Surface: scheduling logic, persistence, tests, memorize UI
 - Pull readiness:
-  - [x] User value is clear: 표현이 많아져도 `모름`이 장기 복습 간격을 깎지 않아 부담이 줄어듭니다.
+  - [x] User value is clear: 표현이 많아져도 `다시`가 장기 복습 간격을 깎지 않고, `어려움`과 `쉬움`을 구분해 부담이 줄어듭니다.
   - [x] Acceptance criteria are testable.
   - [x] Required data/schema changes are identified: schema change 없음.
   - [x] Required live route/action checks are identified: `/memorize` live route and button-label flow.
@@ -122,21 +122,23 @@
   - PRD: `docs/prd/active/spaced-repetition-interval-policy/prd.md`
   - Test spec: implementation PR covers focused scheduling, memory-store, and memorize-card tests
   - Implementation plan: PR #5 narrow SRS policy change
-- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `모름`으로 장기 간격이 줄어드는 부담을 제거하기 위해서입니다.
+- Why: 현재 단순 간격 정책보다 기억 유지 목적에 맞는 복습 타이밍을 제공하면서, `다시`로 장기 간격이 줄어드는 부담을 제거하고, `어려움`과 `쉬움`을 구분하기 위해서입니다.
 - Scope:
-  - `외웠음`은 1 → 3 → 7 → 14 → 30 → 60 → 90일 간격으로 늘립니다.
-  - `모름`은 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
+  - 버튼은 `다시 / 어려움 / 쉬움` 세 개로 구성합니다.
+  - `다시`는 저장된 interval을 줄이지 않고 `due_at = null`로 오늘 다시 보게 합니다.
+  - `어려움`은 현재 interval을 유지하고, `쉬움`은 1 → 3 → 7 → 14 → 30 → 60 → 90일 ladder로 늘립니다.
   - `/memorize` 버튼에 `오늘 다시` / `N일 뒤`를 명시합니다.
   - 기존 progress 데이터와 호환되게 schema 변경 없이 처리합니다.
 - Non-goals:
   - 완전한 SM-2/FSRS 구현
   - 머신러닝 개인화
   - 푸쉬 알림 발송
-  - Anki식 4버튼 UI
+  - Anki식 `다시 / 어려움 / 좋음 / 쉬움` 4버튼 UI
 - Acceptance criteria:
   - [x] 새 복습 간격 정책이 문서화됩니다.
-  - [x] `외웠음`은 다음 복습일을 1/3/7/14/30/60/90일 ladder에 맞게 뒤로 미룹니다.
-  - [x] `모름`은 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
+  - [x] `쉬움`은 다음 복습일을 1/3/7/14/30/60/90일 ladder에 맞게 뒤로 미룹니다.
+  - [x] `어려움`은 현재 interval을 유지해 너무 빨리 늘리지 않습니다.
+  - [x] `다시`는 interval을 줄이지 않고 오늘 다시 볼 대상으로 남깁니다.
   - [x] 기존 progress 데이터가 깨지지 않습니다.
   - [x] 버튼에 다음 시점이 명시됩니다.
 - Verification:

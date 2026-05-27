@@ -1,7 +1,8 @@
 import type { ExpressionStore } from "@/lib/lesson-store";
-import type { CardMemoInput, PersonalExpressionInput, PersonalExpressionUpdateInput } from "@/lib/types";
+import { isExpressionReviewResult } from "@/lib/review-result";
+import type { CardMemoInput, ExpressionReviewResult, PersonalExpressionInput, PersonalExpressionUpdateInput } from "@/lib/types";
 
-export type ExpressionReviewResult = "known" | "unknown";
+export type { ExpressionReviewResult } from "@/lib/types";
 
 export async function updateExpressionMemo(store: ExpressionStore, expressionId: string, input: CardMemoInput) {
   await store.updateExpressionMemo(expressionId, input);
@@ -24,6 +25,6 @@ export async function deletePersonalExpression(store: ExpressionStore, expressio
 }
 
 export async function recordExpressionReview(store: ExpressionStore, expressionId: string, result: ExpressionReviewResult) {
-  if (result !== "known" && result !== "unknown") throw new Error("암기 결과가 올바르지 않습니다.");
+  if (!isExpressionReviewResult(result)) throw new Error("암기 결과가 올바르지 않습니다.");
   await store.recordReviewResult(expressionId, result);
 }

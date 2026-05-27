@@ -1,4 +1,5 @@
-import type { ExpressionCard } from "@/lib/types";
+import { isAgainReviewResult, isHardReviewResult } from "@/lib/review-result";
+import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 type MemorizationCandidate = Pick<ExpressionCard, "id" | "unknown_count" | "known_count" | "last_reviewed_at" | "last_result" | "source_order" | "due_at" | "interval_days"> &
   Partial<Pick<ExpressionCard, "created_at" | "is_memorization_enabled">>;
@@ -59,6 +60,10 @@ export function nextKnownIntervalDays(currentIntervalDays: number) {
   return KNOWN_INTERVAL_DAYS.find((intervalDays) => intervalDays > currentIntervalDays) ?? KNOWN_INTERVAL_DAYS[KNOWN_INTERVAL_DAYS.length - 1];
 }
 
+export function nextHardIntervalDays(currentIntervalDays: number) {
+  return Math.max(currentIntervalDays, KNOWN_INTERVAL_DAYS[0]);
+}
+
 export function nextDueAtForUnknown() {
   // Unknown cards stay due; the active review session moves them to the back until remembered.
   return null;
@@ -68,12 +73,12 @@ export function nextDueAtForKnown(intervalDays: number, now = new Date()) {
   return koreanMidnightAfterDays(now, intervalDays).toISOString();
 }
 
-export function nextExpressionReviewSchedule(current: ReviewSchedulingState, result: "known" | "unknown", now = new Date()) {
-  if (result === "unknown") {
+export function nextExpressionReviewSchedule(current: ReviewSchedulingState, result: ExpressionReviewResult, now = new Date()) {
+  if (isAgainReviewResult(result)) {
     return { intervalDays: current.interval_days, dueAt: nextDueAtForUnknown() };
   }
 
-  const intervalDays = current.last_result === "unknown" ? Math.max(current.interval_days, KNOWN_INTERVAL_DAYS[0]) : nextKnownIntervalDays(current.interval_days);
+  const intervalDays = isHardReviewResult(result) || current.last_result === "unknown" ? nextHardIntervalDays(current.interval_days) : nextKnownIntervalDays(current.interval_days);
   return { intervalDays, dueAt: nextDueAtForKnown(intervalDays, now) };
 }
 

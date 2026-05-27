@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { MemorizeCard } from "@/components/MemorizeCard";
-import type { ExpressionCard } from "@/lib/types";
+import { isAgainReviewResult } from "@/lib/review-result";
+import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 const DEFAULT_STORAGE_KEY = "english:memorize-session:v1";
 const EMPTY_DEFERRED_IDS: string[] = [];
@@ -125,11 +126,11 @@ function reconcileQueueState(signature: string, expressions: ExpressionCard[], d
   };
 }
 
-function advanceQueue(queueIds: string[], activeId: string, result: "known" | "unknown") {
+function advanceQueue(queueIds: string[], activeId: string, result: ExpressionReviewResult) {
   const activeIndex = Math.max(queueIds.indexOf(activeId), 0);
   const withoutActive = queueIds.filter((id) => id !== activeId);
 
-  if (result === "unknown") {
+  if (isAgainReviewResult(result)) {
     const nextQueueIds = [...withoutActive, activeId];
     return {
       queueIds: nextQueueIds,
@@ -172,7 +173,7 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
     );
   }
 
-  function handleReviewSubmit(result: "known" | "unknown") {
+  function handleReviewSubmit(result: ExpressionReviewResult) {
     setSessionState((current) => {
       const currentState = current.signature === propsSignature ? current : fallbackState;
       const nextQueue = advanceQueue(currentState.queueIds, activeExpression.id, result);
@@ -180,9 +181,9 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
         signature: propsSignature,
         queueIds: nextQueue.queueIds,
         activeId: nextQueue.activeId,
-        deferredIds: result === "unknown" ? appendDeferredId(currentState.deferredIds, activeExpression.id) : removeDeferredId(currentState.deferredIds, activeExpression.id),
+        deferredIds: isAgainReviewResult(result) ? appendDeferredId(currentState.deferredIds, activeExpression.id) : removeDeferredId(currentState.deferredIds, activeExpression.id),
         optimisticUnknownCounts:
-          result === "unknown"
+          isAgainReviewResult(result)
             ? {
                 ...currentState.optimisticUnknownCounts,
                 [activeExpression.id]: Math.max(currentState.optimisticUnknownCounts[activeExpression.id] ?? activeExpression.unknown_count, activeExpression.unknown_count) + 1
