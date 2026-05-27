@@ -12,14 +12,20 @@ import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 type MemorizeCardProps = {
   expression: ExpressionCard;
   returnTo?: string;
+  onReveal?: () => void;
   onReviewSubmit?: (result: ExpressionReviewResult) => void;
 };
 
-export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmit }: MemorizeCardProps) {
+export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onReviewSubmit }: MemorizeCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
   const hardIntervalDays = nextExpressionReviewSchedule(expression, "hard").intervalDays;
   const easyIntervalDays = nextExpressionReviewSchedule(expression, "easy").intervalDays;
+
+  function revealAnswer() {
+    onReveal?.();
+    setRevealed(true);
+  }
 
   function handleReview(result: ExpressionReviewResult) {
     if (isAgainReviewResult(result)) setRevealed(false);
@@ -40,28 +46,28 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmi
   }
 
   return (
-    <article className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card">
-      <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-500">
+    <article className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-5">
+      <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 sm:text-xs">
         <span>외움 {expression.known_count}회</span>
         <span>틀림 {expression.unknown_count}회</span>
       </div>
 
       {!revealed ? (
-        <div className="mt-6 rounded-3xl bg-ink p-5 text-white shadow-lg shadow-slate-200">
-          <p className="text-sm font-black text-teal-200">한국어를 보고 영어로 말하기</p>
-          <h1 className="mt-3 whitespace-pre-wrap text-2xl font-black leading-tight">{expression.korean_prompt}</h1>
-          <button type="button" onClick={() => setRevealed(true)} className="mt-5 min-h-14 w-full rounded-full bg-teal-600 px-5 py-3 text-center text-base font-black text-white transition hover:bg-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-200" aria-expanded="false">정답 보기</button>
+        <div className="mt-4 rounded-[1.5rem] bg-ink p-4 text-white shadow-lg shadow-slate-200 sm:mt-6 sm:rounded-3xl sm:p-5">
+          <p className="text-xs font-black text-teal-200 sm:text-sm">한국어를 보고 영어로 말하기</p>
+          <h1 className="mt-2 whitespace-pre-wrap text-xl font-black leading-tight sm:mt-3 sm:text-2xl">{expression.korean_prompt}</h1>
+          <button type="button" onClick={revealAnswer} className="mt-4 min-h-12 w-full rounded-full bg-teal-600 px-5 py-2.5 text-center text-sm font-black text-white transition hover:bg-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-200 sm:mt-5 sm:min-h-14 sm:py-3 sm:text-base" aria-expanded="false">정답 보기</button>
         </div>
       ) : (
         <>
-          <div className="mt-6 rounded-[1.75rem] bg-gradient-to-br from-ink to-slate-800 p-5 text-white shadow-lg shadow-slate-200">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-200">영어 정답</p>
-            <h1 className="mt-3 whitespace-pre-wrap text-2xl font-black leading-tight">{expression.english}</h1>
-            <PronunciationButton text={expression.english} variant="dark" className="mt-4" />
-            <div className="my-5 h-px bg-white/15" />
-            <p className="whitespace-pre-wrap text-lg font-semibold leading-7 text-slate-100">{expression.korean_prompt}</p>
+          <div className="mt-4 rounded-[1.5rem] bg-gradient-to-br from-ink to-slate-800 p-4 text-white shadow-lg shadow-slate-200 sm:mt-6 sm:rounded-[1.75rem] sm:p-5">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-200 sm:text-xs sm:tracking-[0.2em]">영어 정답</p>
+            <h1 className="mt-2 whitespace-pre-wrap text-xl font-black leading-tight sm:mt-3 sm:text-2xl">{expression.english}</h1>
+            <PronunciationButton text={expression.english} variant="dark" className="mt-3 sm:mt-4" />
+            <div className="my-4 h-px bg-white/15 sm:my-5" />
+            <p className="whitespace-pre-wrap text-base font-semibold leading-6 text-slate-100 sm:text-lg sm:leading-7">{expression.korean_prompt}</p>
           </div>
-          <div className="mt-5 space-y-4" aria-live="polite">
+          <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4" aria-live="polite">
             {expression.grammar_note ? <Info title="문법/패턴" body={<GrammarPatternNote body={expression.grammar_note} />} /> : null}
             {expression.examples.length > 0 ? (
               <section className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
@@ -76,18 +82,18 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReviewSubmi
                 </ul>
               </section>
             ) : null}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <button type="button" onClick={() => handleReview("again")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-5 py-3 font-black text-rose-700 transition hover:bg-rose-100">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-2 py-2 text-sm font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>다시</span>
-                <span className="mt-0.5 text-xs font-black text-rose-500">오늘 다시</span>
+                <span className="mt-0.5 text-[11px] font-black text-rose-500 sm:text-xs">오늘 다시</span>
               </button>
-              <button type="button" onClick={() => handleReview("hard")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-5 py-3 font-black text-amber-700 transition hover:bg-amber-100">
+              <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-2 py-2 text-sm font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>어려움</span>
-                <span className="mt-0.5 text-xs font-black text-amber-500">{hardIntervalDays}일 뒤</span>
+                <span className="mt-0.5 text-[11px] font-black text-amber-500 sm:text-xs">{hardIntervalDays}일 뒤</span>
               </button>
-              <button type="button" onClick={() => handleReview("easy")} className="flex min-h-14 w-full flex-col items-center justify-center rounded-full bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700">
+              <button type="button" onClick={() => handleReview("easy")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl bg-emerald-600 px-2 py-2 text-sm font-black leading-tight text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>쉬움</span>
-                <span className="mt-0.5 text-xs font-black text-emerald-100">{easyIntervalDays}일 뒤</span>
+                <span className="mt-0.5 text-[11px] font-black text-emerald-100 sm:text-xs">{easyIntervalDays}일 뒤</span>
               </button>
             </div>
           </div>

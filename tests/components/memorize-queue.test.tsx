@@ -216,4 +216,19 @@ describe("MemorizeQueue", () => {
     expectPromptVisible("두 번째 한국어");
     expectPromptAbsent("세 번째 한국어");
   });
+
+  it("keeps a revealed answer open when a server refresh reorders the queue", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<MemorizeQueue expressions={[first, second, third]} />);
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    expect(screen.getByText("First answer")).toBeInTheDocument();
+
+    rerender(<MemorizeQueue expressions={[second, first, third]} />);
+
+    expect(screen.getByText("First answer")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /정답 보기/ })).not.toBeInTheDocument();
+    expect(screen.getByText("첫 번째 한국어")).toBeInTheDocument();
+    expectPromptAbsent("두 번째 한국어");
+  });
 });
