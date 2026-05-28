@@ -51,7 +51,7 @@ For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production pr
 5. In Supabase Dashboard > Authentication > Providers > Kakao, enable Kakao and enter the REST API key plus Kakao Login Client Secret.
 6. In Supabase Auth URL configuration, allow the app callback URL for each deployed app origin as listed above.
 
-If Kakao `account_email` consent is not available, configure the Supabase Kakao provider to allow users without an email before testing real sign-in.
+This app overrides Kakao's OAuth `scope` query parameter to request only `profile_nickname profile_image` and intentionally does not request `account_email`. If Kakao `account_email` consent is not available or not requested, configure the Supabase Kakao provider to allow users without an email before testing real sign-in.
 
 ## Minimum env for login and app usage
 

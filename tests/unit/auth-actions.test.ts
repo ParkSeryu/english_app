@@ -64,7 +64,8 @@ describe("auth actions", () => {
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: "kakao",
       options: {
-        redirectTo: "https://english.example/auth/callback?next=%2Fmemorize%3Fdefer%3Dcard-1"
+        redirectTo: "https://english.example/auth/callback?next=%2Fmemorize%3Fdefer%3Dcard-1",
+        queryParams: { scope: "profile_nickname profile_image" }
       }
     });
     expect(mocks.redirect).toHaveBeenCalledWith("https://kauth.kakao.com/oauth/authorize?client_id=kakao");
@@ -85,7 +86,8 @@ describe("auth actions", () => {
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: "kakao",
       options: {
-        redirectTo: "https://english.example/auth/callback?next=%2F"
+        redirectTo: "https://english.example/auth/callback?next=%2F",
+        queryParams: { scope: "profile_nickname profile_image" }
       }
     });
   });

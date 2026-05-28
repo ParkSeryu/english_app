@@ -157,7 +157,10 @@ export async function signInWithKakaoAction(_previousState: ActionState, formDat
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
       options: {
-        redirectTo: authCallbackRedirectUrl(headerStore, next)
+        redirectTo: authCallbackRedirectUrl(headerStore, next),
+        // Supabase's Kakao default scope includes account_email; override Kakao's
+        // provider-level scope directly because this app does not request email.
+        queryParams: { scope: "profile_nickname profile_image" }
       }
     });
 
