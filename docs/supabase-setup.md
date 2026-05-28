@@ -25,6 +25,17 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-or-anon-key
    - `card_examples`
 8. Confirm policies allow authenticated users to read shared expression content while managing only their own progress/questions. Locally, run `npm run verify:rls` if Docker is available.
 
+## Supabase Auth redirect URLs
+
+For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production project (`ccawzrrkxuirrwvaecvw`) separately, allow these app URLs in Supabase Dashboard > Authentication > URL Configuration:
+
+- `http://localhost:3000/auth/callback`
+- `http://localhost:3000/auth/update-password`
+- the production deployment URL ending in `/auth/callback`
+- the production deployment URL ending in `/auth/update-password`
+
+`/auth/callback` is used for OAuth/code exchange flows. `/auth/update-password` is used directly by password reset emails so recovery links can carry Supabase recovery tokens back to the browser.
+
 ## Kakao social login setup
 
 The app includes a Kakao OAuth entry point on `/login`, but actual sign-in succeeds only after each Supabase environment has Kakao credentials configured.
@@ -38,9 +49,7 @@ For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production pr
    - Dev: `https://uixpyibcpleuwsgemdno.supabase.co/auth/v1/callback`
    - Main/production: `https://ccawzrrkxuirrwvaecvw.supabase.co/auth/v1/callback`
 5. In Supabase Dashboard > Authentication > Providers > Kakao, enable Kakao and enter the REST API key plus Kakao Login Client Secret.
-6. In Supabase Auth URL configuration, allow the app callback URL for each deployed app origin, for example:
-   - `http://localhost:3000/auth/callback`
-   - the production deployment URL ending in `/auth/callback`
+6. In Supabase Auth URL configuration, allow the app callback URL for each deployed app origin as listed above.
 
 If Kakao `account_email` consent is not available, configure the Supabase Kakao provider to allow users without an email before testing real sign-in.
 

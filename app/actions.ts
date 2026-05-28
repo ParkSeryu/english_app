@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentUser } from "@/lib/auth";
 import { flattenZodErrors, parseCardMemoFormData, parsePersonalExpressionFormData, parsePersonalExpressionUpdateFormData, parseQuestionNoteFormData, parseQuestionNoteUpdateFormData } from "@/lib/validation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPasswordRecoverySupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getExpressionStore } from "@/lib/lesson-store";
 import { createPersonalExpression, deletePersonalExpression, recordExpressionReview, updateExpressionMemo, updatePersonalExpression } from "@/lib/use-cases/expressions";
 import { createQuestionNote, updateQuestionNote, updateQuestionStatus } from "@/lib/use-cases/questions";
@@ -197,7 +197,7 @@ export async function resetPasswordAction(_previousState: ActionState, formData:
 
   try {
     const headerStore = await headers();
-    const supabase = await createServerSupabaseClient();
+    const supabase = createPasswordRecoverySupabaseClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: passwordResetRedirectUrl(headerStore)
     });

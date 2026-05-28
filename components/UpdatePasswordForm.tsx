@@ -21,7 +21,7 @@ export function UpdatePasswordForm() {
         <p className="text-sm font-bold text-teal-700">비밀번호 재설정</p>
         <h1 className="mt-1 text-2xl font-black text-ink">변경 완료</h1>
         <FeedbackMessage ok={Boolean(state.ok)} message={state.message} />
-        <Link href="/login" className="btn-primary mt-5 w-full">
+        <Link href="/login" className="btn-primary mt-5 flex w-full">
           로그인하러 가기
         </Link>
       </section>
