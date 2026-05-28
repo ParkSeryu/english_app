@@ -26,6 +26,14 @@ function isLocalOrigin(origin: string) {
   }
 }
 
+function isVercelGeneratedOrigin(origin: string) {
+  try {
+    return new URL(origin).hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
+
 function originFromForwardedHeaders(headers: HeaderReader) {
   const forwardedHost = headers.get("x-forwarded-host") ?? headers.get("host");
   if (!forwardedHost) return null;
@@ -39,13 +47,21 @@ export function resolveAppOrigin(headers: HeaderReader, env: SiteUrlEnv = proces
   const configuredOrigin = originFromUrl(env.NEXT_PUBLIC_SITE_URL) ?? originFromUrl(env.SITE_URL);
   if (configuredOrigin && !isLocalOrigin(configuredOrigin)) return configuredOrigin;
 
+  const requestOrigin = originFromUrl(headers.get("origin") ?? undefined);
   const forwardedOrigin = originFromForwardedHeaders(headers);
-  if (forwardedOrigin && !isLocalOrigin(forwardedOrigin)) return forwardedOrigin;
+  if (forwardedOrigin && !isLocalOrigin(forwardedOrigin)) {
+    if (requestOrigin && !isLocalOrigin(requestOrigin) && isVercelGeneratedOrigin(forwardedOrigin) && !isVercelGeneratedOrigin(requestOrigin)) {
+      return requestOrigin;
+    }
+    return forwardedOrigin;
+  }
+
+  if (requestOrigin && !isLocalOrigin(requestOrigin)) return requestOrigin;
 
   const vercelOrigin = originFromUrl(env.VERCEL_PROJECT_PRODUCTION_URL, true) ?? originFromUrl(env.VERCEL_URL, true);
   if (vercelOrigin && !isLocalOrigin(vercelOrigin)) return vercelOrigin;
 
-  return configuredOrigin ?? forwardedOrigin ?? originFromUrl(headers.get("origin") ?? undefined) ?? "http://localhost:3000";
+  return configuredOrigin ?? forwardedOrigin ?? requestOrigin ?? "http://localhost:3000";
 }
 
 export function passwordResetRedirectUrl(headers: HeaderReader, env: SiteUrlEnv = process.env) {
