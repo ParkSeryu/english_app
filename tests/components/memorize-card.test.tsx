@@ -25,6 +25,9 @@ type ExpressionCardForTest = {
   source_order: number;
   unknown_count: number;
   known_count: number;
+  hard_count: number;
+  okay_count: number;
+  easy_count: number;
   review_count: number;
   last_result: "known" | "unknown" | null;
   last_reviewed_at: string | null;
@@ -32,6 +35,13 @@ type ExpressionCardForTest = {
   interval_days: number;
   created_at: string;
   updated_at: string;
+  day?: {
+    id: string;
+    title: string;
+    source_note: string | null;
+    day_date: string | null;
+    folder_path?: string[];
+  };
   examples: Array<{
     id: string;
     expression_id: string;
@@ -85,14 +95,24 @@ const expression: ExpressionCardForTest = {
   user_memo: null,
   source_order: 0,
   unknown_count: 2,
-  known_count: 1,
-  review_count: 3,
+  known_count: 12,
+  hard_count: 3,
+  okay_count: 4,
+  easy_count: 5,
+  review_count: 14,
   last_result: "unknown",
   last_reviewed_at: "2026-04-28T00:00:00.000Z",
   due_at: "2026-04-28T00:10:00.000Z",
   interval_days: 0,
   created_at: "2026-04-27T00:00:00.000Z",
   updated_at: "2026-04-28T00:00:00.000Z",
+  day: {
+    id: "day-1",
+    title: "1주차 (260427)",
+    source_note: "수업 표현",
+    day_date: "2026-04-27",
+    folder_path: ["수원영어모임"]
+  },
   examples: [{ id: "example-1", expression_id: "expression-1", example_text: "They don't seem interested in me.", meaning_ko: "그들은 나에게 관심이 없어 보여요.", source: "llm", sort_order: 0, created_at: "2026-04-28T00:00:00.000Z" }]
 };
 
@@ -102,17 +122,25 @@ describe("MemorizeCard", () => {
     Reflect.deleteProperty(globalThis, "SpeechSynthesisUtterance");
   });
 
-  it("shows Korean first, hides English until reveal, then exposes 다시/어려움/쉬움 controls", async () => {
+  it("shows Korean first, hides English until reveal, then exposes 모름/어려움/알긴암/쉬움 controls", async () => {
     const user = userEvent.setup();
     const speech = mockSpeechSynthesis();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
     render(<MemorizeCard expression={expression} />);
 
     expect(screen.getByRole("heading", { name: expression.korean_prompt })).toBeInTheDocument();
+    expect(screen.getByText("토픽:")).toBeInTheDocument();
+    expect(screen.getByText("수원영어모임 1주차 (260427)")).toBeInTheDocument();
+    expect(screen.queryByText("수원영어모임 1주차 (260427) (260427)")).not.toBeInTheDocument();
+    expect(screen.queryByText("회차")).not.toBeInTheDocument();
+    expect(screen.queryByText("2026-04-27")).not.toBeInTheDocument();
+    expect(screen.queryByText("수업 표현")).not.toBeInTheDocument();
 
-    const counters = screen.getByText("외움 1회").parentElement;
+    const counters = screen.getByText("모름 2회 · 어려움 3회").parentElement;
     expect(counters).not.toBeNull();
-    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["외움 1회", "틀림 2회"]);
+    expect(counters as HTMLElement).toHaveClass("flex-col");
+    expect(counters as HTMLElement).not.toHaveClass("sm:flex-row");
+    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["모름 2회 · 어려움 3회", "알긴암 4회 · 쉬움 5회"]);
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
@@ -128,19 +156,21 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("구조")).not.toBeInTheDocument();
     expect(screen.queryByText(expression.nuance_note ?? "")).not.toBeInTheDocument();
     expect(screen.queryByText(expression.structure_note ?? "")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /쉬움.*1일 뒤/s })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /모름.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /어려움.*1일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /알긴암.*1일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /쉬움.*3일 뒤/s })).toBeInTheDocument();
 
     const pronunciationButton = await screen.findByRole("button", { name: /발음 듣기/ });
     await user.click(pronunciationButton);
     expect(speech.cancel).toHaveBeenCalledTimes(1);
     expect(speech.speak).toHaveBeenCalledTimes(1);
 
-    const reviewButtons = screen.getAllByRole("button").filter((button) => /^(다시|어려움|쉬움)/.test(button.textContent ?? ""));
-    expect(reviewButtons.map((button) => button.textContent)).toEqual(["다시오늘 다시", "어려움1일 뒤", "쉬움1일 뒤"]);
+    const reviewButtons = screen.getAllByRole("button").filter((button) => /^(모름|어려움|알긴암|쉬움)/.test(button.textContent ?? ""));
+    expect(reviewButtons.map((button) => button.textContent)).toEqual(["모름오늘 다시", "어려움1일 뒤", "알긴암1일 뒤", "쉬움3일 뒤"]);
   });
 
-  it("shows hard and easy review intervals on remembered buttons", async () => {
+  it("shows hard, okay, and easy review intervals on remembered buttons", async () => {
     const user = userEvent.setup();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
     render(<MemorizeCard expression={{ ...expression, last_result: "known", interval_days: 30 }} />);
@@ -148,8 +178,9 @@ describe("MemorizeCard", () => {
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
 
     expect(screen.getByRole("button", { name: /어려움.*14일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /알긴암.*30일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /쉬움.*60일 뒤/s })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /모름.*오늘 다시/s })).toBeInTheDocument();
   });
 
   it("hides the answer again after marking an expression unknown", async () => {
@@ -160,7 +191,7 @@ describe("MemorizeCard", () => {
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
     expect(screen.getByText(expression.english)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /다시/ }));
+    await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /정답 보기/ })).toBeInTheDocument();

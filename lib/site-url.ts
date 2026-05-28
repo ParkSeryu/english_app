@@ -49,7 +49,7 @@ export function resolveAppOrigin(headers: HeaderReader, env: SiteUrlEnv = proces
 }
 
 export function passwordResetRedirectUrl(headers: HeaderReader, env: SiteUrlEnv = process.env) {
-  return `${resolveAppOrigin(headers, env)}/auth/callback?next=/auth/update-password`;
+  return new URL("/auth/update-password", resolveAppOrigin(headers, env)).toString();
 }
 
 export function authCallbackRedirectUrl(headers: HeaderReader, next = "/", env: SiteUrlEnv = process.env) {

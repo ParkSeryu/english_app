@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const actionState = { ok: false, message: "" };
+let actionState = { ok: false, message: "" };
 
 vi.mock("react", async () => {
   const actual = await vi.importActual<typeof import("react")>("react");
@@ -18,6 +18,10 @@ vi.mock("@/app/actions", () => ({
 import { UpdatePasswordForm } from "@/components/UpdatePasswordForm";
 
 describe("UpdatePasswordForm", () => {
+  beforeEach(() => {
+    actionState = { ok: false, message: "" };
+  });
+
   it("asks for and confirms the new password after a reset link opens", () => {
     render(<UpdatePasswordForm />);
 
@@ -26,5 +30,13 @@ describe("UpdatePasswordForm", () => {
     expect(screen.getByLabelText("새 비밀번호")).toBeInTheDocument();
     expect(screen.getByLabelText("새 비밀번호 확인")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "비밀번호 변경" })).toBeInTheDocument();
+  });
+
+  it("renders the completion action as a full-width button", () => {
+    actionState = { ok: true, message: "비밀번호를 변경했습니다." };
+
+    render(<UpdatePasswordForm />);
+
+    expect(screen.getByRole("link", { name: "로그인하러 가기" })).toHaveClass("flex", "w-full");
   });
 });

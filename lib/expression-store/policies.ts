@@ -11,7 +11,7 @@ import type {
   UserIdentity
 } from "@/lib/types";
 
-export type ExpressionStatsCard = Pick<ExpressionCard, "id" | "is_memorization_enabled" | "known_count" | "unknown_count" | "review_count" | "last_result" | "last_reviewed_at" | "due_at" | "interval_days" | "source_order" | "created_at">;
+export type ExpressionStatsCard = Pick<ExpressionCard, "id" | "is_memorization_enabled" | "known_count" | "unknown_count" | "hard_count" | "okay_count" | "easy_count" | "review_count" | "last_result" | "last_reviewed_at" | "due_at" | "interval_days" | "source_order" | "created_at">;
 export type QuestionStats = Pick<QuestionNote, "status">;
 
 export const PERSONAL_EXPRESSION_MARKER = "__personal_expression__";
@@ -52,6 +52,9 @@ export function defaultProgress(userId: string, expressionId: string, timestamp 
     is_memorization_enabled: true,
     known_count: 0,
     unknown_count: 0,
+    hard_count: 0,
+    okay_count: 0,
+    easy_count: 0,
     review_count: 0,
     last_result: null,
     last_reviewed_at: null,
@@ -70,6 +73,9 @@ export function applyProgress(card: ExpressionCard, progress?: Partial<Expressio
     is_memorization_enabled: progress?.is_memorization_enabled ?? true,
     known_count: progress?.known_count ?? 0,
     unknown_count: progress?.unknown_count ?? 0,
+    hard_count: progress?.hard_count ?? 0,
+    okay_count: progress?.okay_count ?? 0,
+    easy_count: progress?.easy_count ?? 0,
     review_count: progress?.review_count ?? 0,
     last_result: progress?.last_result ?? null,
     last_reviewed_at: progress?.last_reviewed_at ?? null,
@@ -84,6 +90,9 @@ export function expressionStatsWithProgress(row: Pick<ExpressionCard, "id" | "kn
     is_memorization_enabled: progress?.is_memorization_enabled ?? true,
     known_count: progress?.known_count ?? 0,
     unknown_count: progress?.unknown_count ?? 0,
+    hard_count: progress?.hard_count ?? 0,
+    okay_count: progress?.okay_count ?? 0,
+    easy_count: progress?.easy_count ?? 0,
     review_count: progress?.review_count ?? 0,
     last_result: progress?.last_result ?? null,
     last_reviewed_at: progress?.last_reviewed_at ?? null,
@@ -99,7 +108,18 @@ export function expressionUrl(card: ExpressionCard) {
 }
 
 export function toDaySummary(day: ExpressionDay): ExpressionDaySummary {
-  return { id: day.id, owner_id: day.owner_id, title: day.title, source_note: day.source_note, day_date: day.day_date, created_at: day.created_at, created_by: day.created_by };
+  return {
+    id: day.id,
+    owner_id: day.owner_id,
+    title: day.title,
+    source_note: day.source_note,
+    day_date: day.day_date,
+    created_at: day.created_at,
+    created_by: day.created_by,
+    folder_id: day.folder_id,
+    folder: day.folder,
+    folder_path: day.folder_path
+  };
 }
 
 function timestampOrNull(value: string | null | undefined) {

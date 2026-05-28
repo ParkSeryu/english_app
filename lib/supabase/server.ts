@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import { getSupabaseEnv } from "@/lib/env";
@@ -20,6 +21,19 @@ export async function createServerSupabaseClient() {
           // Server Components cannot set cookies. Route handlers and server actions can.
         }
       }
+    }
+  });
+}
+
+export function createPasswordRecoverySupabaseClient() {
+  const { url, publishableKey } = getSupabaseEnv();
+
+  return createClient(url, publishableKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      flowType: "implicit",
+      persistSession: false
     }
   });
 }

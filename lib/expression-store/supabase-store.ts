@@ -1,7 +1,7 @@
 import { MissingSupabaseServiceRoleEnvError } from "@/lib/env";
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { nextExpressionReviewSchedule, scheduleMemorizationQueue } from "@/lib/scheduling";
-import { isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
+import { isEasyReviewResult, isHardReviewResult, isOkayReviewResult, isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service";
 import type {
@@ -58,6 +58,15 @@ import {
 } from "@/lib/expression-store/policies";
 
 type SupabaseLike = Awaited<ReturnType<typeof createServerSupabaseClient>> | ReturnType<typeof createServiceRoleSupabaseClient>;
+
+function normalizeProgressBreakdown(progress: ExpressionProgress): ExpressionProgress {
+  return {
+    ...progress,
+    hard_count: progress.hard_count ?? 0,
+    okay_count: progress.okay_count ?? 0,
+    easy_count: progress.easy_count ?? 0
+  };
+}
 
 async function resolveDefaultWritableFolder(supabase: SupabaseLike) {
   const { data, error } = await supabase
@@ -168,7 +177,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
       .eq("user_id", this.user.id)
       .in("expression_id", expressionIds);
     if (error) raiseStoreError("supabase query", error);
-    return new Map((data ?? []).map((row: ExpressionProgress) => [row.expression_id, row]));
+    return new Map((data ?? []).map((row: ExpressionProgress) => [row.expression_id, normalizeProgressBreakdown(row)]));
   }
 
   private async progressForOne(expressionId: string, client?: SupabaseLike) {
@@ -179,7 +188,8 @@ export class SupabaseExpressionStore implements ExpressionStore {
       .eq("expression_id", expressionId)
       .maybeSingle();
     if (error) raiseStoreError("supabase query", error);
-    return (data as ExpressionProgress | null) ?? null;
+    const progress = (data as ExpressionProgress | null) ?? null;
+    return progress ? normalizeProgressBreakdown(progress) : null;
   }
 
   private async applyUserProgress(cards: ExpressionCard[]) {
@@ -198,6 +208,9 @@ export class SupabaseExpressionStore implements ExpressionStore {
       is_memorization_enabled: input.is_memorization_enabled,
       known_count: input.known_count,
       unknown_count: input.unknown_count,
+      hard_count: input.hard_count,
+      okay_count: input.okay_count,
+      easy_count: input.easy_count,
       review_count: input.review_count,
       last_result: input.last_result,
       last_reviewed_at: input.last_reviewed_at,
@@ -218,7 +231,24 @@ export class SupabaseExpressionStore implements ExpressionStore {
       interval_days: input.interval_days,
       updated_at: input.updated_at
     };
+    const progressWithoutReviewBreakdown = {
+      user_id: input.user_id,
+      expression_id: input.expression_id,
+      user_memo: input.user_memo,
+      is_memorization_enabled: input.is_memorization_enabled,
+      known_count: input.known_count,
+      unknown_count: input.unknown_count,
+      review_count: input.review_count,
+      last_result: input.last_result,
+      last_reviewed_at: input.last_reviewed_at,
+      due_at: input.due_at,
+      interval_days: input.interval_days,
+      updated_at: input.updated_at
+    };
     let error = (await client.from("expression_progress").upsert(fullProgress, { onConflict: "user_id,expression_id" })).error;
+    if (error && (isMissingColumnError(error, "hard_count") || isMissingColumnError(error, "okay_count") || isMissingColumnError(error, "easy_count"))) {
+      error = (await client.from("expression_progress").upsert(progressWithoutReviewBreakdown, { onConflict: "user_id,expression_id" })).error;
+    }
     if (error && isMissingColumnError(error, "is_memorization_enabled")) {
       error = (await client.from("expression_progress").upsert(legacyProgress, { onConflict: "user_id,expression_id" })).error;
     }
@@ -456,25 +486,24 @@ export class SupabaseExpressionStore implements ExpressionStore {
     const current = (await this.progressForOne(id)) ?? defaultProgress(this.user.id, id, existing.created_at);
     const timestamp = nowIso();
     const schedule = nextExpressionReviewSchedule(current, result, new Date(timestamp));
-    const { error } = await (await this.supabase())
-      .from("expression_progress")
-      .upsert(
-        {
-          user_id: this.user.id,
-          expression_id: id,
-          user_memo: current.user_memo ?? null,
-          is_memorization_enabled: current.is_memorization_enabled,
-          known_count: isRememberedReviewResult(result) ? current.known_count + 1 : current.known_count,
-          unknown_count: isRememberedReviewResult(result) ? current.unknown_count : current.unknown_count + 1,
-          review_count: current.review_count + 1,
-          last_result: storedReviewResult(result),
-          last_reviewed_at: timestamp,
-          interval_days: schedule.intervalDays,
-          due_at: schedule.dueAt,
-          updated_at: timestamp
-        },
-        { onConflict: "user_id,expression_id" }
-      );
+    const remembered = isRememberedReviewResult(result);
+    const { error } = await this.upsertProgressWithFallback({
+      user_id: this.user.id,
+      expression_id: id,
+      user_memo: current.user_memo ?? null,
+      is_memorization_enabled: current.is_memorization_enabled,
+      known_count: remembered ? current.known_count + 1 : current.known_count,
+      unknown_count: remembered ? current.unknown_count : current.unknown_count + 1,
+      hard_count: isHardReviewResult(result) ? current.hard_count + 1 : current.hard_count,
+      okay_count: isOkayReviewResult(result) ? current.okay_count + 1 : current.okay_count,
+      easy_count: isEasyReviewResult(result) ? current.easy_count + 1 : current.easy_count,
+      review_count: current.review_count + 1,
+      last_result: storedReviewResult(result),
+      last_reviewed_at: timestamp,
+      interval_days: schedule.intervalDays,
+      due_at: schedule.dueAt,
+      updated_at: timestamp
+    });
     if (error) raiseStoreError("supabase query", error);
     return requireEntity(await this.getExpression(id), "Expression not found");
   }
@@ -490,6 +519,9 @@ export class SupabaseExpressionStore implements ExpressionStore {
       is_memorization_enabled: input.isMemorizationEnabled ?? current.is_memorization_enabled,
       known_count: current.known_count,
       unknown_count: current.unknown_count,
+      hard_count: current.hard_count,
+      okay_count: current.okay_count,
+      easy_count: current.easy_count,
       review_count: current.review_count,
       last_result: current.last_result,
       last_reviewed_at: current.last_reviewed_at,
@@ -562,6 +594,9 @@ export class SupabaseExpressionStore implements ExpressionStore {
       is_memorization_enabled: input.isMemorizationEnabled ?? false,
       known_count: 0,
       unknown_count: 0,
+      hard_count: 0,
+      okay_count: 0,
+      easy_count: 0,
       review_count: 0,
       last_result: null,
       last_reviewed_at: null,
@@ -608,6 +643,9 @@ export class SupabaseExpressionStore implements ExpressionStore {
       is_memorization_enabled: input.isMemorizationEnabled ?? current.is_memorization_enabled,
       known_count: current.known_count,
       unknown_count: current.unknown_count,
+      hard_count: current.hard_count,
+      okay_count: current.okay_count,
+      easy_count: current.easy_count,
       review_count: current.review_count,
       last_result: current.last_result,
       last_reviewed_at: current.last_reviewed_at,

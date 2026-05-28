@@ -40,7 +40,7 @@ describe("site URL resolution", () => {
     expect(origin).toBe("https://english.example");
   });
 
-  it("builds password reset callback URL from the resolved app origin", () => {
+  it("builds password reset URL from the resolved app origin", () => {
     expect(
       passwordResetRedirectUrl(headers({ host: "english.example", "x-forwarded-proto": "https" }), {
         NEXT_PUBLIC_SITE_URL: undefined,
@@ -48,7 +48,7 @@ describe("site URL resolution", () => {
         VERCEL_PROJECT_PRODUCTION_URL: undefined,
         VERCEL_URL: undefined
       })
-    ).toBe("https://english.example/auth/callback?next=/auth/update-password");
+    ).toBe("https://english.example/auth/update-password");
   });
 
   it("builds encoded auth callback URLs for social login next paths", () => {

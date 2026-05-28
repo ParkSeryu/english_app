@@ -51,6 +51,7 @@ describe("RecoverySessionHandler", () => {
     render(<RecoverySessionHandler />);
 
     expect(await screen.findByRole("heading", { name: "링크 확인이 필요합니다" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "로그인 화면으로 돌아가기" })).toHaveClass("flex", "w-full");
     expect(mocks.setSession).not.toHaveBeenCalled();
   });
 });
