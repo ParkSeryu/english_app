@@ -68,16 +68,17 @@ function normalizeProgressBreakdown(progress: ExpressionProgress): ExpressionPro
   };
 }
 
-async function resolveDefaultWritableFolder(supabase: SupabaseLike) {
+async function resolveWritableFolderId(supabase: SupabaseLike, slug: string | null | undefined) {
+  const folderSlug = slug || "legacy-root";
   const { data, error } = await supabase
     .from("content_folders")
     .select("id")
-    .eq("slug", "legacy-root")
+    .eq("slug", folderSlug)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   if (error) raiseStoreError("supabase query", error);
-  if (!data?.id) throw new Error("기본 표현 폴더를 찾을 수 없습니다.");
+  if (!data?.id) throw new Error(`표현 폴더를 찾을 수 없습니다: ${folderSlug}`);
   return data.id as string;
 }
 
@@ -747,8 +748,22 @@ export class SupabaseExpressionStore implements ExpressionStore {
     let createdDayId: string | null = null;
     try {
       const requestedDayDate = run.normalized_payload.expression_day.day_date ?? null;
-      const defaultFolderId = await resolveDefaultWritableFolder(supabase);
-      if (requestedDayDate) {
+      const requestedFolderSlug = run.normalized_payload.expression_day.folder_slug ?? null;
+      const folderId = await resolveWritableFolderId(supabase, requestedFolderSlug);
+      if (requestedFolderSlug) {
+        let existingDayQuery = supabase
+          .from("expression_days")
+          .select("id")
+          .eq("owner_id", this.user.id)
+          .eq("title", run.normalized_payload.expression_day.title)
+          .eq("folder_id", folderId)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        existingDayQuery = requestedDayDate ? existingDayQuery.eq("day_date", requestedDayDate) : existingDayQuery.is("day_date", null);
+        const { data: existingDay, error: existingDayError } = await existingDayQuery.maybeSingle();
+        if (existingDayError) throw existingDayError;
+        dayId = (existingDay?.id as string | undefined) ?? null;
+      } else if (requestedDayDate) {
         const { data: existingDay, error: existingDayError } = await supabase
           .from("expression_days")
           .select("id")
@@ -770,7 +785,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
             raw_input: run.normalized_payload.expression_day.raw_input,
             source_note: run.normalized_payload.expression_day.source_note ?? null,
             day_date: requestedDayDate,
-            folder_id: defaultFolderId,
+            folder_id: folderId,
             created_by: "llm",
             updated_at: timestamp
           })

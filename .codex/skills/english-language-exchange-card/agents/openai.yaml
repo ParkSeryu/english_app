@@ -1,0 +1,4 @@
+interface:
+  display_name: "English Language Exchange Card"
+  short_description: "Format and ingest language-exchange memorization cards."
+  default_prompt: "Turn my language exchange notes into Korean-prompt English cards for the language-exchange folder."

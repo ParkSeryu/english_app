@@ -9,7 +9,7 @@ type ReviewResult = "again" | "hard" | "okay" | "easy" | "known" | "unknown";
 type QuestionStatus = "open" | "asked" | "answered";
 
 type ExpressionIngestionPayload = {
-  expression_day: { title: string; day_date: string; raw_input: string };
+  expression_day: { title: string; day_date: string; raw_input: string; source_note?: string | null; folder_slug?: string | null };
   expressions: Array<{ english: string; korean_prompt: string; grammar_note?: string; nuance_note?: string; structure_note?: string }>;
 };
 
@@ -35,7 +35,7 @@ type ExpressionCard = {
   can_delete: boolean;
 };
 
-type ExpressionDay = { id: string; owner_id: string; day_date: string; title: string; expressions: ExpressionCard[] };
+type ExpressionDay = { id: string; owner_id: string; day_date: string; title: string; folder_id?: string | null; expressions: ExpressionCard[] };
 type QuestionNote = { id: string; question_text: string; status: QuestionStatus; answer_note: string | null };
 type IngestionRun = { id: string; owner_id: string; status: string };
 
@@ -119,6 +119,37 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(approved.expressionDay.expressions).toHaveLength(1);
     expect(approved.expressionDay.expressions[0]).toMatchObject({ nuance_note: null, structure_note: null });
     expect(approved.expressionUrls[0]).toMatch(/^\/expressions\//);
+  });
+
+  it("upserts routed expression days by folder slug, title, and date", async () => {
+    const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
+    const store = new MemoryExpressionStore(userA);
+    const languageExchangePayload: ExpressionIngestionPayload = {
+      expression_day: {
+        title: "with keyri",
+        day_date: "2026-05-27",
+        raw_input: "언어교환 카드로 추가해줘",
+        source_note: "언어교환 표현",
+        folder_slug: "language-exchange"
+      },
+      expressions: [{ english: "What do you do for work?", korean_prompt: "무슨 일 하세요?" }]
+    };
+
+    const first = await store.approveDraft((await store.createDraft(languageExchangePayload)).id, "이대로 앱에 넣어줘");
+    const second = await store.approveDraft((await store.createDraft({
+      ...languageExchangePayload,
+      expressions: [{ english: "I'm into hiking these days.", korean_prompt: "요즘 등산에 빠져 있어요." }]
+    })).id, "이대로 앱에 넣어줘");
+    const sameDateDifferentTopic = await store.approveDraft((await store.createDraft({
+      ...languageExchangePayload,
+      expression_day: { ...languageExchangePayload.expression_day, title: "with alex" },
+      expressions: [{ english: "How was your weekend?", korean_prompt: "주말 어땠어요?" }]
+    })).id, "이대로 앱에 넣어줘");
+
+    expect(second.expressionDay.id).toBe(first.expressionDay.id);
+    expect(second.expressionDay).toMatchObject({ title: "with keyri", day_date: "2026-05-27", folder_id: "language-exchange" });
+    expect(second.expressionDay.expressions.map((card) => card.english)).toEqual(["What do you do for work?", "I'm into hiking these days."]);
+    expect(sameDateDifferentTopic.expressionDay.id).not.toBe(first.expressionDay.id);
   });
 
   it("records cumulative Anki-lite review counters and next due times", async () => {

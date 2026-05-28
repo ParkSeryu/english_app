@@ -167,6 +167,8 @@ export type ExpressionIngestionPayload = {
     raw_input: string;
     source_note?: string | null;
     day_date?: string | null;
+    /** Optional content folder slug for ingestion-time topic routing. */
+    folder_slug?: string | null;
   };
   expressions: ExpressionIngestionCardInput[];
 };

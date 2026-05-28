@@ -300,9 +300,17 @@ export class MemoryExpressionStore implements ExpressionStore {
 
     const timestamp = nowIso();
     const requestedDayDate = run.normalized_payload.expression_day.day_date ?? null;
-    let expressionDay = requestedDayDate
-      ? memoryState().expressionDays.find((day) => day.owner_id === this.user.id && day.day_date === requestedDayDate)
-      : undefined;
+    const requestedFolderSlug = run.normalized_payload.expression_day.folder_slug ?? null;
+    let expressionDay = requestedFolderSlug
+      ? memoryState().expressionDays.find((day) =>
+          day.owner_id === this.user.id
+          && day.title === run.normalized_payload.expression_day.title
+          && day.folder_id === requestedFolderSlug
+          && day.day_date === requestedDayDate
+        )
+      : requestedDayDate
+        ? memoryState().expressionDays.find((day) => day.owner_id === this.user.id && day.day_date === requestedDayDate)
+        : undefined;
 
     if (!expressionDay) {
       expressionDay = {
@@ -312,6 +320,9 @@ export class MemoryExpressionStore implements ExpressionStore {
         raw_input: run.normalized_payload.expression_day.raw_input,
         source_note: run.normalized_payload.expression_day.source_note ?? null,
         day_date: requestedDayDate,
+        folder_id: requestedFolderSlug,
+        folder: requestedFolderSlug ? { id: requestedFolderSlug, name: requestedFolderSlug, slug: requestedFolderSlug, parent_id: null, path_names: [requestedFolderSlug] } : null,
+        folder_path: requestedFolderSlug ? [requestedFolderSlug] : [],
         created_by: "llm",
         created_at: timestamp,
         updated_at: timestamp,

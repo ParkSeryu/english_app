@@ -25,6 +25,22 @@ describe("expressionIngestionPayloadSchema", () => {
     if (result.success) expect(result.data.expression_day.day_date).toBe("2026-04-27");
   });
 
+  it("accepts an optional content folder slug for routed ingestion", () => {
+    const result = expressionIngestionPayloadSchema.safeParse({
+      ...validPayload,
+      expression_day: { ...validPayload.expression_day, folder_slug: "language-exchange" }
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.expression_day.folder_slug).toBe("language-exchange");
+  });
+
+  it("rejects invalid content folder slugs", () => {
+    expect(expressionIngestionPayloadSchema.safeParse({
+      ...validPayload,
+      expression_day: { ...validPayload.expression_day, folder_slug: "언어교환" }
+    }).success).toBe(false);
+  });
+
   it.each([["260427", "2026-04-27"], ["20260427", "2026-04-27"], ["2026-04-27", "2026-04-27"]])("normalizes %s", (input, output) => {
     expect(normalizeExpressionDayDate(input)).toBe(output);
   });

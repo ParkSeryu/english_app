@@ -4,6 +4,14 @@ import { QUESTION_NOTE_STATUSES } from "@/lib/types";
 
 const nonBlankText = z.string().trim().min(1, "필수 항목입니다");
 const optionalText = (max: number) => z.string().trim().max(max).optional().nullable().transform((value) => value || null);
+const optionalSlug = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "폴더 slug는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다")
+  .max(120, "폴더 slug는 120자 이내로 입력해 주세요")
+  .optional()
+  .nullable()
+  .transform((value) => value || null);
 
 export function normalizeExpressionDayDate(input: string | null | undefined) {
   const value = String(input ?? "").trim();
@@ -42,7 +50,8 @@ export const expressionIngestionPayloadSchema = z.object({
     title: nonBlankText.max(200, "제목은 200자 이내로 입력해 주세요"),
     raw_input: nonBlankText.max(10_000, "원본 메모는 10,000자 이내로 줄여 주세요"),
     source_note: optionalText(500),
-    day_date: dateText
+    day_date: dateText,
+    folder_slug: optionalSlug
   }),
   expressions: z
     .array(

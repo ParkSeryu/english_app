@@ -16,6 +16,7 @@ Optional:
 
 - `expression_day.source_note`: max 500.
 - `expression_day.day_date`: `YYMMDD`, `YYYYMMDD`, or `YYYY-MM-DD`; server normalizes to `YYYY-MM-DD`.
+- `expression_day.folder_slug`: optional content folder slug, for routed ingestion such as `language-exchange`.
 - `expressions[].grammar_note`: max 3,000, but this skill should keep it one line.
 - `expressions[].examples`: up to 12; this skill should usually use 0–1 similar expression.
 - `examples[].source`: `llm`, `user`, or `class`; default `llm`.
