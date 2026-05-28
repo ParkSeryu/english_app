@@ -66,7 +66,7 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
             <button
               type="submit"
               disabled={Boolean(kakaoPending)}
-              aria-label={kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}
+              aria-label={kakaoPending ? "카카오로 이동 중…" : "카카오로 시작하기"}
               className="group relative flex min-h-[3.25rem] w-full items-center justify-center overflow-hidden rounded-[1.35rem] border border-[#E2C300] bg-[#FEE500] px-4 py-3 text-center text-[#191919] shadow-[0_12px_24px_rgba(254,229,0,0.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#FFE812] hover:shadow-[0_16px_30px_rgba(254,229,0,0.38)] focus:outline-none focus:ring-4 focus:ring-yellow-200 active:translate-y-0 active:scale-[0.98] active:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_12px_24px_rgba(254,229,0,0.30)] disabled:active:scale-100"
             >
               <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/35 via-white/0 to-black/[0.03]" />
@@ -75,7 +75,7 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
                   <path d="M12 4.25c-4.7 0-8.5 2.94-8.5 6.58 0 2.35 1.6 4.41 4 5.58l-.55 2.31a.5.5 0 0 0 .74.55l2.88-1.68c.46.06.94.09 1.43.09 4.7 0 8.5-2.94 8.5-6.58S16.7 4.25 12 4.25Z" />
                 </svg>
               </span>
-              <span className="relative text-[15px] font-black tracking-[-0.01em]">{kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}</span>
+              <span className="relative text-[15px] font-black tracking-[-0.01em]">{kakaoPending ? "카카오로 이동 중…" : "카카오로 시작하기"}</span>
             </button>
           </form>
 
