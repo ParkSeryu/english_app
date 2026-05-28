@@ -75,10 +75,7 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
                   <path d="M12 4.25c-4.7 0-8.5 2.94-8.5 6.58 0 2.35 1.6 4.41 4 5.58l-.55 2.31a.5.5 0 0 0 .74.55l2.88-1.68c.46.06.94.09 1.43.09 4.7 0 8.5-2.94 8.5-6.58S16.7 4.25 12 4.25Z" />
                 </svg>
               </span>
-              <span className="relative flex flex-col items-center leading-none">
-                <span className="text-[15px] font-black tracking-[-0.01em]">{kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}</span>
-                <span aria-hidden="true" className="mt-1 text-[11px] font-extrabold text-[#3C1E1E]/70">Kakao 간편 로그인</span>
-              </span>
+              <span className="relative text-[15px] font-black tracking-[-0.01em]">{kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}</span>
             </button>
           </form>
 

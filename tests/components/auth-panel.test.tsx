@@ -36,7 +36,7 @@ describe("AuthPanel", () => {
     const kakaoButton = screen.getByRole("button", { name: "카카오로 계속하기" });
     expect(kakaoButton).toHaveClass("rounded-[1.35rem]", "bg-[#FEE500]", "active:scale-[0.98]");
     expect(kakaoButton.querySelector("svg")).toHaveClass("fill-[#FEE500]");
-    expect(screen.getByText("Kakao 간편 로그인")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByText("Kakao 간편 로그인")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "회원가입" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "아이디·비밀번호 찾기" })).toBeInTheDocument();
     expect(screen.getByText("간편 로그인")).toBeInTheDocument();
