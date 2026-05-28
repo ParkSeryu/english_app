@@ -29,6 +29,21 @@ describe("site URL resolution", () => {
     expect(origin).toBe("https://english.example");
   });
 
+  it("uses the request origin when Vercel forwards a generated deployment host", () => {
+    const origin = resolveAppOrigin(headers({
+      origin: "https://study.example",
+      "x-forwarded-host": "english-lqgmsm9je-parkseryus-projects.vercel.app",
+      "x-forwarded-proto": "https"
+    }), {
+      NEXT_PUBLIC_SITE_URL: undefined,
+      SITE_URL: undefined,
+      VERCEL_PROJECT_PRODUCTION_URL: "english-parkseryus-projects.vercel.app",
+      VERCEL_URL: "english-lqgmsm9je-parkseryus-projects.vercel.app"
+    });
+
+    expect(origin).toBe("https://study.example");
+  });
+
   it("uses Vercel production URL before falling back to localhost", () => {
     const origin = resolveAppOrigin(headers({ origin: "http://localhost:3000", host: "localhost:3000" }), {
       NEXT_PUBLIC_SITE_URL: undefined,
@@ -60,6 +75,21 @@ describe("site URL resolution", () => {
         VERCEL_URL: undefined
       })
     ).toBe("https://english.example/auth/callback?next=%2Fmemorize%3Fdefer%3Dcard-1");
+  });
+
+  it("builds auth callback URLs on the visible app origin when forwarded through a generated Vercel host", () => {
+    expect(
+      authCallbackRedirectUrl(headers({
+        origin: "https://study.example",
+        "x-forwarded-host": "english-lqgmsm9je-parkseryus-projects.vercel.app",
+        "x-forwarded-proto": "https"
+      }), "/memorize", {
+        NEXT_PUBLIC_SITE_URL: undefined,
+        SITE_URL: undefined,
+        VERCEL_PROJECT_PRODUCTION_URL: "english-parkseryus-projects.vercel.app",
+        VERCEL_URL: "english-lqgmsm9je-parkseryus-projects.vercel.app"
+      })
+    ).toBe("https://study.example/auth/callback?next=%2Fmemorize");
   });
 
   it("falls back social login callback next paths to root when unsafe", () => {
