@@ -56,9 +56,12 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
             <button
               type="submit"
               disabled={Boolean(kakaoPending)}
-              className="w-full rounded-2xl bg-[#FEE500] px-4 py-3 text-center text-sm font-black text-[#191919] shadow-sm transition hover:bg-[#FDDC3F] disabled:cursor-not-allowed disabled:opacity-60"
+              className="group relative flex min-h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full border border-[#F1D400] bg-[#FEE500] px-5 py-3 text-center text-sm font-black text-[#191919] shadow-lg shadow-yellow-200/50 transition hover:-translate-y-0.5 hover:bg-[#FFEB33] hover:shadow-xl hover:shadow-yellow-200/70 focus:outline-none focus:ring-4 focus:ring-yellow-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
-              {kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 shrink-0 fill-[#191919]">
+                <path d="M12 4.25c-4.7 0-8.5 2.94-8.5 6.58 0 2.35 1.6 4.41 4 5.58l-.55 2.31a.5.5 0 0 0 .74.55l2.88-1.68c.46.06.94.09 1.43.09 4.7 0 8.5-2.94 8.5-6.58S16.7 4.25 12 4.25Z" />
+              </svg>
+              <span>{kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}</span>
             </button>
           </form>
 

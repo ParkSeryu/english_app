@@ -26,7 +26,9 @@ describe("AuthPanel", () => {
 
     expect(screen.getByRole("heading", { name: "로그인" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "회원가입" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "카카오로 계속하기" })).toBeInTheDocument();
+    const kakaoButton = screen.getByRole("button", { name: "카카오로 계속하기" });
+    expect(kakaoButton).toHaveClass("rounded-full", "bg-[#FEE500]", "shadow-lg");
+    expect(kakaoButton.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByRole("button", { name: "회원가입" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "아이디·비밀번호 찾기" })).toBeInTheDocument();
   });
