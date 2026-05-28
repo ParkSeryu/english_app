@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  createPasswordRecoverySupabaseClient: vi.fn(),
   createServerSupabaseClient: vi.fn(),
   headers: vi.fn(async () => new Headers({ host: "english.example", "x-forwarded-proto": "https" })),
   revalidatePath: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
+  createPasswordRecoverySupabaseClient: mocks.createPasswordRecoverySupabaseClient,
   createServerSupabaseClient: mocks.createServerSupabaseClient
 }));
 
@@ -30,7 +32,7 @@ describe("auth actions", () => {
 
   it("sends password reset emails back to the password update flow", async () => {
     const resetPasswordForEmail = vi.fn(async () => ({ error: null }));
-    mocks.createServerSupabaseClient.mockResolvedValue({
+    mocks.createPasswordRecoverySupabaseClient.mockReturnValue({
       auth: { resetPasswordForEmail }
     });
 
@@ -42,8 +44,9 @@ describe("auth actions", () => {
 
     expect(result.ok).toBe(true);
     expect(resetPasswordForEmail).toHaveBeenCalledWith("student@example.com", {
-      redirectTo: "https://english.example/auth/callback?next=/auth/update-password"
+      redirectTo: "https://english.example/auth/update-password"
     });
+    expect(mocks.createServerSupabaseClient).not.toHaveBeenCalled();
   });
 
   it("starts Kakao OAuth with the app callback URL and safe next path", async () => {
