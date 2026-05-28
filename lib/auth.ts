@@ -36,7 +36,7 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Use
       return null;
     }
     if (!data.user) return null;
-    return { id: data.user.id, email: data.user.email };
+    return { id: data.user.id, email: data.user.email, createdAt: data.user.created_at };
   } catch (error) {
     if (error instanceof MissingSupabaseEnvError) return null;
     if (isInvalidRefreshTokenError(error)) {

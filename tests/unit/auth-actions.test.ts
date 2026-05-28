@@ -46,6 +46,60 @@ describe("auth actions", () => {
     });
   });
 
+  it("starts Kakao OAuth with the app callback URL and safe next path", async () => {
+    const signInWithOAuth = vi.fn(async () => ({ data: { url: "https://kauth.kakao.com/oauth/authorize?client_id=kakao" }, error: null }));
+    mocks.createServerSupabaseClient.mockResolvedValue({
+      auth: { signInWithOAuth }
+    });
+
+    const { signInWithKakaoAction } = await import("@/app/actions");
+    const formData = new FormData();
+    formData.set("next", "/memorize?defer=card-1");
+
+    await signInWithKakaoAction({}, formData);
+
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "kakao",
+      options: {
+        redirectTo: "https://english.example/auth/callback?next=%2Fmemorize%3Fdefer%3Dcard-1"
+      }
+    });
+    expect(mocks.redirect).toHaveBeenCalledWith("https://kauth.kakao.com/oauth/authorize?client_id=kakao");
+  });
+
+  it("does not pass unsafe Kakao OAuth next paths into the callback URL", async () => {
+    const signInWithOAuth = vi.fn(async () => ({ data: { url: "https://kauth.kakao.com/oauth/authorize?client_id=kakao" }, error: null }));
+    mocks.createServerSupabaseClient.mockResolvedValue({
+      auth: { signInWithOAuth }
+    });
+
+    const { signInWithKakaoAction } = await import("@/app/actions");
+    const formData = new FormData();
+    formData.set("next", "https://evil.example/steal");
+
+    await signInWithKakaoAction({}, formData);
+
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "kakao",
+      options: {
+        redirectTo: "https://english.example/auth/callback?next=%2F"
+      }
+    });
+  });
+
+  it("returns a visible error when Kakao OAuth is not configured", async () => {
+    const signInWithOAuth = vi.fn(async () => ({ data: { url: null }, error: new Error("provider is not enabled") }));
+    mocks.createServerSupabaseClient.mockResolvedValue({
+      auth: { signInWithOAuth }
+    });
+
+    const { signInWithKakaoAction } = await import("@/app/actions");
+    const result = await signInWithKakaoAction({}, new FormData());
+
+    expect(result).toEqual({ ok: false, message: "provider is not enabled" });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("updates the password for the recovery session and signs out", async () => {
     const getUser = vi.fn(async () => ({ data: { user: { id: "user-1" } }, error: null }));
     const updateUser = vi.fn(async () => ({ error: null }));

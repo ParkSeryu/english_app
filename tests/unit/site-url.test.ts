@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { passwordResetRedirectUrl, resolveAppOrigin } from "@/lib/site-url";
+import { authCallbackRedirectUrl, passwordResetRedirectUrl, resolveAppOrigin } from "@/lib/site-url";
 
 function headers(values: Record<string, string>) {
   return new Headers(values);
@@ -49,5 +49,27 @@ describe("site URL resolution", () => {
         VERCEL_URL: undefined
       })
     ).toBe("https://english.example/auth/callback?next=/auth/update-password");
+  });
+
+  it("builds encoded auth callback URLs for social login next paths", () => {
+    expect(
+      authCallbackRedirectUrl(headers({ host: "english.example", "x-forwarded-proto": "https" }), "/memorize?defer=card-1", {
+        NEXT_PUBLIC_SITE_URL: undefined,
+        SITE_URL: undefined,
+        VERCEL_PROJECT_PRODUCTION_URL: undefined,
+        VERCEL_URL: undefined
+      })
+    ).toBe("https://english.example/auth/callback?next=%2Fmemorize%3Fdefer%3Dcard-1");
+  });
+
+  it("falls back social login callback next paths to root when unsafe", () => {
+    expect(
+      authCallbackRedirectUrl(headers({ host: "english.example", "x-forwarded-proto": "https" }), "https://evil.example", {
+        NEXT_PUBLIC_SITE_URL: undefined,
+        SITE_URL: undefined,
+        VERCEL_PROJECT_PRODUCTION_URL: undefined,
+        VERCEL_URL: undefined
+      })
+    ).toBe("https://english.example/auth/callback?next=%2F");
   });
 });

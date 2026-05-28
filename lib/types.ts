@@ -9,6 +9,8 @@ export type StoredExpressionReviewResult = "known" | "unknown";
 export type UserIdentity = {
   id: string;
   email?: string | null;
+  /** Supabase auth user creation time; used to keep new learners from seeing pre-signup shared topics. */
+  createdAt?: string | null;
 };
 
 export type ContentFolderSummary = {
@@ -25,6 +27,7 @@ export type ExpressionDaySummary = {
   title: string;
   source_note: string | null;
   day_date: string | null;
+  created_at?: string;
   created_by?: "llm" | "user";
   folder_id?: string | null;
   folder?: ContentFolderSummary | null;

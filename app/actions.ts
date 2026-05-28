@@ -10,7 +10,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getExpressionStore } from "@/lib/lesson-store";
 import { createPersonalExpression, deletePersonalExpression, recordExpressionReview, updateExpressionMemo, updatePersonalExpression } from "@/lib/use-cases/expressions";
 import { createQuestionNote, updateQuestionNote, updateQuestionStatus } from "@/lib/use-cases/questions";
-import { passwordResetRedirectUrl } from "@/lib/site-url";
+import { authCallbackRedirectUrl, passwordResetRedirectUrl } from "@/lib/site-url";
 import { type ActionState, type ExpressionReviewResult, type QuestionNoteStatus } from "@/lib/types";
 
 function revalidateAppPaths() {
@@ -145,6 +145,33 @@ export async function signInAction(_previousState: ActionState, formData: FormDa
 
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function signInWithKakaoAction(_previousState: ActionState, formData: FormData): Promise<ActionState> {
+  const next = String(formData.get("next") ?? "/");
+  let oauthUrl: string | null = null;
+
+  try {
+    const headerStore = await headers();
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "kakao",
+      options: {
+        redirectTo: authCallbackRedirectUrl(headerStore, next)
+      }
+    });
+
+    if (error) return { ok: false, message: error.message };
+    oauthUrl = data.url;
+  } catch (error) {
+    return errorState(error);
+  }
+
+  if (!oauthUrl) {
+    return { ok: false, message: "카카오 로그인 주소를 만들 수 없습니다. Supabase Kakao provider 설정을 확인해 주세요." };
+  }
+
+  redirect(oauthUrl);
 }
 
 export async function signUpAction(_previousState: ActionState, formData: FormData): Promise<ActionState> {

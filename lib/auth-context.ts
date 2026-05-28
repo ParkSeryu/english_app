@@ -3,6 +3,7 @@ import type { UserIdentity } from "@/lib/types";
 export const AUTH_VERIFIED_HEADER = "x-english-auth-verified";
 export const AUTH_USER_ID_HEADER = "x-english-user-id";
 export const AUTH_USER_EMAIL_HEADER = "x-english-user-email";
+export const AUTH_USER_CREATED_AT_HEADER = "x-english-user-created-at";
 
 type HeaderReader = {
   get(name: string): string | null;
@@ -17,12 +18,14 @@ export function clearTrustedAuthHeaders(headers: HeaderWriter) {
   headers.delete(AUTH_VERIFIED_HEADER);
   headers.delete(AUTH_USER_ID_HEADER);
   headers.delete(AUTH_USER_EMAIL_HEADER);
+  headers.delete(AUTH_USER_CREATED_AT_HEADER);
 }
 
 export function setTrustedAuthHeaders(headers: HeaderWriter, user: UserIdentity) {
   headers.set(AUTH_VERIFIED_HEADER, "1");
   headers.set(AUTH_USER_ID_HEADER, user.id);
   if (user.email) headers.set(AUTH_USER_EMAIL_HEADER, user.email);
+  if (user.createdAt) headers.set(AUTH_USER_CREATED_AT_HEADER, user.createdAt);
 }
 
 export function userFromTrustedAuthHeaders(headers: HeaderReader): UserIdentity | null {
@@ -33,6 +36,7 @@ export function userFromTrustedAuthHeaders(headers: HeaderReader): UserIdentity 
 
   return {
     id,
-    email: headers.get(AUTH_USER_EMAIL_HEADER)
+    email: headers.get(AUTH_USER_EMAIL_HEADER),
+    createdAt: headers.get(AUTH_USER_CREATED_AT_HEADER)
   };
 }

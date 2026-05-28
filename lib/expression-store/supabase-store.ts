@@ -30,12 +30,8 @@ import {
   requireEntity
 } from "@/lib/expression-store/errors";
 import {
-  EXPRESSION_CARD_COLUMNS,
-  EXPRESSION_DAY_COLUMNS,
   EXPRESSION_DAY_WITH_CARDS_SELECT,
-  EXPRESSION_STATS_COLUMNS,
   EXPRESSION_WITH_DAY_SELECT,
-  LEGACY_EXPRESSION_DAY_COLUMNS,
   LEGACY_EXPRESSION_DAY_WITH_CARDS_SELECT,
   LEGACY_EXPRESSION_WITH_DAY_SELECT,
   normalizeExpression,
@@ -44,16 +40,17 @@ import {
   normalizeIngestionRun,
   type SupabaseExpressionDayRow,
   type SupabaseExpressionRow,
-  type SupabaseExpressionStatsRow,
   type SupabaseIngestionRunRow
 } from "@/lib/expression-store/mappers";
 import {
   applyProgress,
   assertPayload,
   calculateStats,
+  canLearnerSeeExpressionDay,
   defaultProgress,
-  expressionStatsWithProgress,
   expressionUrl,
+  filterExpressionCardsForLearner,
+  filterExpressionDaysForLearner,
   normalizeGrammarNote,
   PERSONAL_EXPRESSION_MARKER,
   nowIso,
@@ -308,7 +305,10 @@ export class SupabaseExpressionStore implements ExpressionStore {
       error = legacyResult.error;
     }
     if (error) raiseStoreError("supabase query", error);
-    const days = await this.mergeOwnServiceExpressions(await this.hydrateExpressionDays((data ?? []).map((row: SupabaseExpressionDayRow) => normalizeExpressionDay(row))));
+    const days = filterExpressionDaysForLearner(
+      await this.mergeOwnServiceExpressions(await this.hydrateExpressionDays((data ?? []).map((row: SupabaseExpressionDayRow) => normalizeExpressionDay(row)))),
+      this.user
+    );
     const progress = await this.progressFor(days.flatMap((day) => day.expressions.map((card) => card.id)));
     return days.map((day) => ({ ...day, expressions: day.expressions.map((card) => applyProgress(this.withDeletePermission(card, day), progress.get(card.id))) }));
   }
@@ -333,6 +333,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
     if (error) raiseStoreError("supabase query", error);
     if (!data) return null;
     const [day] = await this.mergeOwnServiceExpressions(await this.hydrateExpressionDays([normalizeExpressionDay(data as SupabaseExpressionDayRow)]));
+    if (!canLearnerSeeExpressionDay(day, this.user)) return null;
     const progress = await this.progressFor(day.expressions.map((card) => card.id));
     return { ...day, expressions: day.expressions.map((card) => applyProgress(this.withDeletePermission(card, day), progress.get(card.id))) };
   }
@@ -383,6 +384,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
     }
     if (!data) return null;
     const [card] = await this.hydrateExpressionCards([normalizeExpression(data as SupabaseExpressionRow)]);
+    if (!filterExpressionCardsForLearner([card], this.user).length) return null;
     return applyProgress(this.withDeletePermission(card), await this.progressForOne(card.id, readSupabase));
   }
 
@@ -404,7 +406,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
     if (error) raiseStoreError("supabase query", error);
     const cards = await this.hydrateExpressionCards((data ?? []).map((row: SupabaseExpressionRow) => normalizeExpression(row)));
     const serviceSupabase = this.serviceSupabaseOrNull();
-    if (!serviceSupabase) return this.applyUserProgress(cards);
+    if (!serviceSupabase) return this.applyUserProgress(filterExpressionCardsForLearner(cards, this.user));
 
     let ownData: unknown[] | null = null;
     let ownError: unknown = null;
@@ -417,54 +419,11 @@ export class SupabaseExpressionStore implements ExpressionStore {
       ownData = legacyOwnResult.data;
       ownError = legacyOwnResult.error;
     }
-    if (ownError) return this.applyUserProgress(cards);
+    if (ownError) return this.applyUserProgress(filterExpressionCardsForLearner(cards, this.user));
 
     const existingIds = new Set(cards.map((card) => card.id));
     const ownCards = await this.hydrateExpressionCards((ownData ?? []).map((row) => normalizeExpression(row as SupabaseExpressionRow)));
-    return this.applyUserProgress([...cards, ...ownCards.filter((card) => !existingIds.has(card.id))]);
-  }
-
-  private async listExpressionStats() {
-    const supabase = await this.contentSupabase();
-    const { data, error } = await supabase.from("expressions").select(EXPRESSION_STATS_COLUMNS).order("source_order", { ascending: true });
-    if (error) raiseStoreError("supabase query", error);
-
-    const rows = (data ?? []) as SupabaseExpressionStatsRow[];
-    const progress = await this.progressFor(rows.map((row) => row.id));
-    return rows.map((row) => expressionStatsWithProgress(row, progress.get(row.id)));
-  }
-
-  private async countExpressionDays() {
-    const { count, error } = await (await this.contentSupabase()).from("expression_days").select("id", { count: "exact", head: true });
-    if (error) raiseStoreError("supabase query", error);
-    return count ?? 0;
-  }
-
-  private async listRecentExpressionDays(limit: number) {
-    if (limit <= 0) return [];
-    const supabase = await this.contentSupabase();
-    let { data, error } = await supabase
-      .from("expression_days")
-      .select(`${EXPRESSION_DAY_COLUMNS},expressions(${EXPRESSION_CARD_COLUMNS})`)
-      .order("day_date", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (error && isFolderSchemaUnavailableError(error)) {
-      logFolderSchemaFallback("listRecentExpressionDays", error);
-      const legacyResult = await supabase
-        .from("expression_days")
-        .select(`${LEGACY_EXPRESSION_DAY_COLUMNS},expressions(${EXPRESSION_CARD_COLUMNS})`)
-        .order("day_date", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(limit);
-      data = legacyResult.data as typeof data;
-      error = legacyResult.error;
-    }
-    if (error) raiseStoreError("supabase query", error);
-    const days = await this.hydrateExpressionDays((data ?? []).map((row: SupabaseExpressionDayRow) => normalizeExpressionDay(row)));
-    return days.map((day) => {
-      return { ...day, expressions: day.expressions.map((card) => applyProgress(this.withDeletePermission(card, day), null)) };
-    });
+    return this.applyUserProgress(filterExpressionCardsForLearner([...cards, ...ownCards.filter((card) => !existingIds.has(card.id))], this.user));
   }
 
   private async listQuestionStats() {
@@ -478,23 +437,17 @@ export class SupabaseExpressionStore implements ExpressionStore {
   }
 
   async getDashboardStats() {
-    const [dayCount, expressions, questions] = await Promise.all([this.countExpressionDays(), this.listExpressionStats(), this.listQuestionStats()]);
-    return calculateStats(dayCount, expressions, questions);
+    const [days, expressions, questions] = await Promise.all([this.listExpressionDays(), this.listExpressions(), this.listQuestionStats()]);
+    return calculateStats(days.length, expressions, questions);
   }
 
   async getDashboardOverview(options: { queueLimit?: number; recentDayLimit?: number } = {}) {
     const queueLimit = options.queueLimit ?? 3;
-    const [dayCount, recentDays, expressions, questions, queueExpressions] = await Promise.all([
-      this.countExpressionDays(),
-      this.listRecentExpressionDays(options.recentDayLimit ?? 3),
-      this.listExpressionStats(),
-      this.listQuestionStats(),
-      queueLimit > 0 ? this.listExpressions() : Promise.resolve([])
-    ]);
+    const [days, expressions, questions] = await Promise.all([this.listExpressionDays(), this.listExpressions(), this.listQuestionStats()]);
     return {
-      stats: calculateStats(dayCount, expressions, questions),
-      recentDays,
-      queue: queueLimit > 0 ? scheduleMemorizationQueue(queueExpressions, queueLimit) : []
+      stats: calculateStats(days.length, expressions, questions),
+      recentDays: days.slice(0, options.recentDayLimit ?? 3),
+      queue: queueLimit > 0 ? scheduleMemorizationQueue(expressions, queueLimit) : []
     };
   }
 
