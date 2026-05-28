@@ -21,6 +21,13 @@ vi.mock("@/app/actions", () => ({
 import { AuthPanel } from "@/components/AuthPanel";
 
 describe("AuthPanel", () => {
+  function visibleTextOrder() {
+    return Array.from(document.body.querySelectorAll("button, h2, div"))
+      .map((element) => element.textContent?.trim())
+      .filter(Boolean)
+      .join(" ");
+  }
+
   it("starts with only the login form and exposes small account-help links", () => {
     render(<AuthPanel />);
 
@@ -32,6 +39,9 @@ describe("AuthPanel", () => {
     expect(screen.getByText("Kakao 간편 로그인")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByRole("button", { name: "회원가입" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "아이디·비밀번호 찾기" })).toBeInTheDocument();
+    expect(screen.getByText("간편 로그인")).toBeInTheDocument();
+    expect(visibleTextOrder().indexOf("아이디·비밀번호 찾기")).toBeLessThan(visibleTextOrder().indexOf("카카오로 계속하기"));
+    expect(visibleTextOrder().indexOf("회원가입")).toBeLessThan(visibleTextOrder().indexOf("카카오로 계속하기"));
   });
 
   it("passes a safe next path through the Kakao login form", () => {

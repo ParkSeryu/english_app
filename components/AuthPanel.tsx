@@ -44,9 +44,19 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
             </button>
           </form>
 
+          <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+            <button type="button" onClick={() => setMode("help")} className="font-bold text-slate-500 underline-offset-4 hover:text-teal-700 hover:underline">
+              아이디·비밀번호 찾기
+            </button>
+            <span className="h-3 w-px bg-slate-200" aria-hidden="true" />
+            <button type="button" onClick={() => setMode("sign-up")} className="font-black text-teal-700 underline-offset-4 hover:underline">
+              회원가입
+            </button>
+          </div>
+
           <div className="my-5 flex items-center gap-3 text-xs font-bold text-slate-400">
             <span className="h-px flex-1 bg-slate-100" />
-            또는
+            간편 로그인
             <span className="h-px flex-1 bg-slate-100" />
           </div>
 
@@ -72,18 +82,6 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
             </button>
           </form>
 
-          <div className="mt-4 text-center">
-            <button type="button" onClick={() => setMode("help")} className="text-sm font-bold text-slate-500 underline-offset-4 hover:text-teal-700 hover:underline">
-              아이디·비밀번호 찾기
-            </button>
-          </div>
-
-          <div className="mt-5 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
-            아직 계정이 없나요?{" "}
-            <button type="button" onClick={() => setMode("sign-up")} className="font-black text-teal-700 underline-offset-4 hover:underline">
-              회원가입
-            </button>
-          </div>
         </>
       ) : null}
 
