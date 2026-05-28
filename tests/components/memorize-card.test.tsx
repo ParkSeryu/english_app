@@ -170,6 +170,13 @@ describe("MemorizeCard", () => {
     expect(reviewButtons.map((button) => button.textContent)).toEqual(["모름오늘 다시", "어려움1일 뒤", "알긴암1일 뒤", "쉬움3일 뒤"]);
   });
 
+  it("adds the compact date to topic labels when the stored title no longer includes it", async () => {
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={{ ...expression, day: { ...expression.day!, title: "1주차" } }} />);
+
+    expect(screen.getByText("수원영어모임 1주차 (260427)")).toBeInTheDocument();
+  });
+
   it("shows hard, okay, and easy review intervals on remembered buttons", async () => {
     const user = userEvent.setup();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");

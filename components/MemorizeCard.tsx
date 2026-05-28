@@ -127,9 +127,17 @@ function formatTopicContext(expression: ExpressionCard) {
 
   const folderParts = Array.isArray(day.folder_path) ? day.folder_path.filter(Boolean) : [];
   const topicName = folderParts[folderParts.length - 1] ?? "";
-  const title = day.title.trim();
+  const title = formatTopicTitle(day.title, day.day_date);
 
   return [topicName, title].filter(Boolean).join(" ");
+}
+
+function formatTopicTitle(title: string, dayDate?: string | null) {
+  const trimmedTitle = title.trim();
+  const compactDate = dayDate?.replaceAll("-", "").slice(2);
+  if (!compactDate || !/^\d{6}$/.test(compactDate)) return trimmedTitle;
+  if (new RegExp(`\\(${compactDate}\\)\\s*$`).test(trimmedTitle)) return trimmedTitle;
+  return `${trimmedTitle} (${compactDate})`;
 }
 
 function Info({ title, body }: { title: string; body: ReactNode }) {
