@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { nextExpressionReviewSchedule, scheduleMemorizationQueue } from "@/lib/scheduling";
-import { isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
+import { isEasyReviewResult, isHardReviewResult, isOkayReviewResult, isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
 import type {
   CardMemoInput,
   PersonalExpressionInput,
@@ -136,6 +136,9 @@ export class MemoryExpressionStore implements ExpressionStore {
     const schedule = nextExpressionReviewSchedule(progress, result, new Date(timestamp));
     if (isRememberedReviewResult(result)) {
       progress.known_count += 1;
+      if (isHardReviewResult(result)) progress.hard_count += 1;
+      if (isOkayReviewResult(result)) progress.okay_count += 1;
+      if (isEasyReviewResult(result)) progress.easy_count += 1;
     } else {
       progress.unknown_count += 1;
     }
@@ -185,6 +188,9 @@ export class MemoryExpressionStore implements ExpressionStore {
       source_order: sourceOrder,
       known_count: 0,
       unknown_count: 0,
+      hard_count: 0,
+      okay_count: 0,
+      easy_count: 0,
       review_count: 0,
       last_result: null,
       last_reviewed_at: null,
@@ -331,6 +337,9 @@ export class MemoryExpressionStore implements ExpressionStore {
         source_order: sourceOrderOffset + index,
         known_count: 0,
         unknown_count: 0,
+        hard_count: 0,
+        okay_count: 0,
+        easy_count: 0,
         review_count: 0,
         last_result: null,
         last_reviewed_at: null,
