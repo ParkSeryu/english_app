@@ -58,7 +58,7 @@ async function DashboardStatsGrid({ user }: { user: UserIdentity }) {
 
   return (
     <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <StatCard label="암기" value={stats.total} />
+      <StatCard label="총 암기 개수" value={stats.total} />
       <StatCard label="미확인" value={stats.unseenCount} />
       <StatCard label="오늘 복습" value={stats.dueCount} />
       <StatCard label="질문" value={stats.openQuestionCount} />
