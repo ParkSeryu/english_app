@@ -31,8 +31,8 @@ describe("AuthPanel", () => {
   it("starts with only the login form and exposes small account-help links", () => {
     render(<AuthPanel />);
 
-    expect(screen.getByRole("heading", { name: "오늘도 영어 한 번" })).toBeInTheDocument();
-    expect(screen.getByText("계정에 들어가서 암기 큐를 이어가요.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "오늘도 영어 한 번" })).not.toBeInTheDocument();
+    expect(screen.queryByText("계정에 들어가서 암기 큐를 이어가요.")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "회원가입" })).not.toBeInTheDocument();
     const kakaoButton = screen.getByRole("button", { name: "카카오로 시작하기" });
     expect(kakaoButton).toHaveClass("rounded-[1.35rem]", "bg-[#FEE500]", "active:scale-[0.98]");

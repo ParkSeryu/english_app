@@ -25,13 +25,7 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
       {mode === "sign-in" ? (
         <>
           <form action={signIn}>
-            <div className="text-center">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-600">Welcome back</p>
-              <h2 className="mt-2 text-2xl font-black text-ink">오늘도 영어 한 번</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">계정에 들어가서 암기 큐를 이어가요.</p>
-            </div>
-
-            <label className="mt-7 block text-sm font-semibold text-slate-700" htmlFor="signin-email">
+            <label className="block text-sm font-semibold text-slate-700" htmlFor="signin-email">
               이메일
             </label>
             <input id="signin-email" name="email" type="email" autoComplete="email" required className="input" />
