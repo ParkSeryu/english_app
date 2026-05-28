@@ -61,8 +61,8 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-0.5 text-[11px] font-bold text-slate-500 sm:text-xs">
-          <span>외움 {expression.known_count}회</span>
-          <span>틀림 {expression.unknown_count}회</span>
+          <span>모름 {expression.unknown_count}회 · 어려움 {expression.hard_count}회</span>
+          <span>알긴암 {expression.okay_count}회 · 쉬움 {expression.easy_count}회</span>
         </div>
       </div>
 

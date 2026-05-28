@@ -25,6 +25,9 @@ type ExpressionCardForTest = {
   source_order: number;
   unknown_count: number;
   known_count: number;
+  hard_count: number;
+  okay_count: number;
+  easy_count: number;
   review_count: number;
   last_result: "known" | "unknown" | null;
   last_reviewed_at: string | null;
@@ -92,8 +95,11 @@ const expression: ExpressionCardForTest = {
   user_memo: null,
   source_order: 0,
   unknown_count: 2,
-  known_count: 1,
-  review_count: 3,
+  known_count: 12,
+  hard_count: 3,
+  okay_count: 4,
+  easy_count: 5,
+  review_count: 14,
   last_result: "unknown",
   last_reviewed_at: "2026-04-28T00:00:00.000Z",
   due_at: "2026-04-28T00:10:00.000Z",
@@ -130,11 +136,11 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("2026-04-27")).not.toBeInTheDocument();
     expect(screen.queryByText("수업 표현")).not.toBeInTheDocument();
 
-    const counters = screen.getByText("외움 1회").parentElement;
+    const counters = screen.getByText("모름 2회 · 어려움 3회").parentElement;
     expect(counters).not.toBeNull();
     expect(counters as HTMLElement).toHaveClass("flex-col");
     expect(counters as HTMLElement).not.toHaveClass("sm:flex-row");
-    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["외움 1회", "틀림 2회"]);
+    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["모름 2회 · 어려움 3회", "알긴암 4회 · 쉬움 5회"]);
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));

@@ -65,6 +65,9 @@ export type ExpressionCard = {
   /** Current signed-in user's private review counters for this shared expression. */
   known_count: number;
   unknown_count: number;
+  hard_count: number;
+  okay_count: number;
+  easy_count: number;
   review_count: number;
   last_result: StoredExpressionReviewResult | null;
   last_reviewed_at: string | null;
@@ -102,6 +105,9 @@ export type ExpressionProgress = {
   is_memorization_enabled: boolean;
   known_count: number;
   unknown_count: number;
+  hard_count: number;
+  okay_count: number;
+  easy_count: number;
   review_count: number;
   last_result: StoredExpressionReviewResult | null;
   last_reviewed_at: string | null;

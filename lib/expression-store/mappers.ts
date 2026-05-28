@@ -18,7 +18,8 @@ export type SupabaseExpressionDaySummary = Omit<ExpressionDaySummary, "folder_id
   content_folders?: SupabaseContentFolderSummary | SupabaseContentFolderSummary[] | null;
 };
 
-export type SupabaseExpressionRow = Omit<ExpressionCard, "due_at" | "interval_days" | "examples" | "day"> & {
+export type SupabaseExpressionRow = Omit<ExpressionCard, "due_at" | "interval_days" | "hard_count" | "okay_count" | "easy_count" | "examples" | "day"> &
+  Partial<Pick<ExpressionCard, "hard_count" | "okay_count" | "easy_count">> & {
   due_at?: string | null;
   interval_days?: number;
   expression_examples?: ExpressionExample[] | null;
@@ -83,6 +84,9 @@ export function normalizeExpression(row: SupabaseExpressionRow): ExpressionCard 
 
   return {
     ...expression,
+    hard_count: expression.hard_count ?? 0,
+    okay_count: expression.okay_count ?? 0,
+    easy_count: expression.easy_count ?? 0,
     due_at: due_at ?? null,
     interval_days: interval_days ?? 0,
     day: dayFolder,

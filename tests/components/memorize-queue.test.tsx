@@ -27,6 +27,9 @@ function expression(overrides: Partial<ExpressionCard>): ExpressionCard {
     source_order: 0,
     unknown_count: 0,
     known_count: 0,
+    hard_count: 0,
+    okay_count: 0,
+    easy_count: 0,
     review_count: 0,
     last_result: null,
     last_reviewed_at: null,
@@ -127,7 +130,7 @@ describe("MemorizeQueue", () => {
     await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expectPromptVisible("첫 번째 한국어");
-    expect(screen.getByText("틀림 1회")).toBeInTheDocument();
+    expect(screen.getByText("모름 1회 · 어려움 0회")).toBeInTheDocument();
   });
 
   it("shows the empty memorization state immediately after the last card is remembered", async () => {
