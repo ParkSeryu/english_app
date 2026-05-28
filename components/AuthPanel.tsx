@@ -56,12 +56,19 @@ export function AuthPanel({ next = "/" }: { next?: string }) {
             <button
               type="submit"
               disabled={Boolean(kakaoPending)}
-              className="group relative flex min-h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full border border-[#F1D400] bg-[#FEE500] px-5 py-3 text-center text-sm font-black text-[#191919] shadow-lg shadow-yellow-200/50 transition hover:-translate-y-0.5 hover:bg-[#FFEB33] hover:shadow-xl hover:shadow-yellow-200/70 focus:outline-none focus:ring-4 focus:ring-yellow-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              aria-label={kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}
+              className="group relative flex min-h-[3.25rem] w-full items-center justify-center overflow-hidden rounded-[1.35rem] border border-[#E2C300] bg-[#FEE500] px-4 py-3 text-center text-[#191919] shadow-[0_12px_24px_rgba(254,229,0,0.30)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#FFE812] hover:shadow-[0_16px_30px_rgba(254,229,0,0.38)] focus:outline-none focus:ring-4 focus:ring-yellow-200 active:translate-y-0 active:scale-[0.98] active:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_12px_24px_rgba(254,229,0,0.30)] disabled:active:scale-100"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 shrink-0 fill-[#191919]">
-                <path d="M12 4.25c-4.7 0-8.5 2.94-8.5 6.58 0 2.35 1.6 4.41 4 5.58l-.55 2.31a.5.5 0 0 0 .74.55l2.88-1.68c.46.06.94.09 1.43.09 4.7 0 8.5-2.94 8.5-6.58S16.7 4.25 12 4.25Z" />
-              </svg>
-              <span>{kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}</span>
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/35 via-white/0 to-black/[0.03]" />
+              <span aria-hidden="true" className="absolute left-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#191919] shadow-sm transition duration-200 group-hover:scale-105">
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 fill-[#FEE500]">
+                  <path d="M12 4.25c-4.7 0-8.5 2.94-8.5 6.58 0 2.35 1.6 4.41 4 5.58l-.55 2.31a.5.5 0 0 0 .74.55l2.88-1.68c.46.06.94.09 1.43.09 4.7 0 8.5-2.94 8.5-6.58S16.7 4.25 12 4.25Z" />
+                </svg>
+              </span>
+              <span className="relative flex flex-col items-center leading-none">
+                <span className="text-[15px] font-black tracking-[-0.01em]">{kakaoPending ? "카카오로 이동 중…" : "카카오로 계속하기"}</span>
+                <span aria-hidden="true" className="mt-1 text-[11px] font-extrabold text-[#3C1E1E]/70">Kakao 간편 로그인</span>
+              </span>
             </button>
           </form>
 
