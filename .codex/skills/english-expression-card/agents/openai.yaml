@@ -1,0 +1,4 @@
+interface:
+  display_name: "English Expression Card"
+  short_description: "Format and ingest lightweight English expression cards."
+  default_prompt: "Turn my English expressions into lightweight cards and save them only after explicit approval."

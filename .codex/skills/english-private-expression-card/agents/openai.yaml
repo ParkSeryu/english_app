@@ -1,0 +1,4 @@
+interface:
+  display_name: "English Private Expression Card"
+  short_description: "Add private English expression cards for one target app user."
+  default_prompt: "Add these English expressions as private memorization cards for the specified English app user."
