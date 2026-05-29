@@ -9,6 +9,7 @@ import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 const DEFAULT_STORAGE_KEY = "english:memorize-session:v1";
 const EMPTY_DEFERRED_IDS: string[] = [];
+const KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 type OptimisticUnknownCounts = Record<string, number>;
 
@@ -24,6 +25,7 @@ type StoredQueueState = {
   queueIds?: unknown;
   activeId?: unknown;
   deferredIds?: unknown;
+  savedAt?: unknown;
 };
 
 function appendDeferredId(ids: string[], id: string) {
@@ -78,23 +80,38 @@ function unknownArrayToStrings(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && item.length > 0);
 }
 
+function koreanDateKey(date: Date) {
+  return new Date(date.getTime() + KOREA_TIME_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+function isStoredQueueStateFresh(savedAt: unknown, now = new Date()) {
+  if (typeof savedAt !== "string") return false;
+  const savedDate = new Date(savedAt);
+  return Number.isFinite(savedDate.getTime()) && koreanDateKey(savedDate) === koreanDateKey(now);
+}
+
 function readStoredQueueState(storageKey: string): StoredQueueState | null {
   if (typeof window === "undefined") return null;
-  const raw = window.sessionStorage.getItem(storageKey);
+  const raw = window.localStorage.getItem(storageKey);
   if (!raw) return null;
 
   try {
     const parsed = JSON.parse(raw) as StoredQueueState;
-    return parsed && typeof parsed === "object" ? parsed : null;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!isStoredQueueStateFresh(parsed.savedAt)) {
+      window.localStorage.removeItem(storageKey);
+      return null;
+    }
+    return parsed;
   } catch {
-    window.sessionStorage.removeItem(storageKey);
+    window.localStorage.removeItem(storageKey);
     return null;
   }
 }
 
 function writeStoredQueueState(storageKey: string, state: QueueState) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(
+  window.localStorage.setItem(
     storageKey,
     JSON.stringify({
       queueIds: state.queueIds,

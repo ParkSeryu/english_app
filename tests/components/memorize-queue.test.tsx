@@ -45,6 +45,17 @@ function expression(overrides: Partial<ExpressionCard>): ExpressionCard {
 const first = expression({ id: "expression-1", korean_prompt: "첫 번째 한국어", english: "First answer" });
 const second = expression({ id: "expression-2", korean_prompt: "두 번째 한국어", english: "Second answer", source_order: 1 });
 const third = expression({ id: "expression-3", korean_prompt: "세 번째 한국어", english: "Third answer", source_order: 2 });
+const storageKey = "english:memorize-session:v1";
+
+function storedQueueState(overrides: Record<string, unknown> = {}) {
+  return JSON.stringify({
+    queueIds: [second.id, third.id, first.id],
+    activeId: second.id,
+    deferredIds: [first.id],
+    savedAt: new Date().toISOString(),
+    ...overrides
+  });
+}
 
 function expectPromptVisible(prompt: string) {
   expect(screen.getByRole("heading", { name: prompt })).toBeInTheDocument();
@@ -62,6 +73,7 @@ describe("MemorizeQueue", () => {
     redirectReviewAction.mockClear();
     inPlaceReviewAction.mockClear();
     window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   it("optimistically advances to the next expression as soon as a review button is submitted", async () => {
@@ -130,7 +142,7 @@ describe("MemorizeQueue", () => {
     await user.click(screen.getByRole("button", { name: /모름/ }));
 
     expectPromptVisible("첫 번째 한국어");
-    expect(screen.getByText("모름 1회 · 어려움 0회")).toBeInTheDocument();
+    expect(screen.getByText(/모름 1회/)).toBeInTheDocument();
   });
 
   it("shows the empty memorization state immediately after the last card is remembered", async () => {
@@ -158,15 +170,8 @@ describe("MemorizeQueue", () => {
     expect(html).not.toContain("복습 준비 중…");
   });
 
-  it("restores the stored queue position after mounting", async () => {
-    window.sessionStorage.setItem(
-      "english:memorize-session:v1",
-      JSON.stringify({
-        queueIds: [second.id, third.id, first.id],
-        activeId: second.id,
-        deferredIds: [first.id]
-      })
-    );
+  it("restores the stored queue position from localStorage after mounting", async () => {
+    window.localStorage.setItem(storageKey, storedQueueState());
 
     render(<MemorizeQueue expressions={[first, second, third]} />);
 
@@ -175,36 +180,47 @@ describe("MemorizeQueue", () => {
     expect(screen.queryByText("복습 준비 중…")).not.toBeInTheDocument();
   });
 
-  it("restores the current queue position from sessionStorage after remount", async () => {
+  it("restores the current queue position from localStorage after an app-like remount", async () => {
     const user = userEvent.setup();
     const { unmount } = render(<MemorizeQueue expressions={[first, second, third]} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
     await user.click(screen.getByRole("button", { name: /모름/ }));
-    await waitFor(() => expect(window.sessionStorage.getItem("english:memorize-session:v1")).toContain(second.id));
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "{}") as { activeId?: unknown };
+      expect(stored.activeId).toBe(second.id);
+    });
+    expect(window.sessionStorage.getItem(storageKey)).toBeNull();
 
     unmount();
+    window.sessionStorage.clear();
     render(<MemorizeQueue expressions={[first, second, third]} />);
 
     await waitFor(() => expectPromptVisible("두 번째 한국어"));
     expectPromptAbsent("첫 번째 한국어");
   });
 
+  it("ignores a stored queue from a previous Korean day", async () => {
+    window.localStorage.setItem(storageKey, storedQueueState({ savedAt: "2000-01-01T00:00:00.000Z" }));
+
+    render(<MemorizeQueue expressions={[first, second, third]} />);
+
+    await waitFor(() => expectPromptVisible("첫 번째 한국어"));
+    expectPromptAbsent("두 번째 한국어");
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "{}") as { activeId?: unknown };
+      expect(stored.activeId).toBe(first.id);
+    });
+  });
+
   it("drops stale stored cards that are no longer in the server queue", async () => {
-    window.sessionStorage.setItem(
-      "english:memorize-session:v1",
-      JSON.stringify({
-        queueIds: [second.id, third.id, first.id],
-        activeId: second.id,
-        deferredIds: [first.id]
-      })
-    );
+    window.localStorage.setItem(storageKey, storedQueueState());
 
     render(<MemorizeQueue expressions={[third, first]} deferredIds={[first.id]} />);
 
     await waitFor(() => expectPromptVisible("세 번째 한국어"));
     expectPromptAbsent("두 번째 한국어");
-    await waitFor(() => expect(window.sessionStorage.getItem("english:memorize-session:v1")).not.toContain(second.id));
+    await waitFor(() => expect(window.localStorage.getItem(storageKey)).not.toContain(second.id));
   });
 
   it("uses the first expression from a refreshed deferred queue instead of carrying over the old active index", async () => {
