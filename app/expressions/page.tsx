@@ -8,6 +8,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import { getExpressionDueLabel } from "@/lib/expression-due-label";
 import { getExpressionStore } from "@/lib/lesson-store";
 import { sortExpressionsByPriority } from "@/lib/expression-priority";
+import { getExpressionTopicDepth, getExpressionTopicDisplayLabel } from "@/lib/expression-topic-label";
 import type { ExpressionDay } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +34,8 @@ export default async function ExpressionsPage({ searchParams }: { searchParams: 
   const selectedDay = days.find((day) => day.id === selectedTopicId) ?? null;
   const topicOptions = days.map((day) => ({
     id: day.id,
-    label: getTopicDisplayLabel(day),
-    depth: getTopicDepth(day)
+    label: getExpressionTopicDisplayLabel(day),
+    depth: getExpressionTopicDepth(day)
   }));
   const visibleDays = selectedDay ? [{ ...selectedDay, expressions: sortExpressionsByPriority(selectedDay.expressions) }] : [];
 
@@ -97,22 +98,4 @@ export default async function ExpressionsPage({ searchParams }: { searchParams: 
 function pickSelectedTopicId(days: { id: string }[], requestedId?: string) {
   if (requestedId && days.some((day) => day.id === requestedId)) return requestedId;
   return days[0]?.id ?? null;
-}
-
-function getFolderPath(day: ExpressionDayListItem): string | null {
-  if (Array.isArray(day.folder_path)) return day.folder_path.join(" / ");
-  return day.folder_path ?? day.folderPath ?? day.folder?.path ?? null;
-}
-
-function getTopicDepth(day: ExpressionDayListItem): number {
-  const path = getFolderPath(day);
-  if (!path) return 0;
-  const separators = path.split("/");
-  if (!separators[0]) return 0;
-  return Math.max(0, separators.length - 1);
-}
-
-function getTopicDisplayLabel(day: ExpressionDayListItem) {
-  const folderPath = getFolderPath(day);
-  return folderPath ? `${folderPath} / ${day.title}` : day.title;
 }
