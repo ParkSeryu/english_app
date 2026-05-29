@@ -105,7 +105,7 @@ describe("auth actions", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("updates the password for the recovery session and signs out", async () => {
+  it("updates the password for the recovery session and redirects to a public completion state", async () => {
     const getUser = vi.fn(async () => ({ data: { user: { id: "user-1" } }, error: null }));
     const updateUser = vi.fn(async () => ({ error: null }));
     const signOut = vi.fn(async () => ({ error: null }));
@@ -118,12 +118,12 @@ describe("auth actions", () => {
     formData.set("password", "new-secret");
     formData.set("confirmPassword", "new-secret");
 
-    const result = await updatePasswordAction({}, formData);
+    await updatePasswordAction({}, formData);
 
-    expect(result).toEqual({ ok: true, message: "비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요." });
     expect(updateUser).toHaveBeenCalledWith({ password: "new-secret" });
     expect(signOut).toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(mocks.redirect).toHaveBeenCalledWith("/auth/update-password?updated=1");
   });
 
   it("rejects mismatched password confirmation before calling Supabase", async () => {

@@ -12,20 +12,24 @@ function FeedbackMessage({ ok, message }: { ok: boolean; message?: string }) {
   return <p className={`mt-3 text-sm leading-6 ${ok ? "text-emerald-700" : "text-red-700"}`}>{message}</p>;
 }
 
+export function UpdatePasswordSuccess({ message = "비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요." }: { message?: string }) {
+  return (
+    <section className="mx-auto max-w-sm rounded-3xl border border-slate-200 bg-white px-5 py-6 shadow-card sm:px-6" aria-label="비밀번호 변경 완료">
+      <p className="text-sm font-bold text-teal-700">비밀번호 재설정</p>
+      <h1 className="mt-1 text-2xl font-black text-ink">변경 완료</h1>
+      <FeedbackMessage ok message={message} />
+      <Link href="/login" className="btn-primary mt-5 flex w-full">
+        로그인하러 가기
+      </Link>
+    </section>
+  );
+}
+
 export function UpdatePasswordForm() {
   const [state, updatePassword, pending] = useActionState(updatePasswordAction, initialState);
 
   if (state.ok) {
-    return (
-      <section className="mx-auto max-w-sm rounded-3xl border border-slate-200 bg-white px-5 py-6 shadow-card sm:px-6" aria-label="비밀번호 변경 완료">
-        <p className="text-sm font-bold text-teal-700">비밀번호 재설정</p>
-        <h1 className="mt-1 text-2xl font-black text-ink">변경 완료</h1>
-        <FeedbackMessage ok={Boolean(state.ok)} message={state.message} />
-        <Link href="/login" className="btn-primary mt-5 flex w-full">
-          로그인하러 가기
-        </Link>
-      </section>
-    );
+    return <UpdatePasswordSuccess message={state.message} />;
   }
 
   return (

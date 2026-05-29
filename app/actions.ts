@@ -235,7 +235,7 @@ export async function updatePasswordAction(_previousState: ActionState, formData
   }
 
   revalidatePath("/", "layout");
-  return { ok: true, message: "비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요." };
+  redirect("/auth/update-password?updated=1");
 }
 
 export async function signOutAction() {
