@@ -136,11 +136,11 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("2026-04-27")).not.toBeInTheDocument();
     expect(screen.queryByText("수업 표현")).not.toBeInTheDocument();
 
-    const counters = screen.getByText("모름 2회 · 어려움 3회").parentElement;
+    const counters = screen.getByText("외움 총 12회 · 모름 2회").parentElement;
     expect(counters).not.toBeNull();
     expect(counters as HTMLElement).toHaveClass("flex-col");
     expect(counters as HTMLElement).not.toHaveClass("sm:flex-row");
-    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["모름 2회 · 어려움 3회", "알긴암 4회 · 쉬움 5회"]);
+    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["외움 총 12회 · 모름 2회", "어려움 3회 · 알긴암 4회 · 쉬움 5회"]);
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
@@ -200,10 +200,18 @@ describe("MemorizeCard", () => {
     expect(topicLabel).not.toHaveClass("truncate");
     expect(topicLabel.closest("div")).toHaveClass("items-start");
 
-    const counters = screen.getByText("모름 2회 · 어려움 3회").parentElement;
+    const counters = screen.getByText("외움 총 12회 · 모름 2회").parentElement;
     expect(counters).not.toBeNull();
     expect(counters as HTMLElement).toHaveClass("items-start");
     expect(counters as HTMLElement).toHaveClass("sm:items-end");
+  });
+
+  it("keeps historical remembered counts visible when the new button breakdown starts at zero", async () => {
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={{ ...expression, known_count: 12, hard_count: 0, okay_count: 0, easy_count: 0 }} />);
+
+    expect(screen.getByText("외움 총 12회 · 모름 2회")).toBeInTheDocument();
+    expect(screen.getByText("어려움 0회 · 알긴암 0회 · 쉬움 0회 · 이전 12회")).toBeInTheDocument();
   });
 
   it("shows hard, okay, and easy review intervals on remembered buttons", async () => {

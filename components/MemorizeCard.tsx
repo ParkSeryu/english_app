@@ -6,6 +6,7 @@ import { Fragment, useState, useTransition } from "react";
 import { recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
 import { PronunciationButton } from "@/components/PronunciationButton";
 import { nextExpressionReviewSchedule } from "@/lib/scheduling";
+import { getRememberedBreakdownParts } from "@/lib/expression-review-counts";
 import { isAgainReviewResult } from "@/lib/review-result";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
   const hardIntervalDays = nextExpressionReviewSchedule(expression, "hard").intervalDays;
   const okayIntervalDays = nextExpressionReviewSchedule(expression, "okay").intervalDays;
   const easyIntervalDays = nextExpressionReviewSchedule(expression, "easy").intervalDays;
+  const rememberedBreakdown = getRememberedBreakdownParts(expression).join(" · ");
 
   function revealAnswer() {
     onReveal?.();
@@ -60,8 +62,8 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
           )}
         </div>
         <div className="flex shrink-0 flex-col items-start gap-0.5 text-[11px] font-bold text-slate-500 sm:items-end sm:text-xs">
-          <span>모름 {expression.unknown_count}회 · 어려움 {expression.hard_count}회</span>
-          <span>알긴암 {expression.okay_count}회 · 쉬움 {expression.easy_count}회</span>
+          <span>외움 총 {expression.known_count}회 · 모름 {expression.unknown_count}회</span>
+          <span>{rememberedBreakdown}</span>
         </div>
       </div>
 
