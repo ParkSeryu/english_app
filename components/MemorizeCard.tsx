@@ -49,18 +49,17 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
 
   return (
     <article className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="min-w-0 sm:flex-1">
           {topicContext ? (
-            <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50/80 px-3 py-1.5">
-              <span className="shrink-0 text-[10px] font-black tracking-[0.08em] text-teal-600">토픽:</span>
-              <span className="truncate text-xs font-black text-ink sm:text-sm">{topicContext}</span>
+            <div className="flex max-w-full items-start rounded-2xl border border-teal-100 bg-teal-50/80 px-3 py-1.5 sm:rounded-full">
+              <span className="min-w-0 whitespace-normal break-words text-xs font-black leading-snug text-ink sm:text-sm">{topicContext}</span>
             </div>
           ) : (
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">암기 카드</p>
           )}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5 text-[11px] font-bold text-slate-500 sm:text-xs">
+        <div className="flex shrink-0 flex-col items-start gap-0.5 text-[11px] font-bold text-slate-500 sm:items-end sm:text-xs">
           <span>모름 {expression.unknown_count}회 · 어려움 {expression.hard_count}회</span>
           <span>알긴암 {expression.okay_count}회 · 쉬움 {expression.easy_count}회</span>
         </div>

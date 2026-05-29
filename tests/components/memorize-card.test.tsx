@@ -129,7 +129,7 @@ describe("MemorizeCard", () => {
     render(<MemorizeCard expression={expression} />);
 
     expect(screen.getByRole("heading", { name: expression.korean_prompt })).toBeInTheDocument();
-    expect(screen.getByText("토픽:")).toBeInTheDocument();
+    expect(screen.queryByText("토픽:")).not.toBeInTheDocument();
     expect(screen.getByText("수원영어모임 1주차 (260427)")).toBeInTheDocument();
     expect(screen.queryByText("수원영어모임 1주차 (260427) (260427)")).not.toBeInTheDocument();
     expect(screen.queryByText("회차")).not.toBeInTheDocument();
@@ -175,6 +175,35 @@ describe("MemorizeCard", () => {
     render(<MemorizeCard expression={{ ...expression, day: { ...expression.day!, title: "1주차" } }} />);
 
     expect(screen.getByText("수원영어모임 1주차 (260427)")).toBeInTheDocument();
+  });
+
+  it("lets long mobile topic labels wrap without a topic prefix", async () => {
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(
+      <MemorizeCard
+        expression={{
+          ...expression,
+          day: {
+            ...expression.day!,
+            title: "회화연습반 (260522)",
+            day_date: "2026-05-22",
+            folder_path: ["수원영어모임"]
+          }
+        }}
+      />
+    );
+
+    const topicLabel = screen.getByText("수원영어모임 회화연습반 (260522)");
+    expect(screen.queryByText("토픽:")).not.toBeInTheDocument();
+    expect(topicLabel).toHaveClass("whitespace-normal");
+    expect(topicLabel).toHaveClass("break-words");
+    expect(topicLabel).not.toHaveClass("truncate");
+    expect(topicLabel.closest("div")).toHaveClass("items-start");
+
+    const counters = screen.getByText("모름 2회 · 어려움 3회").parentElement;
+    expect(counters).not.toBeNull();
+    expect(counters as HTMLElement).toHaveClass("items-start");
+    expect(counters as HTMLElement).toHaveClass("sm:items-end");
   });
 
   it("shows hard, okay, and easy review intervals on remembered buttons", async () => {
