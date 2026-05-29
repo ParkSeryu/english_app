@@ -17,7 +17,9 @@ export default async function ExpressionDetailPage({ params }: { params: Params 
   const expression = await getExpressionStore(user).getExpression(id);
   if (!expression) notFound();
   const dueLabel = getExpressionDueLabel(expression);
-  const personalMemo = expression.can_delete ? expression.user_memo?.trim() : null;
+  const canEdit = Boolean(expression.can_edit);
+  const canDelete = Boolean(expression.can_delete);
+  const personalMemo = canEdit ? expression.user_memo?.trim() : null;
 
   return (
     <div className="space-y-5">
@@ -35,11 +37,11 @@ export default async function ExpressionDetailPage({ params }: { params: Params 
         {personalMemo ? <InfoBlock title="내 메모" body={expression.user_memo ?? ""} /> : null}
         {expression.examples.length > 0 ? <section className="rounded-3xl bg-white p-5 shadow-card"><h2 className="text-sm font-black uppercase tracking-wide text-slate-500">비슷한 표현</h2><ul className="mt-3 space-y-3">{expression.examples.map((example) => <li key={example.id} className="rounded-2xl bg-slate-50 p-4"><p className="font-semibold text-ink">{example.example_text}</p>{example.meaning_ko ? <p className="mt-1 text-sm text-slate-600">{example.meaning_ko}</p> : null}</li>)}</ul></section> : null}
       </div>
-      {expression.can_delete ? (
+      {canEdit || canDelete ? (
         <div className="flex items-center gap-2 text-xs font-black">
-          <Link href={`/expressions/${expression.id}/edit`} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm transition hover:border-teal-300 hover:text-teal-700">수정</Link>
-          <span className="text-slate-300">/</span>
-          <DeletePersonalExpressionForm expressionId={expression.id} />
+          {canEdit ? <Link href={`/expressions/${expression.id}/edit`} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm transition hover:border-teal-300 hover:text-teal-700">수정</Link> : null}
+          {canEdit && canDelete ? <span className="text-slate-300">/</span> : null}
+          {canDelete ? <DeletePersonalExpressionForm expressionId={expression.id} /> : null}
         </div>
       ) : (
         <ExpressionMemoForm expression={expression} showMemorizationToggle={false} />

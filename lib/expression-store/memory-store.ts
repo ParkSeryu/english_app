@@ -27,6 +27,7 @@ import {
   canLearnerSeeExpressionDay,
   defaultProgress,
   expressionUrl,
+  isLanguageExchangeExpressionDay,
   normalizeGrammarNote,
   PERSONAL_EXPRESSION_MARKER,
   nowIso,
@@ -64,7 +65,8 @@ export class MemoryExpressionStore implements ExpressionStore {
   }
 
   private cardWithProgress(card: ExpressionCard, day?: ExpressionDay) {
-    return applyProgress({ ...card, can_delete: this.canDeleteExpression(day, card) }, this.progressForExpression(card.id));
+    const canDelete = this.canDeleteExpression(day, card);
+    return applyProgress({ ...card, can_delete: canDelete, can_edit: canDelete || this.canEditExpression(day, card) }, this.progressForExpression(card.id));
   }
 
   private canReadDay(day: ExpressionDay) {
@@ -77,6 +79,10 @@ export class MemoryExpressionStore implements ExpressionStore {
 
   private canDeleteExpression(day: ExpressionDay | undefined, card: ExpressionCard) {
     return card.owner_id === this.user.id && (card.user_memo === PERSONAL_EXPRESSION_MARKER || day?.created_by === "user" || card.owner_id !== day?.owner_id);
+  }
+
+  private canEditExpression(day: ExpressionDay | undefined, card: ExpressionCard) {
+    return this.canDeleteExpression(day, card) || (card.owner_id === this.user.id && isLanguageExchangeExpressionDay(day));
   }
 
   private visibleExpressions(day: ExpressionDay) {
@@ -213,13 +219,14 @@ export class MemoryExpressionStore implements ExpressionStore {
   async updatePersonalExpression(id: string, input: PersonalExpressionUpdateInput) {
     const located = this.findMutableExpression(id);
     if (!located) throw new Error("Expression not found");
-    if (!this.canDeleteExpression(located.day, located.card)) throw new Error("직접 추가한 표현만 수정할 수 있습니다.");
+    const canDelete = this.canDeleteExpression(located.day, located.card);
+    if (!this.canEditExpression(located.day, located.card)) throw new Error("수정 가능한 표현만 수정할 수 있습니다.");
 
     const timestamp = nowIso();
     located.card.english = input.english;
     located.card.korean_prompt = input.koreanPrompt;
     located.card.grammar_note = normalizeGrammarNote(input.grammarNote);
-    located.card.user_memo = PERSONAL_EXPRESSION_MARKER;
+    located.card.user_memo = canDelete ? PERSONAL_EXPRESSION_MARKER : null;
     located.card.updated_at = timestamp;
     located.day.updated_at = timestamp;
 

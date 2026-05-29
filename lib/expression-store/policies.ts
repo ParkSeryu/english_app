@@ -15,6 +15,7 @@ export type ExpressionStatsCard = Pick<ExpressionCard, "id" | "is_memorization_e
 export type QuestionStats = Pick<QuestionNote, "status">;
 
 export const PERSONAL_EXPRESSION_MARKER = "__personal_expression__";
+export const LANGUAGE_EXCHANGE_FOLDER_SLUG = "language-exchange";
 
 export function nowIso() {
   return new Date().toISOString();
@@ -69,6 +70,7 @@ export function applyProgress(card: ExpressionCard, progress?: Partial<Expressio
   return {
     ...card,
     can_delete: card.can_delete ?? false,
+    can_edit: card.can_edit ?? card.can_delete ?? false,
     user_memo: progress?.user_memo ?? null,
     is_memorization_enabled: progress?.is_memorization_enabled ?? true,
     known_count: progress?.known_count ?? 0,
@@ -105,6 +107,10 @@ export function expressionStatsWithProgress(row: Pick<ExpressionCard, "id" | "kn
 
 export function expressionUrl(card: ExpressionCard) {
   return `/expressions/${card.id}`;
+}
+
+export function isLanguageExchangeExpressionDay(day?: Pick<ExpressionDay | ExpressionDaySummary, "folder_id" | "folder"> | null) {
+  return day?.folder?.slug === LANGUAGE_EXCHANGE_FOLDER_SLUG || day?.folder_id === LANGUAGE_EXCHANGE_FOLDER_SLUG;
 }
 
 export function toDaySummary(day: ExpressionDay): ExpressionDaySummary {

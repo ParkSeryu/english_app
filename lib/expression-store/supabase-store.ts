@@ -51,6 +51,7 @@ import {
   expressionUrl,
   filterExpressionCardsForLearner,
   filterExpressionDaysForLearner,
+  isLanguageExchangeExpressionDay,
   normalizeGrammarNote,
   PERSONAL_EXPRESSION_MARKER,
   nowIso,
@@ -269,12 +270,17 @@ export class SupabaseExpressionStore implements ExpressionStore {
     return { client, error };
   }
 
-  private canDeleteExpression(card: ExpressionCard, day?: Pick<ExpressionDay | ExpressionDaySummary, "owner_id" | "created_by"> | null) {
+  private canDeleteExpression(card: ExpressionCard, day?: Pick<ExpressionDay | ExpressionDaySummary, "owner_id" | "created_by" | "folder_id" | "folder"> | null) {
     return card.owner_id === this.user.id && (card.user_memo === PERSONAL_EXPRESSION_MARKER || day?.created_by === "user" || card.owner_id !== day?.owner_id);
   }
 
+  private canEditExpression(card: ExpressionCard, day?: Pick<ExpressionDay | ExpressionDaySummary, "owner_id" | "created_by" | "folder_id" | "folder"> | null) {
+    return this.canDeleteExpression(card, day) || (card.owner_id === this.user.id && isLanguageExchangeExpressionDay(day));
+  }
+
   private withDeletePermission(card: ExpressionCard, day: ExpressionDay | ExpressionDaySummary | null | undefined = card.day) {
-    return { ...card, can_delete: this.canDeleteExpression(card, day) };
+    const canDelete = this.canDeleteExpression(card, day);
+    return { ...card, can_delete: canDelete, can_edit: canDelete || this.canEditExpression(card, day) };
   }
 
   private async mergeOwnServiceExpressions(days: ExpressionDay[]) {
@@ -616,7 +622,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
 
   async updatePersonalExpression(id: string, input: PersonalExpressionUpdateInput) {
     const existing = requireEntity(await this.getExpression(id), "Expression not found");
-    if (!existing.can_delete) throw new Error("직접 추가한 표현만 수정할 수 있습니다.");
+    if (!existing.can_edit) throw new Error("수정 가능한 표현만 수정할 수 있습니다.");
 
     const supabase = await this.supabase();
     const writeSupabase = this.serviceSupabaseOrNull() ?? supabase;
@@ -627,7 +633,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
         english: input.english,
         korean_prompt: input.koreanPrompt,
         grammar_note: normalizeGrammarNote(input.grammarNote),
-        user_memo: PERSONAL_EXPRESSION_MARKER,
+        user_memo: existing.can_delete ? PERSONAL_EXPRESSION_MARKER : null,
         updated_at: timestamp
       })
       .eq("id", id)

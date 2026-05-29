@@ -33,6 +33,7 @@ type ExpressionCard = {
   interval_days: number;
   is_memorization_enabled: boolean;
   can_delete: boolean;
+  can_edit: boolean;
 };
 
 type ExpressionDay = { id: string; owner_id: string; day_date: string; title: string; folder_id?: string | null; expressions: ExpressionCard[] };
@@ -150,6 +151,41 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(second.expressionDay).toMatchObject({ title: "with keyri", day_date: "2026-05-27", folder_id: "language-exchange" });
     expect(second.expressionDay.expressions.map((card) => card.english)).toEqual(["What do you do for work?", "I'm into hiking these days."]);
     expect(sameDateDifferentTopic.expressionDay.id).not.toBe(first.expressionDay.id);
+  });
+
+  it("lets the owner edit language-exchange ingestion cards without making them deletable", async () => {
+    const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
+    const store = new MemoryExpressionStore(userA);
+    const draft = await store.createDraft({
+      expression_day: {
+        title: "with Keyri",
+        day_date: "2026-05-28",
+        raw_input: "with Keyri 20260528",
+        source_note: "언어교환 표현",
+        folder_slug: "language-exchange"
+      },
+      expressions: [{ english: "What is that green thing?", korean_prompt: "저 초록색은 뭐예요?" }]
+    });
+    const approved = await store.approveDraft(draft.id, "이대로 앱에 넣어줘");
+    const expressionId = approved.expressionDay.expressions[0].id;
+
+    expect(await store.getExpression(expressionId)).toMatchObject({ can_edit: true, can_delete: false });
+
+    const updated = await store.updatePersonalExpression(expressionId, {
+      english: "What is that green thing in the picture?",
+      koreanPrompt: "사진에 있는 저 초록색은 뭐예요?",
+      userMemo: "Keyri 언어교환에서 수정",
+      isMemorizationEnabled: true
+    });
+
+    expect(updated).toMatchObject({
+      english: "What is that green thing in the picture?",
+      korean_prompt: "사진에 있는 저 초록색은 뭐예요?",
+      user_memo: "Keyri 언어교환에서 수정",
+      can_edit: true,
+      can_delete: false
+    });
+    await expect(store.deletePersonalExpression(expressionId)).rejects.toThrow("직접 추가한 표현만 삭제할 수 있습니다");
   });
 
   it("records cumulative Anki-lite review counters and next due times", async () => {
@@ -362,6 +398,7 @@ describe("MemoryExpressionStore daily expression behavior", () => {
       grammar_note: "still = 여전히",
       user_memo: "내가 고친 표현",
       is_memorization_enabled: false,
+      can_edit: true,
       can_delete: true
     });
     expect((await learnerStore.getMemorizationQueue()).map((expression) => expression.id)).not.toContain(addedExpression.id);
@@ -369,7 +406,7 @@ describe("MemoryExpressionStore daily expression behavior", () => {
       english: "Nope",
       koreanPrompt: "안 됨",
       isMemorizationEnabled: true
-    })).rejects.toThrow("직접 추가한 표현만 수정할 수 있습니다");
+    })).rejects.toThrow("수정 가능한 표현만 수정할 수 있습니다");
   });
 
   it("deletes only expressions created by the current user", async () => {

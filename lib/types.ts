@@ -62,6 +62,8 @@ export type ExpressionCard = {
   is_memorization_enabled?: boolean;
   /** Current signed-in user can delete this expression content. */
   can_delete?: boolean;
+  /** Current signed-in user can edit this expression content. */
+  can_edit?: boolean;
   /** Current signed-in user's private review counters for this shared expression. */
   known_count: number;
   unknown_count: number;
