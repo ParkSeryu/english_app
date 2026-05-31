@@ -162,8 +162,8 @@ begin
     on conflict (id) do nothing;
   end if;
 
-  insert into public.expression_progress (user_id, expression_id, user_memo, known_count, unknown_count, review_count, last_result, due_at, interval_days)
-  values ('00000000-0000-4000-8000-0000000000aa', v_expr_a_id, null, 0, 0, 0, null, null, 0)
+  insert into public.expression_progress (user_id, expression_id, user_memo, unknown_count, review_count, last_result, due_at, interval_days)
+  values ('00000000-0000-4000-8000-0000000000aa', v_expr_a_id, null, 0, 0, null, null, 0)
   on conflict (user_id, expression_id) do nothing;
 end $$;
 insert into public.question_notes (id, owner_id, question_text, status)

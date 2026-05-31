@@ -7,7 +7,6 @@ async function importModule<T>(specifier: string): Promise<T> {
 type ExpressionCardForQueue = {
   id: string;
   unknown_count: number;
-  known_count: number;
   review_count: number;
   last_result: "known" | "unknown" | null;
   last_reviewed_at: string | null;
@@ -25,7 +24,6 @@ function expression(overrides: Partial<ExpressionCardForQueue>): ExpressionCardF
   return {
     id: overrides.id ?? crypto.randomUUID(),
     unknown_count: 0,
-    known_count: 0,
     review_count: 0,
     last_result: null,
     last_reviewed_at: null,
@@ -44,9 +42,9 @@ describe("scheduleMemorizeQueue", () => {
 
     const queue = scheduleMemorizeQueue(
       [
-        expression({ id: "known-heavy", unknown_count: 0, known_count: 5, review_count: 5, source_order: 0, last_reviewed_at: "2026-04-27T00:00:00.000Z", due_at: "2026-04-28T09:00:00.000Z" }),
-        expression({ id: "unknown-heavy", unknown_count: 3, known_count: 0, review_count: 3, source_order: 1, last_reviewed_at: "2026-04-28T10:00:00.000Z", due_at: "2026-04-28T11:00:00.000Z" }),
-        expression({ id: "some-unknown", unknown_count: 1, known_count: 2, review_count: 3, source_order: 2, last_reviewed_at: "2026-04-28T10:00:00.000Z", due_at: "2026-04-28T11:00:00.000Z" })
+        expression({ id: "known-heavy", unknown_count: 0, review_count: 5, source_order: 0, last_reviewed_at: "2026-04-27T00:00:00.000Z", due_at: "2026-04-28T09:00:00.000Z" }),
+        expression({ id: "unknown-heavy", unknown_count: 3, review_count: 3, source_order: 1, last_reviewed_at: "2026-04-28T10:00:00.000Z", due_at: "2026-04-28T11:00:00.000Z" }),
+        expression({ id: "some-unknown", unknown_count: 1, review_count: 3, source_order: 2, last_reviewed_at: "2026-04-28T10:00:00.000Z", due_at: "2026-04-28T11:00:00.000Z" })
       ],
       10,
       now

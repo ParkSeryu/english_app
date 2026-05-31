@@ -24,7 +24,6 @@ type ExpressionCardForTest = {
   user_memo: string | null;
   source_order: number;
   unknown_count: number;
-  known_count: number;
   hard_count: number;
   okay_count: number;
   easy_count: number;
@@ -95,7 +94,6 @@ const expression: ExpressionCardForTest = {
   user_memo: null,
   source_order: 0,
   unknown_count: 2,
-  known_count: 12,
   hard_count: 3,
   okay_count: 4,
   easy_count: 5,
@@ -212,9 +210,9 @@ describe("MemorizeCard", () => {
     expect(counters as HTMLElement).toHaveClass("text-right");
   });
 
-  it("shows all button result counts without exposing legacy remembered copy", async () => {
+  it("shows zero button result counts without exposing remembered aggregate copy", async () => {
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
-    render(<MemorizeCard expression={{ ...expression, known_count: 12, hard_count: 0, okay_count: 0, easy_count: 0 }} />);
+    render(<MemorizeCard expression={{ ...expression, hard_count: 0, okay_count: 0, easy_count: 0 }} />);
 
     expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
     expect(screen.getByText("모름 2회")).toBeInTheDocument();
@@ -224,9 +222,9 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText(/이전 \d+회/)).not.toBeInTheDocument();
   });
 
-  it("shows the four button result counts even when legacy remembered totals differ", async () => {
+  it("shows the four button result counts from visible review buttons", async () => {
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
-    render(<MemorizeCard expression={{ ...expression, known_count: 4, unknown_count: 12, hard_count: 0, okay_count: 0, easy_count: 1 }} />);
+    render(<MemorizeCard expression={{ ...expression, unknown_count: 12, hard_count: 0, okay_count: 0, easy_count: 1 }} />);
 
     expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
     expect(screen.getByText("모름 12회")).toBeInTheDocument();

@@ -208,7 +208,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
       expression_id: input.expression_id,
       user_memo: input.user_memo,
       is_memorization_enabled: input.is_memorization_enabled,
-      known_count: input.known_count,
       unknown_count: input.unknown_count,
       hard_count: input.hard_count,
       okay_count: input.okay_count,
@@ -224,7 +223,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
       user_id: input.user_id,
       expression_id: input.expression_id,
       user_memo: input.user_memo,
-      known_count: input.known_count,
       unknown_count: input.unknown_count,
       review_count: input.review_count,
       last_result: input.last_result,
@@ -238,7 +236,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
       expression_id: input.expression_id,
       user_memo: input.user_memo,
       is_memorization_enabled: input.is_memorization_enabled,
-      known_count: input.known_count,
       unknown_count: input.unknown_count,
       review_count: input.review_count,
       last_result: input.last_result,
@@ -493,14 +490,12 @@ export class SupabaseExpressionStore implements ExpressionStore {
     const current = (await this.progressForOne(id)) ?? defaultProgress(this.user.id, id, existing.created_at);
     const timestamp = nowIso();
     const schedule = nextExpressionReviewSchedule(current, result, new Date(timestamp));
-    const remembered = isRememberedReviewResult(result);
     const { error } = await this.upsertProgressWithFallback({
       user_id: this.user.id,
       expression_id: id,
       user_memo: current.user_memo ?? null,
       is_memorization_enabled: current.is_memorization_enabled,
-      known_count: remembered ? current.known_count + 1 : current.known_count,
-      unknown_count: remembered ? current.unknown_count : current.unknown_count + 1,
+      unknown_count: isRememberedReviewResult(result) ? current.unknown_count : current.unknown_count + 1,
       hard_count: isHardReviewResult(result) ? current.hard_count + 1 : current.hard_count,
       okay_count: isOkayReviewResult(result) ? current.okay_count + 1 : current.okay_count,
       easy_count: isEasyReviewResult(result) ? current.easy_count + 1 : current.easy_count,
@@ -524,7 +519,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
       expression_id: id,
       user_memo: input.userMemo || null,
       is_memorization_enabled: input.isMemorizationEnabled ?? current.is_memorization_enabled,
-      known_count: current.known_count,
       unknown_count: current.unknown_count,
       hard_count: current.hard_count,
       okay_count: current.okay_count,
@@ -599,7 +593,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
       expression_id: expressionRow.id,
       user_memo: input.userMemo || null,
       is_memorization_enabled: input.isMemorizationEnabled ?? false,
-      known_count: 0,
       unknown_count: 0,
       hard_count: 0,
       okay_count: 0,
@@ -648,7 +641,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
       expression_id: id,
       user_memo: input.userMemo || null,
       is_memorization_enabled: input.isMemorizationEnabled ?? current.is_memorization_enabled,
-      known_count: current.known_count,
       unknown_count: current.unknown_count,
       hard_count: current.hard_count,
       okay_count: current.okay_count,

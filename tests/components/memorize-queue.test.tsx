@@ -26,7 +26,6 @@ function expression(overrides: Partial<ExpressionCard>): ExpressionCard {
     user_memo: null,
     source_order: 0,
     unknown_count: 0,
-    known_count: 0,
     hard_count: 0,
     okay_count: 0,
     easy_count: 0,

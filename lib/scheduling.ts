@@ -1,7 +1,7 @@
 import { isAgainReviewResult, isHardReviewResult, isOkayReviewResult } from "@/lib/review-result";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
-type MemorizationCandidate = Pick<ExpressionCard, "id" | "unknown_count" | "known_count" | "last_reviewed_at" | "last_result" | "source_order" | "due_at" | "interval_days"> &
+type MemorizationCandidate = Pick<ExpressionCard, "id" | "unknown_count" | "review_count" | "last_reviewed_at" | "last_result" | "source_order" | "due_at" | "interval_days"> &
   Partial<Pick<ExpressionCard, "created_at" | "is_memorization_enabled">>;
 
 type ReviewSchedulingState = Pick<MemorizationCandidate, "interval_days" | "last_result">;
@@ -109,8 +109,8 @@ export function compareExpressionsForMemorization<T extends MemorizationCandidat
   const bDue = dueRank(b);
   if (aDue !== bDue) return aDue < bDue ? -1 : 1;
 
-  const knownDelta = a.known_count - b.known_count;
-  if (knownDelta !== 0) return knownDelta;
+  const reviewDelta = a.review_count - b.review_count;
+  if (reviewDelta !== 0) return reviewDelta;
 
   const aReviewed = reviewedRank(a);
   const bReviewed = reviewedRank(b);

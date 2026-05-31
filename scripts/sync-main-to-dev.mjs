@@ -105,7 +105,6 @@ function resetLegacyProgress(row) {
   return {
     ...row,
     user_memo: null,
-    known_count: 0,
     unknown_count: 0,
     review_count: 0,
     last_result: null,
@@ -137,7 +136,7 @@ async function main() {
   data.content_folders = sortFolders(await fetchAll(mainClient, "content_folders", ["id", "parent_id", "name", "slug", "sort_order", "path_ids", "path_names", "created_at", "updated_at"], "sort_order"));
   data.content_folder_permissions = await fetchAll(mainClient, "content_folder_permissions", ["folder_id", "group_id", "permission", "created_at"]);
   data.expression_days = (await fetchAll(mainClient, "expression_days", ["id", "owner_id", "title", "raw_input", "source_note", "day_date", "folder_id", "created_by", "created_at", "updated_at"], "created_at")).map((row) => remapOwner(row, targetOwnerId));
-  data.expressions = (await fetchAll(mainClient, "expressions", ["id", "expression_day_id", "owner_id", "english", "korean_prompt", "nuance_note", "structure_note", "grammar_note", "user_memo", "source_order", "known_count", "unknown_count", "review_count", "last_result", "last_reviewed_at", "created_at", "updated_at"], "source_order"))
+  data.expressions = (await fetchAll(mainClient, "expressions", ["id", "expression_day_id", "owner_id", "english", "korean_prompt", "nuance_note", "structure_note", "grammar_note", "user_memo", "source_order", "unknown_count", "review_count", "last_result", "last_reviewed_at", "created_at", "updated_at"], "source_order"))
     .map((row) => resetLegacyProgress(remapOwner(row, targetOwnerId)));
   data.expression_examples = await fetchAll(mainClient, "expression_examples", ["id", "expression_id", "example_text", "meaning_ko", "source", "sort_order", "created_at"], "sort_order");
 

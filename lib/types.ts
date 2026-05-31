@@ -65,7 +65,6 @@ export type ExpressionCard = {
   /** Current signed-in user can edit this expression content. */
   can_edit?: boolean;
   /** Current signed-in user's private review counters for this shared expression. */
-  known_count: number;
   unknown_count: number;
   hard_count: number;
   okay_count: number;
@@ -105,7 +104,6 @@ export type ExpressionProgress = {
   expression_id: string;
   user_memo: string | null;
   is_memorization_enabled: boolean;
-  known_count: number;
   unknown_count: number;
   hard_count: number;
   okay_count: number;
@@ -199,7 +197,6 @@ export type QuestionNoteInput = {
 
 export type DashboardStats = {
   total: number;
-  knownReviews: number;
   unknownReviews: number;
   unseenCount: number;
   dueCount: number;

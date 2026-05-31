@@ -15,7 +15,6 @@ function card(overrides: Partial<ExpressionCard>): ExpressionCard {
     grammar_note: null,
     user_memo: null,
     source_order: 0,
-    known_count: 0,
     unknown_count: 0,
     hard_count: 0,
     okay_count: 0,
@@ -51,8 +50,8 @@ describe("scheduleMemorizationQueue", () => {
   it("honors future due_at for remembered cards even after the Korean day changes", () => {
     const queue = scheduleMemorizationQueue(
       [
-        card({ id: "known-future", known_count: 3, last_result: "known", last_reviewed_at: "2026-04-28T14:50:00.000Z", due_at: "2026-05-05T15:00:00.000Z", interval_days: 7 }),
-        card({ id: "known-due", known_count: 3, last_result: "known", last_reviewed_at: "2026-04-21T14:50:00.000Z", due_at: "2026-04-28T11:00:00.000Z", interval_days: 7 }),
+        card({ id: "known-future", last_result: "known", last_reviewed_at: "2026-04-28T14:50:00.000Z", due_at: "2026-05-05T15:00:00.000Z", interval_days: 7 }),
+        card({ id: "known-due", last_result: "known", last_reviewed_at: "2026-04-21T14:50:00.000Z", due_at: "2026-04-28T11:00:00.000Z", interval_days: 7 }),
         card({ id: "forgotten", unknown_count: 1, last_result: "unknown", last_reviewed_at: "2026-04-28T11:30:00.000Z", due_at: null, interval_days: 7 })
       ],
       10,
@@ -63,14 +62,14 @@ describe("scheduleMemorizationQueue", () => {
 
   it("keeps old remembered rows without due_at out until the next Korean day", () => {
     const sameDayQueue = scheduleMemorizationQueue(
-      [card({ id: "same-day-known", known_count: 1, last_result: "known", last_reviewed_at: "2026-04-28T11:30:00.000Z", due_at: null, interval_days: 1 })],
+      [card({ id: "same-day-known", last_result: "known", last_reviewed_at: "2026-04-28T11:30:00.000Z", due_at: null, interval_days: 1 })],
       10,
       now
     );
     expect(sameDayQueue).toEqual([]);
 
     const nextDayQueue = scheduleMemorizationQueue(
-      [card({ id: "previous-day-known", known_count: 1, last_result: "known", last_reviewed_at: "2026-04-28T14:50:00.000Z", due_at: null, interval_days: 1 })],
+      [card({ id: "previous-day-known", last_result: "known", last_reviewed_at: "2026-04-28T14:50:00.000Z", due_at: null, interval_days: 1 })],
       10,
       new Date("2026-04-28T15:01:00.000Z")
     );
@@ -90,12 +89,12 @@ describe("scheduleMemorizationQueue", () => {
     expect(queue.map((candidate) => candidate.id)).toEqual(["high", "low", "none"]);
   });
 
-  it("boosts never-reviewed expressions, then due time, then known_count", () => {
+  it("boosts never-reviewed expressions, then due time, then review_count", () => {
     const queue = scheduleMemorizationQueue(
       [
-        card({ id: "known-many", known_count: 4, last_reviewed_at: "2026-04-27T00:00:00.000Z", due_at: "2026-04-28T11:00:00.000Z" }),
-        card({ id: "never", known_count: 0, last_reviewed_at: null, due_at: null }),
-        card({ id: "known-once", known_count: 1, last_reviewed_at: "2026-04-26T00:00:00.000Z", due_at: "2026-04-28T10:00:00.000Z" })
+        card({ id: "known-many", review_count: 4, last_reviewed_at: "2026-04-27T00:00:00.000Z", due_at: "2026-04-28T10:00:00.000Z" }),
+        card({ id: "never", last_reviewed_at: null, due_at: null }),
+        card({ id: "known-once", review_count: 1, last_reviewed_at: "2026-04-26T00:00:00.000Z", due_at: "2026-04-28T10:00:00.000Z" })
       ],
       10,
       now

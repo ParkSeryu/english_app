@@ -23,7 +23,6 @@ const expression: ExpressionCard = {
   grammar_note: "3인칭 단수는 has to",
   user_memo: "선생님이 must보다 일상적이라고 함",
   source_order: 0,
-  known_count: 0,
   unknown_count: 0,
   hard_count: 0,
   okay_count: 0,

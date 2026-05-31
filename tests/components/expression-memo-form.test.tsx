@@ -23,7 +23,6 @@ function expression(overrides: Partial<ExpressionCard> = {}): ExpressionCard {
     source_order: 1,
     is_memorization_enabled: true,
     can_delete: false,
-    known_count: 0,
     unknown_count: 0,
     hard_count: 0,
     okay_count: 0,

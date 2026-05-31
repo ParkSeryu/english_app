@@ -52,7 +52,7 @@ describe("MemoryExpressionStore integration behavior", () => {
     const unknown = await store.recordReviewResult(expression.id, "unknown");
     expect(unknown.unknown_count).toBe(1);
     const known = await store.recordReviewResult(expression.id, "known");
-    expect(known.known_count).toBe(1);
+    expect(known.easy_count).toBe(1);
 
     const noted = await store.updateExpressionMemo(expression.id, { userMemo: "내가 자주 쓰는 표현" });
     expect(noted.user_memo).toBe("내가 자주 쓰는 표현");
@@ -83,7 +83,7 @@ describe("MemoryExpressionStore integration behavior", () => {
 
     expect(await otherStore.getExpressionDay(approved.expressionDay.id)).toMatchObject({ id: approved.expressionDay.id });
     expect(await otherStore.listExpressionDays()).toHaveLength(1);
-    expect(await otherStore.getExpression(expressionId)).toMatchObject({ unknown_count: 0, known_count: 0, review_count: 0, user_memo: null });
+    expect(await otherStore.getExpression(expressionId)).toMatchObject({ unknown_count: 0, review_count: 0, user_memo: null });
     await otherStore.updateExpressionMemo(expressionId, { userMemo: "B private memo" });
     expect(await storeA.getExpression(expressionId)).toMatchObject({ unknown_count: 1, user_memo: "A private memo" });
     expect(await otherStore.getExpression(expressionId)).toMatchObject({ unknown_count: 0, user_memo: "B private memo" });

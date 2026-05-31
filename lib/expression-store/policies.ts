@@ -11,7 +11,7 @@ import type {
   UserIdentity
 } from "@/lib/types";
 
-export type ExpressionStatsCard = Pick<ExpressionCard, "id" | "is_memorization_enabled" | "known_count" | "unknown_count" | "hard_count" | "okay_count" | "easy_count" | "review_count" | "last_result" | "last_reviewed_at" | "due_at" | "interval_days" | "source_order" | "created_at">;
+export type ExpressionStatsCard = Pick<ExpressionCard, "id" | "is_memorization_enabled" | "unknown_count" | "hard_count" | "okay_count" | "easy_count" | "review_count" | "last_result" | "last_reviewed_at" | "due_at" | "interval_days" | "source_order" | "created_at">;
 export type QuestionStats = Pick<QuestionNote, "status">;
 
 export const PERSONAL_EXPRESSION_MARKER = "__personal_expression__";
@@ -51,7 +51,6 @@ export function defaultProgress(userId: string, expressionId: string, timestamp 
     expression_id: expressionId,
     user_memo: null,
     is_memorization_enabled: true,
-    known_count: 0,
     unknown_count: 0,
     hard_count: 0,
     okay_count: 0,
@@ -73,7 +72,6 @@ export function applyProgress(card: ExpressionCard, progress?: Partial<Expressio
     can_edit: card.can_edit ?? card.can_delete ?? false,
     user_memo: progress?.user_memo ?? null,
     is_memorization_enabled: progress?.is_memorization_enabled ?? true,
-    known_count: progress?.known_count ?? 0,
     unknown_count: progress?.unknown_count ?? 0,
     hard_count: progress?.hard_count ?? 0,
     okay_count: progress?.okay_count ?? 0,
@@ -86,11 +84,10 @@ export function applyProgress(card: ExpressionCard, progress?: Partial<Expressio
   };
 }
 
-export function expressionStatsWithProgress(row: Pick<ExpressionCard, "id" | "known_count" | "unknown_count" | "review_count" | "last_result" | "last_reviewed_at" | "source_order" | "created_at">, progress?: Partial<ExpressionProgress> | null): ExpressionStatsCard {
+export function expressionStatsWithProgress(row: Pick<ExpressionCard, "id" | "unknown_count" | "review_count" | "last_result" | "last_reviewed_at" | "source_order" | "created_at">, progress?: Partial<ExpressionProgress> | null): ExpressionStatsCard {
   return {
     id: row.id,
     is_memorization_enabled: progress?.is_memorization_enabled ?? true,
-    known_count: progress?.known_count ?? 0,
     unknown_count: progress?.unknown_count ?? 0,
     hard_count: progress?.hard_count ?? 0,
     okay_count: progress?.okay_count ?? 0,
@@ -163,7 +160,6 @@ export function calculateStats(dayCount: number, expressions: ExpressionStatsCar
   const memorizationExpressions = expressions.filter((card) => card.is_memorization_enabled !== false);
   return {
     total: memorizationExpressions.length,
-    knownReviews: memorizationExpressions.reduce((sum, card) => sum + card.known_count, 0),
     unknownReviews: memorizationExpressions.reduce((sum, card) => sum + card.unknown_count, 0),
     unseenCount: memorizationExpressions.filter((card) => !card.last_reviewed_at).length,
     dueCount: scheduleMemorizationQueue(expressions, 300).length,

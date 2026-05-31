@@ -141,7 +141,6 @@ export class MemoryExpressionStore implements ExpressionStore {
     }
     const schedule = nextExpressionReviewSchedule(progress, result, new Date(timestamp));
     if (isRememberedReviewResult(result)) {
-      progress.known_count += 1;
       if (isHardReviewResult(result)) progress.hard_count += 1;
       if (isOkayReviewResult(result)) progress.okay_count += 1;
       if (isEasyReviewResult(result)) progress.easy_count += 1;
@@ -192,7 +191,6 @@ export class MemoryExpressionStore implements ExpressionStore {
       user_memo: PERSONAL_EXPRESSION_MARKER,
       is_memorization_enabled: true,
       source_order: sourceOrder,
-      known_count: 0,
       unknown_count: 0,
       hard_count: 0,
       okay_count: 0,
@@ -353,7 +351,6 @@ export class MemoryExpressionStore implements ExpressionStore {
         user_memo: null,
         is_memorization_enabled: true,
         source_order: sourceOrderOffset + index,
-        known_count: 0,
         unknown_count: 0,
         hard_count: 0,
         okay_count: 0,
