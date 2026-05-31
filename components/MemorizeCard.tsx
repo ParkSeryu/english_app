@@ -6,7 +6,6 @@ import { Fragment, useState, useTransition } from "react";
 import { recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
 import { PronunciationButton } from "@/components/PronunciationButton";
 import { nextExpressionReviewSchedule } from "@/lib/scheduling";
-import { getRememberedBreakdownParts } from "@/lib/expression-review-counts";
 import { isAgainReviewResult } from "@/lib/review-result";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
@@ -24,7 +23,6 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
   const hardIntervalDays = nextExpressionReviewSchedule(expression, "hard").intervalDays;
   const okayIntervalDays = nextExpressionReviewSchedule(expression, "okay").intervalDays;
   const easyIntervalDays = nextExpressionReviewSchedule(expression, "easy").intervalDays;
-  const rememberedBreakdown = getRememberedBreakdownParts(expression).join(" · ");
 
   function revealAnswer() {
     onReveal?.();
@@ -51,19 +49,21 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
 
   return (
     <article className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-        <div className="min-w-0 sm:flex-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           {topicContext ? (
-            <div className="flex max-w-full items-start rounded-2xl border border-teal-100 bg-teal-50/80 px-3 py-1.5 sm:rounded-full">
+            <div className="inline-flex w-fit max-w-full items-start rounded-2xl border border-teal-100 bg-teal-50/80 px-3 py-1.5 sm:rounded-full">
               <span className="min-w-0 whitespace-normal break-words text-xs font-black leading-snug text-ink sm:text-sm">{topicContext}</span>
             </div>
           ) : (
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">암기 카드</p>
           )}
         </div>
-        <div className="flex shrink-0 flex-col items-start gap-0.5 text-[11px] font-bold text-slate-500 sm:items-end sm:text-xs">
-          <span>외움 총 {expression.known_count}회 · 모름 {expression.unknown_count}회</span>
-          <span>{rememberedBreakdown}</span>
+        <div className="grid shrink-0 grid-cols-2 justify-items-end gap-x-2 gap-y-0.5 text-right text-[11px] font-bold leading-4 text-slate-500 sm:gap-x-3 sm:text-xs">
+          <span>모름 {expression.unknown_count}회</span>
+          <span>어려움 {expression.hard_count}회</span>
+          <span>알긴암 {expression.okay_count}회</span>
+          <span>쉬움 {expression.easy_count}회</span>
         </div>
       </div>
 

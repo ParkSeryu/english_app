@@ -136,11 +136,15 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("2026-04-27")).not.toBeInTheDocument();
     expect(screen.queryByText("수업 표현")).not.toBeInTheDocument();
 
-    const counters = screen.getByText("외움 총 12회 · 모름 2회").parentElement;
+    const counters = screen.getByText("모름 2회").parentElement;
     expect(counters).not.toBeNull();
-    expect(counters as HTMLElement).toHaveClass("flex-col");
-    expect(counters as HTMLElement).not.toHaveClass("sm:flex-row");
-    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["외움 총 12회 · 모름 2회", "어려움 3회 · 알긴암 4회 · 쉬움 5회"]);
+    expect(counters as HTMLElement).toHaveClass("grid");
+    expect(counters as HTMLElement).toHaveClass("grid-cols-2");
+    expect(counters as HTMLElement).toHaveClass("justify-items-end");
+    expect(counters as HTMLElement).toHaveClass("text-right");
+    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["모름 2회", "어려움 3회", "알긴암 4회", "쉬움 5회"]);
+    expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/이전 \d+회/)).not.toBeInTheDocument();
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
@@ -185,33 +189,51 @@ describe("MemorizeCard", () => {
           ...expression,
           day: {
             ...expression.day!,
-            title: "회화연습반 (260522)",
-            day_date: "2026-05-22",
+            title: "회화연습반",
+            day_date: "2026-05-04",
             folder_path: ["수원영어모임"]
           }
         }}
       />
     );
 
-    const topicLabel = screen.getByText("수원영어모임 회화연습반 (260522)");
+    const topicLabel = screen.getByText("수원영어모임 회화연습반 (260504)");
     expect(screen.queryByText("토픽:")).not.toBeInTheDocument();
     expect(topicLabel).toHaveClass("whitespace-normal");
     expect(topicLabel).toHaveClass("break-words");
     expect(topicLabel).not.toHaveClass("truncate");
+    expect(topicLabel.closest("div")).toHaveClass("inline-flex");
+    expect(topicLabel.closest("div")).toHaveClass("w-fit");
     expect(topicLabel.closest("div")).toHaveClass("items-start");
 
-    const counters = screen.getByText("외움 총 12회 · 모름 2회").parentElement;
+    const counters = screen.getByText("모름 2회").parentElement;
     expect(counters).not.toBeNull();
-    expect(counters as HTMLElement).toHaveClass("items-start");
-    expect(counters as HTMLElement).toHaveClass("sm:items-end");
+    expect(counters as HTMLElement).toHaveClass("justify-items-end");
+    expect(counters as HTMLElement).toHaveClass("text-right");
   });
 
-  it("keeps historical remembered counts visible when the new button breakdown starts at zero", async () => {
+  it("shows all button result counts without exposing legacy remembered copy", async () => {
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
     render(<MemorizeCard expression={{ ...expression, known_count: 12, hard_count: 0, okay_count: 0, easy_count: 0 }} />);
 
-    expect(screen.getByText("외움 총 12회 · 모름 2회")).toBeInTheDocument();
-    expect(screen.getByText("어려움 0회 · 알긴암 0회 · 쉬움 0회 · 이전 12회")).toBeInTheDocument();
+    expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
+    expect(screen.getByText("모름 2회")).toBeInTheDocument();
+    expect(screen.getByText("어려움 0회")).toBeInTheDocument();
+    expect(screen.getByText("알긴암 0회")).toBeInTheDocument();
+    expect(screen.getByText("쉬움 0회")).toBeInTheDocument();
+    expect(screen.queryByText(/이전 \d+회/)).not.toBeInTheDocument();
+  });
+
+  it("shows the four button result counts even when legacy remembered totals differ", async () => {
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={{ ...expression, known_count: 4, unknown_count: 12, hard_count: 0, okay_count: 0, easy_count: 1 }} />);
+
+    expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
+    expect(screen.getByText("모름 12회")).toBeInTheDocument();
+    expect(screen.getByText("어려움 0회")).toBeInTheDocument();
+    expect(screen.getByText("알긴암 0회")).toBeInTheDocument();
+    expect(screen.getByText("쉬움 1회")).toBeInTheDocument();
+    expect(screen.queryByText(/이전 3회/)).not.toBeInTheDocument();
   });
 
   it("shows hard, okay, and easy review intervals on remembered buttons", async () => {
