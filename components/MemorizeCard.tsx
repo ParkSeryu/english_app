@@ -60,7 +60,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
           )}
         </div>
         <div className="grid shrink-0 grid-cols-2 justify-items-end gap-x-2 gap-y-0.5 text-right text-[11px] font-bold leading-4 text-slate-500 sm:gap-x-3 sm:text-xs">
-          <span>모름 {expression.unknown_count}회</span>
+          <span>다시 {expression.unknown_count}회</span>
           <span>어려움 {expression.hard_count}회</span>
           <span>알긴암 {expression.okay_count}회</span>
           <span>쉬움 {expression.easy_count}회</span>
@@ -99,7 +99,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
             ) : null}
             <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
               <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-1.5 py-2 text-[13px] font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
-                <span>모름</span>
+                <span>다시</span>
                 <span className="mt-0.5 text-[11px] font-black text-rose-500 sm:text-xs">오늘 다시</span>
               </button>
               <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-1.5 py-2 text-[13px] font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">

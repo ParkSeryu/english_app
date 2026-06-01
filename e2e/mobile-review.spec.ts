@@ -25,7 +25,7 @@ test("mobile user can memorize an LLM-approved expression and mark unknown", asy
 
   await page.getByRole("button", { name: /정답 보기/ }).click();
   await expect(page.getByText("have to ~")).toBeVisible();
-  await page.getByRole("button", { name: /모름/ }).click();
+  await page.getByRole("button", { name: /다시/ }).click();
   await expect(page).toHaveURL(/\/memorize$/);
   await expect(page.getByRole("heading", { name: "~에 익숙하다 / ~에 익숙해졌다" })).toBeVisible();
   await expect(page.getByText("I am used to ~")).toBeHidden();

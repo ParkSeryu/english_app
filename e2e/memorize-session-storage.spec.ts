@@ -13,7 +13,7 @@ test("memorize queue keeps the current card after marking unknown and reloading"
 
   await expect(page.getByRole("heading", { name: "한국의 출산율이 감소하고 있어요." })).toBeVisible();
   await page.getByRole("button", { name: /정답 보기/ }).click();
-  await page.getByRole("button", { name: /모름/ }).click();
+  await page.getByRole("button", { name: /다시/ }).click();
 
   await expect(page).toHaveURL(/\/memorize$/);
   await expect(page.getByRole("heading", { name: "저는 먹지 않으려고 노력해요." })).toBeVisible();
@@ -31,7 +31,7 @@ test("memorize queue keeps the current card after an app restart", async ({ base
 
   await expect(page.getByRole("heading", { name: "한국의 출산율이 감소하고 있어요." })).toBeVisible();
   await page.getByRole("button", { name: /정답 보기/ }).click();
-  await page.getByRole("button", { name: /모름/ }).click();
+  await page.getByRole("button", { name: /다시/ }).click();
   await expect(page.getByRole("heading", { name: "저는 먹지 않으려고 노력해요." })).toBeVisible();
 
   const storageState = await page.context().storageState();

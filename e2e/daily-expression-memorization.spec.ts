@@ -28,7 +28,7 @@ test("mobile user memorizes a daily expression, marks unknown, and adds a questi
   await expect(page.getByText("The birth rate in Korea is decreasing.")).toBeVisible();
   await expect(page.getByText("is decreasing", { exact: true })).toBeVisible();
   await expect(page.getByText("감소하고 있다")).toBeVisible();
-  await page.getByRole("button", { name: /모름/ }).click();
+  await page.getByRole("button", { name: /다시/ }).click();
   await expect(page).toHaveURL(/\/memorize$/);
   await expect(page.getByRole("heading", { name: "저는 먹지 않으려고 노력해요." })).toBeVisible();
   await expect(page.getByText("I try not to eat.")).toBeHidden();

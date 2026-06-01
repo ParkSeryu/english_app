@@ -120,7 +120,7 @@ describe("MemorizeCard", () => {
     Reflect.deleteProperty(globalThis, "SpeechSynthesisUtterance");
   });
 
-  it("shows Korean first, hides English until reveal, then exposes 모름/어려움/알긴암/쉬움 controls", async () => {
+  it("shows Korean first, hides English until reveal, then exposes 다시/어려움/알긴암/쉬움 controls", async () => {
     const user = userEvent.setup();
     const speech = mockSpeechSynthesis();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
@@ -134,13 +134,13 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("2026-04-27")).not.toBeInTheDocument();
     expect(screen.queryByText("수업 표현")).not.toBeInTheDocument();
 
-    const counters = screen.getByText("모름 2회").parentElement;
+    const counters = screen.getByText("다시 2회").parentElement;
     expect(counters).not.toBeNull();
     expect(counters as HTMLElement).toHaveClass("grid");
     expect(counters as HTMLElement).toHaveClass("grid-cols-2");
     expect(counters as HTMLElement).toHaveClass("justify-items-end");
     expect(counters as HTMLElement).toHaveClass("text-right");
-    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["모름 2회", "어려움 3회", "알긴암 4회", "쉬움 5회"]);
+    expect(within(counters as HTMLElement).getAllByText(/회$/).map((node) => node.textContent)).toEqual(["다시 2회", "어려움 3회", "알긴암 4회", "쉬움 5회"]);
     expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
     expect(screen.queryByText(/이전 \d+회/)).not.toBeInTheDocument();
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
@@ -158,7 +158,7 @@ describe("MemorizeCard", () => {
     expect(screen.queryByText("구조")).not.toBeInTheDocument();
     expect(screen.queryByText(expression.nuance_note ?? "")).not.toBeInTheDocument();
     expect(screen.queryByText(expression.structure_note ?? "")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /모름.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /어려움.*1일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /알긴암.*1일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /쉬움.*3일 뒤/s })).toBeInTheDocument();
@@ -168,8 +168,8 @@ describe("MemorizeCard", () => {
     expect(speech.cancel).toHaveBeenCalledTimes(1);
     expect(speech.speak).toHaveBeenCalledTimes(1);
 
-    const reviewButtons = screen.getAllByRole("button").filter((button) => /^(모름|어려움|알긴암|쉬움)/.test(button.textContent ?? ""));
-    expect(reviewButtons.map((button) => button.textContent)).toEqual(["모름오늘 다시", "어려움1일 뒤", "알긴암1일 뒤", "쉬움3일 뒤"]);
+    const reviewButtons = screen.getAllByRole("button").filter((button) => /^(다시|어려움|알긴암|쉬움)/.test(button.textContent ?? ""));
+    expect(reviewButtons.map((button) => button.textContent)).toEqual(["다시오늘 다시", "어려움1일 뒤", "알긴암1일 뒤", "쉬움3일 뒤"]);
   });
 
   it("adds the compact date to topic labels when the stored title no longer includes it", async () => {
@@ -204,7 +204,7 @@ describe("MemorizeCard", () => {
     expect(topicLabel.closest("div")).toHaveClass("w-fit");
     expect(topicLabel.closest("div")).toHaveClass("items-start");
 
-    const counters = screen.getByText("모름 2회").parentElement;
+    const counters = screen.getByText("다시 2회").parentElement;
     expect(counters).not.toBeNull();
     expect(counters as HTMLElement).toHaveClass("justify-items-end");
     expect(counters as HTMLElement).toHaveClass("text-right");
@@ -215,7 +215,7 @@ describe("MemorizeCard", () => {
     render(<MemorizeCard expression={{ ...expression, hard_count: 0, okay_count: 0, easy_count: 0 }} />);
 
     expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
-    expect(screen.getByText("모름 2회")).toBeInTheDocument();
+    expect(screen.getByText("다시 2회")).toBeInTheDocument();
     expect(screen.getByText("어려움 0회")).toBeInTheDocument();
     expect(screen.getByText("알긴암 0회")).toBeInTheDocument();
     expect(screen.getByText("쉬움 0회")).toBeInTheDocument();
@@ -227,7 +227,7 @@ describe("MemorizeCard", () => {
     render(<MemorizeCard expression={{ ...expression, unknown_count: 12, hard_count: 0, okay_count: 0, easy_count: 1 }} />);
 
     expect(screen.queryByText(/외움/)).not.toBeInTheDocument();
-    expect(screen.getByText("모름 12회")).toBeInTheDocument();
+    expect(screen.getByText("다시 12회")).toBeInTheDocument();
     expect(screen.getByText("어려움 0회")).toBeInTheDocument();
     expect(screen.getByText("알긴암 0회")).toBeInTheDocument();
     expect(screen.getByText("쉬움 1회")).toBeInTheDocument();
@@ -244,7 +244,7 @@ describe("MemorizeCard", () => {
     expect(screen.getByRole("button", { name: /어려움.*14일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /알긴암.*30일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /쉬움.*60일 뒤/s })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /모름.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
   });
 
   it("hides the answer again after marking an expression unknown", async () => {
@@ -255,7 +255,7 @@ describe("MemorizeCard", () => {
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
     expect(screen.getByText(expression.english)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /모름/ }));
+    await user.click(screen.getByRole("button", { name: /다시/ }));
 
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /정답 보기/ })).toBeInTheDocument();
