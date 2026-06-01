@@ -19,6 +19,13 @@ export class MissingIngestionEnvError extends Error {
   }
 }
 
+export class MissingWebPushEnvError extends Error {
+  constructor() {
+    super("Web Push 환경 변수가 없습니다. NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY와 WEB_PUSH_VAPID_PRIVATE_KEY를 설정하세요.");
+    this.name = "MissingWebPushEnvError";
+  }
+}
+
 export function getSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -52,10 +59,26 @@ export function getIngestionEnv() {
   return { apiToken, ownerId };
 }
 
+export function getWebPushEnv() {
+  const publicKey = process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.WEB_PUSH_VAPID_PRIVATE_KEY;
+  const subject = process.env.WEB_PUSH_VAPID_SUBJECT || process.env.NEXT_PUBLIC_SITE_URL || "mailto:admin@example.local";
+
+  if (!publicKey || !privateKey) {
+    throw new MissingWebPushEnvError();
+  }
+
+  return { publicKey, privateKey, subject };
+}
+
 export function hasSupabaseEnv() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 }
 
 export function hasIngestionEnv() {
   return Boolean(process.env.INGESTION_API_TOKEN && process.env.INGESTION_OWNER_ID);
+}
+
+export function hasWebPushPublicEnv() {
+  return Boolean(process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY);
 }

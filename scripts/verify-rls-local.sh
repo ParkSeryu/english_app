@@ -28,6 +28,10 @@ begin
     create role authenticated nologin;
   end if;
 end $$;
+
+insert into auth.users (id) values
+  ('261f2e21-9532-446f-8694-0b2bc54df360')
+on conflict do nothing;
 SQL
 for migration in supabase/migrations/*.sql; do
   cat "$migration" >> "$SQL_FILE"

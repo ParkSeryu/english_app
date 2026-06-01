@@ -171,11 +171,20 @@ function readMigrations() {
 }
 
 function runPsql(sql, options = {}) {
-  const result = spawnSync("psql", [databaseUrl, "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--no-align", "--tuples-only", "--command", sql], {
+  const args = [databaseUrl, "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--no-align", "--tuples-only", "--command", sql];
+  let result = spawnSync("psql", args, {
     cwd: ROOT,
     encoding: "utf8",
     stdio: options.inherit ? "inherit" : ["ignore", "pipe", "pipe"]
   });
+
+  if (result.error?.code === "ENOENT" && process.platform === "win32") {
+    result = spawnSync("wsl.exe", ["psql", ...args], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: options.inherit ? "inherit" : ["ignore", "pipe", "pipe"]
+    });
+  }
 
   if (result.error) {
     if (result.error.code === "ENOENT") fail("psql was not found. Install PostgreSQL client tools before running DB migrations.");

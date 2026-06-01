@@ -55,6 +55,32 @@ describe("site URL resolution", () => {
     expect(origin).toBe("https://english.example");
   });
 
+  it("normalizes local OAuth callback origins to localhost", () => {
+    const origin = resolveAppOrigin(headers({
+      origin: "http://127.0.0.1:3000",
+      "x-forwarded-host": "0.0.0.0:3000",
+      "x-forwarded-proto": "http"
+    }), {
+      NEXT_PUBLIC_SITE_URL: undefined,
+      SITE_URL: undefined,
+      VERCEL_PROJECT_PRODUCTION_URL: undefined,
+      VERCEL_URL: undefined
+    });
+
+    expect(origin).toBe("http://localhost:3000");
+  });
+
+  it("normalizes 0.0.0.0 to localhost when no visible local origin is available", () => {
+    const origin = resolveAppOrigin(headers({ host: "0.0.0.0:3000", "x-forwarded-proto": "http" }), {
+      NEXT_PUBLIC_SITE_URL: undefined,
+      SITE_URL: undefined,
+      VERCEL_PROJECT_PRODUCTION_URL: undefined,
+      VERCEL_URL: undefined
+    });
+
+    expect(origin).toBe("http://localhost:3000");
+  });
+
   it("builds password reset URL from the resolved app origin", () => {
     expect(
       passwordResetRedirectUrl(headers({ host: "english.example", "x-forwarded-proto": "https" }), {

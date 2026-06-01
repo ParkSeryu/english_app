@@ -48,4 +48,12 @@ describe("auth callback redirect safety", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://app.example/review?mode=confusing");
   });
+
+  it("does not redirect local callbacks back to 0.0.0.0", async () => {
+    const { GET } = await import("@/app/auth/callback/route");
+    const response = await GET(new Request("http://0.0.0.0:3000/auth/callback?next=/"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/");
+  });
 });

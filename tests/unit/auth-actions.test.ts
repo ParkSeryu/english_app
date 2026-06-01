@@ -92,6 +92,30 @@ describe("auth actions", () => {
     });
   });
 
+  it("uses localhost for local Kakao OAuth callback URLs", async () => {
+    mocks.headers.mockResolvedValueOnce(new Headers({
+      origin: "http://127.0.0.1:3000",
+      "x-forwarded-host": "0.0.0.0:3000",
+      "x-forwarded-proto": "http"
+    }));
+    const signInWithOAuth = vi.fn(async () => ({ data: { url: "https://kauth.kakao.com/oauth/authorize?client_id=kakao" }, error: null }));
+    mocks.createServerSupabaseClient.mockResolvedValue({
+      auth: { signInWithOAuth }
+    });
+
+    const { signInWithKakaoAction } = await import("@/app/actions");
+
+    await signInWithKakaoAction({}, new FormData());
+
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "kakao",
+      options: {
+        redirectTo: "http://localhost:3000/auth/callback?next=%2F",
+        queryParams: { scope: "profile_nickname profile_image" }
+      }
+    });
+  });
+
   it("returns a visible error when Kakao OAuth is not configured", async () => {
     const signInWithOAuth = vi.fn(async () => ({ data: { url: null }, error: new Error("provider is not enabled") }));
     mocks.createServerSupabaseClient.mockResolvedValue({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { signOutAction } from "@/app/actions";
 import type { UserIdentity } from "@/lib/types";
@@ -48,6 +49,9 @@ export function AccountMenu({ user }: { user: UserIdentity }) {
             <p className="text-xs font-black text-slate-400">계정</p>
             <p className="mt-1 truncate font-bold text-ink">{user.email ?? "로그인됨"}</p>
           </div>
+          <Link href="/settings/notifications" className="mt-2 block rounded-2xl px-3 py-3 font-black text-slate-700 transition hover:bg-teal-50 hover:text-teal-700" role="menuitem" onClick={() => setOpen(false)}>
+            알림 설정
+          </Link>
           <form action={signOutAction} className="pt-2">
             <button type="submit" className="w-full rounded-2xl px-3 py-3 text-left font-black text-red-600 transition hover:bg-red-50" role="menuitem">
               로그아웃

@@ -83,6 +83,30 @@ Safety requirements:
 - The ingestion route must assign `owner_id` from `INGESTION_OWNER_ID`, not from request JSON.
 - Drafts/revisions may create or update `ingestion_runs`, but `expression_days`/`expressions`/`expression_examples` are inserted only after explicit approval.
 
+## PWA Web Push setup
+
+The app can store browser push subscriptions and send topic-level PWA notifications after a shared topic is ready.
+
+Generate VAPID keys once per environment:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Configure the public key for the browser and the private key only on the server:
+
+```bash
+NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY=your-vapid-public-key
+WEB_PUSH_VAPID_PRIVATE_KEY=your-vapid-private-key
+WEB_PUSH_VAPID_SUBJECT=mailto:you@example.com
+```
+
+Notes:
+
+- `WEB_PUSH_VAPID_PRIVATE_KEY` must never be exposed to the browser.
+- iOS Web Push requires a Home Screen PWA on supported iOS/iPadOS versions.
+- Dev and main Supabase projects must both receive the push notification migration before hosted delivery is claimed live.
+
 ## App-managed updated_at
 
 The MVP updates `updated_at` from app code on note edits, review status changes, draft revisions, and ingestion status changes. No database trigger is required for MVP.

@@ -35,7 +35,7 @@
 
 - 사용자가 체감할 개선이 한 문장으로 설명됩니다.
 - 성공 기준이 체크박스로 검증 가능합니다.
-- 앱 코드, DB/schema, auth, push 권한, 외부 서비스 중 어떤 표면을 건드리는지 표시합니다.
+- 앱 코드, DB/schema, auth, 외부 서비스 중 어떤 표면을 건드리는지 표시합니다.
 - 필요한 PRD / test-spec / migration 여부가 표시됩니다.
 - 작업 크기가 너무 크면 1~3일 안에 끝낼 수 있는 첫 Slice로 줄입니다.
 
@@ -61,14 +61,14 @@
 현재 큰 방향은 세 갈래입니다.
 
 1. **Retention Algorithm**: 망각곡선/SRS 알고리즘 개선
-2. **Engagement Push**: 앱 푸쉬 알림으로 복습 타이밍을 알려주기
-3. **Onboarding Load**: 신규회원이 한 번에 너무 많은 표현을 외우지 않게 완충하기
+2. **Onboarding Load**: 신규회원이 한 번에 너무 많은 표현을 외우지 않게 완충하기
+3. **Engagement Notifications**: 새 공통 토픽과 중요한 학습 진입점을 앱 밖에서도 알려주기
 
 권장 진행 순서:
 
 1. 신규회원 배려의 최소 Slice를 먼저 정합니다. 학습 진입 장벽을 줄이는 효과가 가장 즉시적입니다.
 2. 그 다음 망각곡선 알고리즘을 조정합니다. 신규회원 정책과 큐 정책이 서로 영향을 주기 때문입니다.
-3. 마지막으로 푸쉬를 붙입니다. 푸쉬는 권한, 브라우저 지원, 스케줄링, 배포 환경 확인이 필요해 가장 외부 의존성이 큽니다.
+3. 그 다음 알림을 붙입니다. 알림은 권한, 브라우저 지원, 배포 환경 확인이 필요해 외부 제약을 먼저 문서로 줄여 둡니다.
 
 ## Status Definitions
 
@@ -107,57 +107,90 @@
 
 ## Active
 
-_현재 진행 중인 작업은 없습니다._
-
 ## Backlog
-
-### T-004: 앱 푸쉬 알림 추가
-
-- Status: Backlog
-- Priority: Medium
-- Workstream: Engagement Push
-- Surface: browser push/PWA, permissions, scheduling, server action/API, persistence, deployment
-- Pull readiness:
-  - [ ] User value is clear: 사용자가 복습할 시간에 앱 밖에서도 알림을 받습니다.
-  - [ ] Acceptance criteria are testable.
-  - [ ] Required data/schema changes are identified.
-  - [ ] Required live route/action checks are identified.
-- Artifacts:
-  - Brief: `docs/prd/backlog/push-notifications/README.md`
-  - PRD: TBD before moving to `Active`
-  - Test spec: TBD before moving to `Active`
-  - Implementation plan: TBD after browser/PWA constraints are confirmed
-- Why: 복습 앱은 사용자가 돌아오는 타이밍이 중요하며, due 상태를 앱 밖에서 알려줄 필요가 있습니다.
-- Scope:
-  - 웹 푸쉬 가능 범위와 브라우저/PWA 제약을 확인합니다.
-  - 알림 권한 요청 UX를 정의합니다.
-  - 사용자별 push subscription 저장과 해지 처리를 정의합니다.
-  - due cards가 있을 때 알림을 보내는 스케줄링 방식을 정합니다.
-- Non-goals:
-  - 네이티브 iOS/Android 앱
-  - 마케팅 캠페인/세그먼트 자동화
-  - 이메일/SMS 알림
-- Acceptance criteria:
-  - [ ] 사용자가 명시적으로 동의한 경우에만 push subscription이 저장됩니다.
-  - [ ] due review가 있는 사용자에게 테스트 알림을 보낼 수 있습니다.
-  - [ ] 알림 권한 거부/해지 상태가 앱을 깨뜨리지 않습니다.
-  - [ ] production/dev Supabase 환경 적용 범위가 분리되어 기록됩니다.
-- Verification:
-  - [ ] push subscription 저장/삭제 테스트
-  - [ ] permission UI 테스트
-  - [ ] scheduled send 또는 manual send smoke check
-  - [ ] `npm run lint`
-  - [ ] `npm run typecheck`
-  - [ ] affected route live check
-- Notes / links:
-  - 외부 제약이 많으므로 구현 전에 별도 PRD/test-spec가 필요합니다.
-  - DB 변경이 필요하면 `supabase/migrations/*.sql`과 migration ledger로 관리합니다.
 
 ## Blocked
 
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-06-01 — T-009: 공통 토픽 PWA 푸시 알림 MVP
+
+- Status: Complete
+- Priority: High
+- Workstream: Engagement Notifications
+- Surface: PWA service worker, push subscription UI, admin topic API, async delivery job, persistence, schema/RLS
+- Why: 새 공통 학습 토픽이 추가되어도 사용자가 알아차리기 어렵기 때문에, PWA를 설치하고 알림을 허용한 사용자에게 토픽 단위 새 카드 알림을 보냅니다.
+- Scope:
+  - `/settings/notifications`에서 로그인 사용자가 브라우저 Web Push 구독을 등록/해지할 수 있게 했습니다.
+  - 공통 토픽 조건을 `expression_days.created_by = "llm"`, `all_authenticated` 폴더 ACL, `expressions.owner_id = expression_days.owner_id`로 제한했습니다.
+  - 관리 토큰으로 `POST /api/notifications/topics/[id]/send`를 호출하면 토픽 단위 send event와 구독자별 delivery row를 생성합니다.
+  - `POST /api/notifications/drain`과 send route의 drain 단계가 Web Push 전송을 비동기로 처리하고, 실패/구독 만료를 delivery 상태에 기록합니다.
+  - `public/sw.js`가 push 수신과 notification click 이동을 처리합니다.
+- Non-goals:
+  - 네이티브 iOS/Android 앱 푸시
+  - 카드 저장 시 자동 알림
+  - 마케팅/캠페인 푸시
+  - 사용자별 발송 시간 설정
+  - 제한 폴더나 개인 카드 알림
+- Acceptance criteria:
+  - [x] PWA 사용자가 로그인 후 알림을 구독/해지할 수 있습니다.
+  - [x] 관리자가 eligible shared topic에 대해 명시적으로 알림 전송을 실행할 수 있습니다.
+  - [x] 하나의 topic send event는 active subscription당 최대 1회만 전달됩니다.
+  - [x] private user topic, learner-added private card, `language-exchange` 같은 restricted folder는 알림 대상에서 제외됩니다.
+  - [x] 발송 실패가 토픽/카드 저장 성공을 롤백하지 않습니다.
+  - [x] 알림 클릭은 해당 토픽 또는 학습 화면으로 이동합니다.
+- Changed files:
+  - `.env.example`
+  - `app/api/notifications/drain/route.ts`
+  - `app/api/notifications/topics/[id]/send/route.ts`
+  - `app/api/push/subscriptions/route.ts`
+  - `app/settings/notifications/page.tsx`
+  - `components/AccountMenu.tsx`
+  - `components/PushNotificationSettings.tsx`
+  - `docs/prd/README.md`
+  - `docs/prd/backlog/push-notifications/README.md` (removed superseded brief)
+  - `docs/prd/future-work.md`
+  - `docs/prd/complete/public-topic-pwa-push-notifications/*`
+  - `docs/supabase-setup.md`
+  - `lib/env.ts`
+  - `lib/push/*`
+  - `package.json`
+  - `package-lock.json`
+  - `public/sw.js`
+  - `scripts/db-migrations.mjs`
+  - `scripts/verify-rls-local.sh`
+  - `supabase/migrations/20260601053000_public_topic_push_notifications.sql`
+  - `tests/components/push-notification-settings.test.tsx`
+  - `tests/security/daily-expression-rls-policy.test.ts`
+  - `tests/unit/public-topic-notifications.test.ts`
+  - `tests/unit/push-subscriptions.test.ts`
+- Verification:
+  - [x] `node node_modules/typescript/bin/tsc --noEmit` — passed
+  - [x] `node node_modules/eslint/bin/eslint.js . --max-warnings=0` — passed
+  - [x] `node node_modules/vitest/vitest.mjs run tests/unit/public-topic-notifications.test.ts tests/unit/push-subscriptions.test.ts tests/components/push-notification-settings.test.tsx tests/security/daily-expression-rls-policy.test.ts --reporter=verbose` — 26 passed
+  - [x] `bash scripts/verify-rls-local.sh` — passed
+  - [x] `node scripts/db-migrations.mjs status --env dev` — dev project `uixpyibcpleuwsgemdno` checked before migration
+  - [x] `node scripts/db-migrations.mjs migrate --env dev` — migration `20260601053000_public_topic_push_notifications.sql` applied, pending 0
+  - [x] Hosted dev DB smoke — 3 push tables, 4 push subscription policies, 3 RLS-enabled push tables
+  - [x] Hosted dev DB authenticated RLS smoke — owner can read own subscription, another auth uid cannot
+  - [x] `node node_modules/next/dist/bin/next build` — passed
+  - [x] `next dev --hostname 0.0.0.0` — Ready
+  - [x] `HEAD http://127.0.0.1:3000/settings/notifications` — 200
+  - [x] `HEAD http://172.22.48.149:3000/settings/notifications` — 200
+  - [x] `POST http://127.0.0.1:3000/api/push/subscriptions` with authenticated E2E fake user and invalid body — 400 validation response
+  - [x] `POST http://127.0.0.1:3000/api/notifications/drain` without token — 401
+  - [x] `POST http://127.0.0.1:3000/api/notifications/topics/00000000-0000-4000-8000-000000000000/send` with admin token — 400 topic-not-found response
+  - [x] Playwright mobile smoke for `/settings/notifications` with authenticated E2E fake user — rendered notification settings, 0 console errors
+- Remaining risks:
+  - Real device push was not exercised because VAPID keys and real browser push subscription setup are environment/device dependent.
+  - iOS Web Push still requires installing the PWA to the Home Screen on supported iOS/iPadOS versions.
+  - Migration was applied to the dev Supabase project only; main/production must be checked and migrated separately before release.
+- Notes / links:
+  - PRD: `docs/prd/complete/public-topic-pwa-push-notifications/prd.md`
+  - Test spec: `docs/prd/complete/public-topic-pwa-push-notifications/test-spec.md`
+  - Setup guide: `docs/supabase-setup.md#pwa-web-push-setup`
 
 ### 2026-05-27 — T-006: 카카오 소셜 로그인 추가
 
@@ -386,7 +419,6 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/complete/english-review-app-llm-ingestion-superseded/test-spec.md`
   - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
   - `docs/prd/backlog/new-member-learning-load/README.md`
-  - `docs/prd/backlog/push-notifications/README.md`
 - Verification:
   - `git diff --check`
   - `python3` PRD-doc whitespace/final-newline check
@@ -410,7 +442,6 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/active/README.md`
   - `docs/prd/backlog/new-member-learning-load/README.md`
   - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
-  - `docs/prd/backlog/push-notifications/README.md`
   - `docs/prd/complete/daily-expression-memorization/prd.md`
   - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
   - `docs/prd/complete/daily-expression-memorization/test-spec.md`
@@ -439,7 +470,6 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - `docs/prd/active/README.md`
   - `docs/prd/backlog/new-member-learning-load/README.md`
   - `docs/prd/active/spaced-repetition-interval-policy/prd.md`
-  - `docs/prd/backlog/push-notifications/README.md`
   - `docs/prd/complete/daily-expression-memorization/prd.md`
   - `docs/prd/complete/daily-expression-memorization/implementation-plan.md`
   - `docs/prd/complete/daily-expression-memorization/test-spec.md`

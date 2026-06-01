@@ -1,6 +1,7 @@
 import { safeSameOriginRedirectPath } from "@/lib/safe-redirect";
 
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+const NORMALIZED_LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::", "::1"]);
 
 type HeaderReader = Pick<Headers, "get">;
 type SiteUrlEnv = { [key: string]: string | undefined };
@@ -24,6 +25,30 @@ function isLocalOrigin(origin: string) {
   } catch {
     return false;
   }
+}
+
+function isNormalizableLocalOrigin(origin: string) {
+  try {
+    return NORMALIZED_LOCAL_HOSTNAMES.has(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeLocalOrigin(origin: string) {
+  if (!isNormalizableLocalOrigin(origin)) return origin;
+
+  const url = new URL(origin);
+  url.hostname = "localhost";
+  return url.origin;
+}
+
+function firstUsableLocalOrigin(...origins: Array<string | null>) {
+  for (const origin of origins) {
+    if (origin && isLocalOrigin(origin)) return normalizeLocalOrigin(origin);
+  }
+
+  return null;
 }
 
 function isVercelGeneratedOrigin(origin: string) {
@@ -61,7 +86,7 @@ export function resolveAppOrigin(headers: HeaderReader, env: SiteUrlEnv = proces
   const vercelOrigin = originFromUrl(env.VERCEL_PROJECT_PRODUCTION_URL, true) ?? originFromUrl(env.VERCEL_URL, true);
   if (vercelOrigin && !isLocalOrigin(vercelOrigin)) return vercelOrigin;
 
-  return configuredOrigin ?? forwardedOrigin ?? requestOrigin ?? "http://localhost:3000";
+  return firstUsableLocalOrigin(requestOrigin, forwardedOrigin, configuredOrigin) ?? "http://localhost:3000";
 }
 
 export function passwordResetRedirectUrl(headers: HeaderReader, env: SiteUrlEnv = process.env) {

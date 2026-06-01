@@ -22,7 +22,7 @@ function canReadSharedExpressionContent(actorId: string | null) {
 }
 
 describe("daily expression Supabase RLS migration", () => {
-  it.each(["expression_days", "expressions", "expression_examples", "expression_progress", "question_notes", "ingestion_runs"])("enables RLS for %s", (table) => {
+  it.each(["expression_days", "expressions", "expression_examples", "expression_progress", "question_notes", "ingestion_runs", "push_subscriptions", "topic_notification_sends", "topic_notification_deliveries"])("enables RLS for %s", (table) => {
     expect(migration).toContain(`alter table public.${table} enable row level security`);
   });
 
@@ -32,6 +32,14 @@ describe("daily expression Supabase RLS migration", () => {
       expect(migration).toContain(`on public.${table}`);
     }
     expect(migration).toContain("owner_id = auth.uid()");
+  });
+
+  it("defines direct user policies for push subscriptions", () => {
+    for (const operation of ["select", "insert", "update", "delete"] as const) {
+      expect(migration).toContain(`create policy "push_subscriptions_${operation}_own"`);
+      expect(migration).toContain("on public.push_subscriptions");
+    }
+    expect(migration).toContain("user_id = auth.uid()");
   });
 
   it("defines shared read policies for expression content", () => {
