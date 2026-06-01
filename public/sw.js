@@ -1,7 +1,7 @@
-const CACHE_VERSION = "english-review-v2";
+const CACHE_VERSION = "english-review-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
-const PRECACHE_ASSETS = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
+const PRECACHE_ASSETS = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png", "/icons/notification-badge-96.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -62,7 +62,7 @@ self.addEventListener("push", (event) => {
       body,
       tag,
       icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      badge: "/icons/notification-badge-96.png",
       data: { url: targetUrl }
     })
   );
