@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluateTopicNotificationEligibility } from "@/lib/push/topic-notifications";
+import { buildLanguageExchangeNotificationCopy, evaluateTopicNotificationEligibility } from "@/lib/push/topic-notifications";
 
 const baseTopic = {
   id: "topic-1",
@@ -63,5 +63,14 @@ describe("public topic push notification eligibility", () => {
     });
 
     expect(result).toMatchObject({ eligible: false, reason: "Topic folder is not readable by all authenticated users." });
+  });
+});
+
+describe("language exchange push notification copy", () => {
+  it("summarizes the newly added language-exchange card count", () => {
+    expect(buildLanguageExchangeNotificationCopy("with Keyri", 3)).toEqual({
+      title: "새 언어교환 표현이 추가됐어요",
+      body: "with Keyri에 새 표현 3개가 추가됐어요."
+    });
   });
 });

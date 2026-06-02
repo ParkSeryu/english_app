@@ -58,6 +58,13 @@ export function buildTopicNotificationCopy(topicTitle: string, cardCount: number
   };
 }
 
+export function buildLanguageExchangeNotificationCopy(topicTitle: string, cardCount: number) {
+  return {
+    title: "새 언어교환 표현이 추가됐어요",
+    body: `${topicTitle}에 새 표현 ${cardCount}개가 추가됐어요.`
+  };
+}
+
 export function evaluateTopicNotificationEligibility(input: {
   topic: TopicRow & { folder?: ContentFolderSummary | null };
   folderReadableByAll: boolean;
@@ -177,6 +184,56 @@ export async function createTopicNotificationSend(
   const { data: subscriptions, error: subscriptionsError } = await supabase
     .from("push_subscriptions")
     .select("id,user_id")
+    .eq("is_active", true);
+  if (subscriptionsError) throw subscriptionsError;
+
+  const deliveryRows = (subscriptions ?? []).map((subscription) => ({
+    send_id: send.id,
+    subscription_id: subscription.id,
+    user_id: subscription.user_id,
+    status: "pending",
+    updated_at: new Date().toISOString()
+  }));
+
+  if (deliveryRows.length > 0) {
+    const { error: deliveriesError } = await supabase
+      .from("topic_notification_deliveries")
+      .upsert(deliveryRows, { onConflict: "send_id,subscription_id" });
+    if (deliveriesError) throw deliveriesError;
+  }
+
+  return { ok: true as const, send: send as TopicNotificationSendRow, queuedDeliveries: deliveryRows.length };
+}
+
+export async function createOwnerTopicNotificationSend(input: {
+  topicId: string;
+  ownerId: string;
+  requestedBy: Pick<UserIdentity, "id">;
+  title: string;
+  body: string;
+  targetUrl?: string;
+  supabase?: SupabaseClient;
+}) {
+  const supabase = input.supabase ?? createServiceRoleSupabaseClient();
+  const { data: send, error: sendError } = await supabase
+    .from("topic_notification_sends")
+    .insert({
+      expression_day_id: input.topicId,
+      requested_by: input.requestedBy.id,
+      title: input.title,
+      body: input.body,
+      target_url: input.targetUrl ?? topicTargetUrl(input.topicId),
+      status: "pending",
+      updated_at: new Date().toISOString()
+    })
+    .select("id,expression_day_id,requested_by,title,body,target_url,status")
+    .single();
+  if (sendError) throw sendError;
+
+  const { data: subscriptions, error: subscriptionsError } = await supabase
+    .from("push_subscriptions")
+    .select("id,user_id")
+    .eq("user_id", input.ownerId)
     .eq("is_active", true);
   if (subscriptionsError) throw subscriptionsError;
 
