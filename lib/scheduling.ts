@@ -4,7 +4,7 @@ import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 type MemorizationCandidate = Pick<ExpressionCard, "id" | "unknown_count" | "review_count" | "last_reviewed_at" | "last_result" | "source_order" | "due_at" | "interval_days"> &
   Partial<Pick<ExpressionCard, "created_at" | "is_memorization_enabled">>;
 
-type ReviewSchedulingState = Pick<MemorizationCandidate, "interval_days" | "last_result">;
+type ReviewSchedulingState = Pick<MemorizationCandidate, "interval_days" | "last_result" | "due_at">;
 
 const DEFAULT_LIMIT = 300;
 const KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -89,13 +89,21 @@ export function nextDueAtForKnown(intervalDays: number, now = new Date()) {
   return koreanMidnightAfterDays(now, intervalDays).toISOString();
 }
 
+function queuedDateOrReviewDate(current: ReviewSchedulingState, now: Date) {
+  if (!current.due_at) return now;
+
+  const dueAt = Date.parse(current.due_at);
+  if (!Number.isFinite(dueAt)) return now;
+  return dueAt <= now.getTime() ? new Date(dueAt) : now;
+}
+
 export function nextExpressionReviewSchedule(current: ReviewSchedulingState, result: ExpressionReviewResult, now = new Date()) {
   if (isAgainReviewResult(result)) {
     return { intervalDays: current.interval_days, dueAt: nextDueAtForUnknown() };
   }
 
   const intervalDays = isHardReviewResult(result) ? nextHardIntervalDays(current.interval_days) : isOkayReviewResult(result) ? nextOkayIntervalDays(current.interval_days) : nextKnownIntervalDays(current.interval_days);
-  return { intervalDays, dueAt: nextDueAtForKnown(intervalDays, now) };
+  return { intervalDays, dueAt: nextDueAtForKnown(intervalDays, queuedDateOrReviewDate(current, now)) };
 }
 
 export function compareExpressionsForMemorization<T extends MemorizationCandidate>(a: T, b: T) {

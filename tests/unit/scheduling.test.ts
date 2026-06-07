@@ -162,6 +162,15 @@ describe("Anki-lite interval policy", () => {
     expect(nextDueAtForKnown(7, new Date("2026-04-28T15:01:00.000Z"))).toBe("2026-05-05T15:00:00.000Z");
   });
 
+  it("anchors the next due date to the queued due day, not the late review click time", () => {
+    const lateReviewTime = new Date("2026-05-03T12:00:00.000Z");
+    const overdueCard = card({ id: "overdue", last_result: "known", interval_days: 7, due_at: "2026-04-28T15:00:00.000Z" });
+
+    expect(nextExpressionReviewSchedule(overdueCard, "easy", lateReviewTime)).toEqual({ intervalDays: 14, dueAt: "2026-05-12T15:00:00.000Z" });
+    expect(nextExpressionReviewSchedule(overdueCard, "okay", lateReviewTime)).toEqual({ intervalDays: 7, dueAt: "2026-05-05T15:00:00.000Z" });
+    expect(nextExpressionReviewSchedule(overdueCard, "hard", lateReviewTime)).toEqual({ intervalDays: 3, dueAt: "2026-05-01T15:00:00.000Z" });
+  });
+
   it("schedules easy recalls one ladder step out", () => {
     const direct = nextExpressionReviewSchedule(card({ id: "direct-new" }), "easy", now);
     expect(direct).toEqual({ intervalDays: 3, dueAt: "2026-04-30T15:00:00.000Z" });

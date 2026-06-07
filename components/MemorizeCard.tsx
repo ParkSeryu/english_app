@@ -14,15 +14,16 @@ type MemorizeCardProps = {
   returnTo?: string;
   onReveal?: () => void;
   onReviewSubmit?: (result: ExpressionReviewResult) => void;
+  reviewNow?: Date;
 };
 
-export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onReviewSubmit }: MemorizeCardProps) {
+export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onReviewSubmit, reviewNow = new Date() }: MemorizeCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
   const topicContext = formatTopicContext(expression);
-  const hardIntervalDays = nextExpressionReviewSchedule(expression, "hard").intervalDays;
-  const okayIntervalDays = nextExpressionReviewSchedule(expression, "okay").intervalDays;
-  const easyIntervalDays = nextExpressionReviewSchedule(expression, "easy").intervalDays;
+  const hardSchedule = nextExpressionReviewSchedule(expression, "hard", reviewNow);
+  const okaySchedule = nextExpressionReviewSchedule(expression, "okay", reviewNow);
+  const easySchedule = nextExpressionReviewSchedule(expression, "easy", reviewNow);
 
   function revealAnswer() {
     onReveal?.();
@@ -104,15 +105,15 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
               </button>
               <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-1.5 py-2 text-[13px] font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>어려움</span>
-                <span className="mt-0.5 text-[11px] font-black text-amber-500 sm:text-xs">{hardIntervalDays}일 뒤</span>
+                <span className="mt-0.5 text-[11px] font-black text-amber-500 sm:text-xs">{formatReviewDueLabel(hardSchedule, reviewNow)}</span>
               </button>
               <button type="button" onClick={() => handleReview("okay")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-1.5 py-2 text-[13px] font-black leading-tight text-sky-700 transition hover:bg-sky-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>알긴암</span>
-                <span className="mt-0.5 text-[11px] font-black text-sky-500 sm:text-xs">{okayIntervalDays}일 뒤</span>
+                <span className="mt-0.5 text-[11px] font-black text-sky-500 sm:text-xs">{formatReviewDueLabel(okaySchedule, reviewNow)}</span>
               </button>
               <button type="button" onClick={() => handleReview("easy")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-1.5 py-2 text-[13px] font-black leading-tight text-emerald-700 transition hover:bg-emerald-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>쉬움</span>
-                <span className="mt-0.5 text-[11px] font-black text-emerald-500 sm:text-xs">{easyIntervalDays}일 뒤</span>
+                <span className="mt-0.5 text-[11px] font-black text-emerald-500 sm:text-xs">{formatReviewDueLabel(easySchedule, reviewNow)}</span>
               </button>
             </div>
           </div>
@@ -120,6 +121,28 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
       )}
     </article>
   );
+}
+
+function formatReviewDueLabel(schedule: { dueAt: string | null; intervalDays: number }, now: Date) {
+  if (!schedule.dueAt) return "오늘 다시";
+
+  const dueAt = new Date(schedule.dueAt);
+  if (!Number.isFinite(dueAt.getTime())) return `${schedule.intervalDays}일 뒤`;
+
+  const daysUntilDue = koreanCalendarDaysBetween(now, dueAt);
+  return daysUntilDue <= 0 ? "오늘 다시" : `${daysUntilDue}일 뒤`;
+}
+
+const KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function koreanCalendarDaysBetween(from: Date, to: Date) {
+  return Math.floor(koreanDayStart(to).getTime() / DAY_MS) - Math.floor(koreanDayStart(from).getTime() / DAY_MS);
+}
+
+function koreanDayStart(date: Date) {
+  const koreaDate = new Date(date.getTime() + KOREA_TIME_OFFSET_MS);
+  return new Date(Date.UTC(koreaDate.getUTCFullYear(), koreaDate.getUTCMonth(), koreaDate.getUTCDate()));
 }
 
 function formatTopicContext(expression: ExpressionCard) {

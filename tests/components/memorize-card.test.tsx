@@ -53,7 +53,7 @@ type ExpressionCardForTest = {
 };
 
 type MemorizeCardModule = {
-  MemorizeCard: ComponentType<{ expression: ExpressionCardForTest; returnTo?: string }>;
+  MemorizeCard: ComponentType<{ expression: ExpressionCardForTest; returnTo?: string; reviewNow?: Date }>;
 };
 
 class MockSpeechSynthesisUtterance {
@@ -100,7 +100,7 @@ const expression: ExpressionCardForTest = {
   review_count: 14,
   last_result: "unknown",
   last_reviewed_at: "2026-04-28T00:00:00.000Z",
-  due_at: "2026-04-28T00:10:00.000Z",
+  due_at: null,
   interval_days: 0,
   created_at: "2026-04-27T00:00:00.000Z",
   updated_at: "2026-04-28T00:00:00.000Z",
@@ -118,6 +118,7 @@ describe("MemorizeCard", () => {
   afterEach(() => {
     Reflect.deleteProperty(window, "speechSynthesis");
     Reflect.deleteProperty(globalThis, "SpeechSynthesisUtterance");
+    vi.useRealTimers();
   });
 
   it("shows Korean first, hides English until reveal, then exposes 다시/어려움/알긴암/쉬움 controls", async () => {
@@ -245,6 +246,18 @@ describe("MemorizeCard", () => {
     expect(screen.getByRole("button", { name: /알긴암.*30일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /쉬움.*60일 뒤/s })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /다시.*오늘 다시/s })).toBeInTheDocument();
+  });
+
+  it("shows remembered button days relative to the current click time when a card is overdue", async () => {
+    const user = userEvent.setup();
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={{ ...expression, last_result: "known", interval_days: 7, due_at: "2026-04-28T15:00:00.000Z" }} reviewNow={new Date("2026-05-03T12:00:00.000Z")} />);
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+
+    expect(screen.getByRole("button", { name: /어려움.*오늘 다시/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /알긴암.*3일 뒤/s })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /쉬움.*10일 뒤/s })).toBeInTheDocument();
   });
 
   it("hides the answer again after marking an expression unknown", async () => {
