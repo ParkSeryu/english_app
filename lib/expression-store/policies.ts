@@ -152,8 +152,19 @@ export function filterExpressionDaysForLearner<T extends LearnerVisibleDay>(days
   return days.filter((day) => canLearnerSeeExpressionDay(day, user));
 }
 
-export function filterExpressionCardsForLearner<T extends { day?: LearnerVisibleDay | null }>(cards: T[], user: Pick<UserIdentity, "id" | "createdAt">) {
-  return cards.filter((card) => !card.day || canLearnerSeeExpressionDay(card.day, user));
+type LearnerVisibleExpression = {
+  owner_id?: string | null;
+  user_memo?: string | null;
+  day?: LearnerVisibleDay | null;
+};
+
+export function canLearnerSeeExpressionCard(card: LearnerVisibleExpression, user: Pick<UserIdentity, "id" | "createdAt">) {
+  if (card.user_memo === PERSONAL_EXPRESSION_MARKER && card.owner_id !== user.id) return false;
+  return !card.day || canLearnerSeeExpressionDay(card.day, user);
+}
+
+export function filterExpressionCardsForLearner<T extends LearnerVisibleExpression>(cards: T[], user: Pick<UserIdentity, "id" | "createdAt">) {
+  return cards.filter((card) => canLearnerSeeExpressionCard(card, user));
 }
 
 export function calculateStats(dayCount: number, expressions: ExpressionStatsCard[], questions: QuestionStats[]): DashboardStats {

@@ -331,6 +331,28 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(await storeA.getDashboardStats()).toMatchObject({ total: approved.expressionDay.expressions.length + 1 });
   });
 
+  it("keeps personal-marker expressions private even when the owner also owns the shared topic", async () => {
+    const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
+    const ownerStore = new MemoryExpressionStore(userA);
+    const otherStore = new MemoryExpressionStore(userB);
+    const approved = await ownerStore.approveDraft((await ownerStore.createDraft(payload)).id, "이대로 앱에 넣어줘");
+
+    const privateExpression = await ownerStore.createPersonalExpression({
+      targetExpressionDayId: approved.expressionDay.id,
+      english: "It's about time I went home.",
+      koreanPrompt: "이제 진짜 집에 갈 때가 됐어.",
+      grammarNote: "It's about time + 과거동사",
+      userMemo: "A 개인 표현",
+      isMemorizationEnabled: true
+    });
+
+    expect((await ownerStore.getExpressionDay(approved.expressionDay.id))?.expressions.map((expression) => expression.id)).toContain(privateExpression.id);
+    expect((await ownerStore.getMemorizationQueue()).map((expression) => expression.id)).toContain(privateExpression.id);
+    expect(await otherStore.getExpression(privateExpression.id)).toBeNull();
+    expect((await otherStore.getExpressionDay(approved.expressionDay.id))?.expressions.map((expression) => expression.id)).not.toContain(privateExpression.id);
+    expect((await otherStore.getMemorizationQueue()).map((expression) => expression.id)).not.toContain(privateExpression.id);
+  });
+
   it("rejects personal expression creation without a selected expression day", async () => {
     const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
     const storeA = new MemoryExpressionStore(userA);

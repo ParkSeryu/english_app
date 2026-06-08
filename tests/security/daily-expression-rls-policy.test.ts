@@ -47,6 +47,9 @@ describe("daily expression Supabase RLS migration", () => {
     expect(migration).toContain('create policy "expressions_select_authorized"');
     expect(migration).toContain('create policy "expression_examples_select_authorized_expression"');
     expect(migration).toContain("can_read_content_folder(auth.uid(), folder_id)");
+    expect(migration).toContain("function public.can_read_expression(auth_user_id uuid, expression_id uuid)");
+    expect(migration).toContain("e.user_memo is distinct from '__personal_expression__'");
+    expect(migration).toContain("or e.owner_id = $1");
     expect(migration).toContain("auth.uid() is not null");
   });
 

@@ -24,6 +24,7 @@ import {
   applyProgress,
   assertPayload,
   calculateStats,
+  canLearnerSeeExpressionCard,
   canLearnerSeeExpressionDay,
   defaultProgress,
   expressionUrl,
@@ -74,7 +75,7 @@ export class MemoryExpressionStore implements ExpressionStore {
   }
 
   private canReadExpression(day: ExpressionDay, card: ExpressionCard) {
-    return card.owner_id === this.user.id || card.owner_id === day.owner_id;
+    return canLearnerSeeExpressionCard({ ...card, day }, this.user) && (card.owner_id === this.user.id || card.owner_id === day.owner_id);
   }
 
   private canDeleteExpression(day: ExpressionDay | undefined, card: ExpressionCard) {
