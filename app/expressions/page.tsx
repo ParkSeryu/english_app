@@ -8,7 +8,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import { getExpressionDueLabel } from "@/lib/expression-due-label";
 import { getExpressionStore } from "@/lib/lesson-store";
 import { sortExpressionsByPriority } from "@/lib/expression-priority";
-import { getExpressionTopicDepth, getExpressionTopicDisplayLabel } from "@/lib/expression-topic-label";
+import { getExpressionTopicDepth, getExpressionTopicDisplayLabel, sortExpressionTopicsByFolder } from "@/lib/expression-topic-label";
 import type { ExpressionDay } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ type SearchParams = Promise<{ day?: string; topic?: string }>;
 export default async function ExpressionsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireCurrentUser();
   const params = await searchParams;
-  const days = await getExpressionStore(user).listExpressionDays() as ExpressionDayListItem[];
+  const days = sortExpressionTopicsByFolder(await getExpressionStore(user).listExpressionDays() as ExpressionDayListItem[]);
   const requestedTopicId = params.topic ?? params.day;
   const requestedTopicBlocked = Boolean(requestedTopicId && !days.some((day) => day.id === requestedTopicId));
   const selectedTopicId = pickSelectedTopicId(days, requestedTopicId);

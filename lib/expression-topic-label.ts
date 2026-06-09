@@ -7,6 +7,7 @@ export type ExpressionTopicLabelInput = {
     path?: string | null;
     name?: string | null;
   } | null;
+  created_at?: string | null;
 };
 
 export function getExpressionTopicDisplayLabel(day: ExpressionTopicLabelInput) {
@@ -23,9 +24,46 @@ export function getExpressionTopicDepth(day: ExpressionTopicLabelInput) {
   return Math.max(0, separators.length - 1);
 }
 
+export function sortExpressionTopicsByFolder<T extends ExpressionTopicLabelInput>(topics: T[]) {
+  return [...topics].sort(compareExpressionTopicsByFolder);
+}
+
+function compareExpressionTopicsByFolder<T extends ExpressionTopicLabelInput>(a: T, b: T) {
+  const folderDelta = compareNullableText(getExpressionTopicFolderPath(a), getExpressionTopicFolderPath(b));
+  if (folderDelta !== 0) return folderDelta;
+
+  const dateDelta = compareNullableDateDesc(a.day_date, b.day_date);
+  if (dateDelta !== 0) return dateDelta;
+
+  const createdAtDelta = compareNullableDateDesc(a.created_at, b.created_at);
+  if (createdAtDelta !== 0) return createdAtDelta;
+
+  return textCollator.compare(a.title, b.title);
+}
+
 function getExpressionTopicFolderPath(day: ExpressionTopicLabelInput): string | null {
   if (Array.isArray(day.folder_path)) return day.folder_path.filter(Boolean).join(" / ");
   return day.folder_path ?? day.folderPath ?? day.folder?.path ?? day.folder?.name ?? null;
+}
+
+const textCollator = new Intl.Collator("ko-KR", { numeric: true, sensitivity: "base" });
+
+function compareNullableText(a: string | null, b: string | null) {
+  if (a && !b) return -1;
+  if (!a && b) return 1;
+  if (!a && !b) return 0;
+  return textCollator.compare(a ?? "", b ?? "");
+}
+
+function compareNullableDateDesc(a?: string | null, b?: string | null) {
+  const aTime = a ? Date.parse(a) : Number.NaN;
+  const bTime = b ? Date.parse(b) : Number.NaN;
+  const aHasDate = Number.isFinite(aTime);
+  const bHasDate = Number.isFinite(bTime);
+  if (aHasDate && !bHasDate) return -1;
+  if (!aHasDate && bHasDate) return 1;
+  if (!aHasDate && !bHasDate) return 0;
+  return bTime - aTime;
 }
 
 function formatExpressionTopicTitle(title: string, dayDate?: string | null) {
