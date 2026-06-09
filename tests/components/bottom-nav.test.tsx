@@ -1,11 +1,15 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const mockPathname = "/expressions";
+const navigation = vi.hoisted(() => ({
+  pathname: "/expressions",
+  searchParams: new URLSearchParams()
+}));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => mockPathname
+  usePathname: () => navigation.pathname,
+  useSearchParams: () => navigation.searchParams
 }));
 
 vi.mock("next/link", () => ({
@@ -26,6 +30,12 @@ vi.mock("next/link", () => ({
 import { BottomNav } from "@/components/BottomNav";
 
 describe("BottomNav", () => {
+  beforeEach(() => {
+    navigation.pathname = "/expressions";
+    navigation.searchParams = new URLSearchParams();
+    window.localStorage.clear();
+  });
+
   it("keeps stable tab labels and marks the current route", () => {
     render(<BottomNav />);
 
@@ -36,5 +46,14 @@ describe("BottomNav", () => {
 
     expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");
     expect(screen.queryByRole("link", { name: "이동 중…" })).not.toBeInTheDocument();
+  });
+
+  it("returns to the last expressions topic from another tab", () => {
+    window.localStorage.setItem("english:last-expressions-path", "/expressions?topic=topic-2");
+    navigation.pathname = "/memorize";
+
+    render(<BottomNav />);
+
+    expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("href", "/expressions?topic=topic-2");
   });
 });
