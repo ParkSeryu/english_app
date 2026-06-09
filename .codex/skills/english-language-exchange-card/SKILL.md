@@ -65,6 +65,29 @@ Do not translate, rewrite, deduplicate, or add explanations unless the user asks
 2. Show a concise preview of the cards.
 3. Save only after an explicit approval phrase such as `이대로 앱에 넣어줘`, `저장해`, `추가해`, `save this`, or `add to app`.
 4. On save, use the approval-gated ingestion API; never write directly to Supabase tables.
+5. After saving, query the target database and compare the saved text against the intended payload before reporting success.
+
+## Encoding and save integrity gate
+
+This workflow handles Korean text. Treat Korean/multibyte corruption as a hard failure.
+
+- When passing payloads from PowerShell to WSL/stdin, force UTF-8 before sending the payload:
+
+```powershell
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+```
+
+- Prefer a UTF-8 JSON file or a Node script executed with verified UTF-8 stdin. Do not rely on default PowerShell pipe encoding for Korean text.
+- For every target environment saved (`dev`, `main`, or both), query the saved `expression_days`, `expressions`, and `ingestion_runs` rows after approval.
+- Verify these fields exactly against the intended payload:
+  - `expression_days.raw_input`
+  - `expression_days.source_note`
+  - each `expressions.korean_prompt`
+  - `ingestion_runs.raw_input`
+  - `ingestion_runs.normalized_payload`
+- Do not report success if Korean text appears as replacement text such as `???` or differs from the intended prompt. Fix the affected rows first, then re-query.
+- If saving to both `dev` and `main`, run the integrity query separately for each Supabase project and report both project refs.
 
 ## Ingestion API
 

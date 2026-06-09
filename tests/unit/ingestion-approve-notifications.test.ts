@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   approveDraft: vi.fn(),
   authenticateIngestionRequest: vi.fn(),
   createOwnerTopicNotificationSend: vi.fn(),
+  createTopicNotificationSend: vi.fn(),
   drainTopicNotificationDeliveries: vi.fn(),
   getAdminExpressionStore: vi.fn(),
   getIngestionRun: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock("@/lib/push/topic-notifications", async (importOriginal) => {
   return {
     ...actual,
     createOwnerTopicNotificationSend: mocks.createOwnerTopicNotificationSend,
+    createTopicNotificationSend: mocks.createTopicNotificationSend,
     drainTopicNotificationDeliveries: mocks.drainTopicNotificationDeliveries,
     isWebPushConfigured: mocks.isWebPushConfigured
   };
@@ -69,6 +71,11 @@ describe("ingestion approval notifications", () => {
       send: { id: "send-1", expression_day_id: "topic-1", requested_by: "owner-1", title: "title", body: "body", target_url: "/expressions?topic=topic-1", status: "pending" },
       queuedDeliveries: 1
     });
+    mocks.createTopicNotificationSend.mockResolvedValue({
+      ok: true,
+      send: { id: "send-public-1", expression_day_id: "topic-1", requested_by: "owner-1", title: "title", body: "body", target_url: "/expressions?topic=topic-1", status: "pending" },
+      queuedDeliveries: 2
+    });
     mocks.isWebPushConfigured.mockReturnValue(true);
     mocks.drainTopicNotificationDeliveries.mockResolvedValue({ processed: 1, sent: 1, failed: 0 });
   });
@@ -85,13 +92,18 @@ describe("ingestion approval notifications", () => {
       title: "새 언어교환 표현이 추가됐어요",
       body: "with Keyri에 새 표현 2개가 추가됐어요."
     });
+    expect(mocks.createTopicNotificationSend).not.toHaveBeenCalled();
     expect(mocks.drainTopicNotificationDeliveries).toHaveBeenCalledWith({ sendId: "send-1" });
     expect(body.notification).toMatchObject({ queuedDeliveries: 1, drain: { sent: 1, failed: 0 } });
   });
 
-  it("does not send owner-only notifications for non-language-exchange topics", async () => {
+  it("sends public topic notifications for non-language-exchange shared topics", async () => {
     mocks.approveDraft.mockResolvedValueOnce({
-      expressionDay: { ...languageExchangeDay, folder: { ...languageExchangeDay.folder, slug: "legacy-root" } },
+      expressionDay: {
+        ...languageExchangeDay,
+        folder: { ...languageExchangeDay.folder, name: "수원영어모임", slug: "suwon-english-meetup", path_names: ["수원영어모임"] },
+        folder_path: ["수원영어모임"]
+      },
       expressionUrls: ["/expressions/card-1"]
     });
 
@@ -100,6 +112,8 @@ describe("ingestion approval notifications", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.createOwnerTopicNotificationSend).not.toHaveBeenCalled();
-    expect(body.notification).toEqual({ skipped: "not-language-exchange" });
+    expect(mocks.createTopicNotificationSend).toHaveBeenCalledWith("topic-1", { id: "owner-1" });
+    expect(mocks.drainTopicNotificationDeliveries).toHaveBeenCalledWith({ sendId: "send-public-1" });
+    expect(body.notification).toMatchObject({ queuedDeliveries: 2, drain: { sent: 1, failed: 0 } });
   });
 });

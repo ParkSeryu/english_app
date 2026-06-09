@@ -5,6 +5,7 @@ import { getAdminExpressionStore } from "@/lib/lesson-store";
 import {
   buildLanguageExchangeNotificationCopy,
   createOwnerTopicNotificationSend,
+  createTopicNotificationSend,
   drainTopicNotificationDeliveries,
   isWebPushConfigured
 } from "@/lib/push/topic-notifications";
@@ -24,20 +25,41 @@ export async function POST(request: Request, { params }: { params: Params }) {
     const store = getAdminExpressionStore(userOrResponse);
     const draft = await store.getIngestionRun(id);
     const result = await store.approveDraft(id, approvalText);
-    const notification = await maybeNotifyLanguageExchangeTopic(result.expressionDay, draft?.normalized_payload.expressions.length ?? result.expressionDay.expressions.length, userOrResponse);
+    const notification = await maybeNotifyApprovedTopic(result.expressionDay, draft?.normalized_payload.expressions.length ?? result.expressionDay.expressions.length, userOrResponse);
     return NextResponse.json({ expressionDay: result.expressionDay, expressionUrls: result.expressionUrls, notification });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to approve expression day" }, { status: 400 });
   }
 }
 
-async function maybeNotifyLanguageExchangeTopic(
+async function maybeNotifyApprovedTopic(
   expressionDay: ExpressionDay,
   addedCardCount: number,
   requestedBy: { id: string }
 ) {
-  if (expressionDay.folder?.slug !== "language-exchange") return { skipped: "not-language-exchange" };
+  if (expressionDay.folder?.slug === "language-exchange") {
+    return notifyLanguageExchangeTopic(expressionDay, addedCardCount, requestedBy);
+  }
 
+  try {
+    const sendResult = await createTopicNotificationSend(expressionDay.id, requestedBy);
+    if (!sendResult.ok) return { skipped: "not-public-topic", reason: sendResult.reason };
+
+    const drain = isWebPushConfigured()
+      ? await drainTopicNotificationDeliveries({ sendId: sendResult.send.id })
+      : { processed: 0, sent: 0, failed: 0, skipped: "web-push-env-missing" };
+
+    return { send: sendResult.send, queuedDeliveries: sendResult.queuedDeliveries, drain };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Failed to send topic notification." };
+  }
+}
+
+async function notifyLanguageExchangeTopic(
+  expressionDay: ExpressionDay,
+  addedCardCount: number,
+  requestedBy: { id: string }
+) {
   const copy = buildLanguageExchangeNotificationCopy(expressionDay.title, addedCardCount);
   try {
     const sendResult = await createOwnerTopicNotificationSend({
