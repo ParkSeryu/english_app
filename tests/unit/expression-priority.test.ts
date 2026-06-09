@@ -8,6 +8,7 @@ type Candidate = {
   review_count: number;
   source_order: number;
   can_delete?: boolean;
+  is_memorization_enabled?: boolean;
 };
 
 function expression(overrides: Partial<Candidate> & { id: string }): Candidate {
@@ -30,6 +31,16 @@ describe("expression priority sorting", () => {
     ]);
 
     expect(sorted.map((item) => item.id)).toEqual(["hard", "mixed-less-reviewed", "mixed-more-reviewed", "new", "remembered"]);
+  });
+
+  it("lists expressions excluded from memorization before active memorization expressions", () => {
+    const sorted = sortExpressionsByPriority([
+      expression({ id: "active-personal", can_delete: true, unknown_count: 5, review_count: 0, source_order: 0, is_memorization_enabled: true }),
+      expression({ id: "excluded-newer", can_delete: false, unknown_count: 0, review_count: 0, source_order: 2, is_memorization_enabled: false }),
+      expression({ id: "excluded-older", can_delete: false, unknown_count: 0, review_count: 0, source_order: 1, is_memorization_enabled: false })
+    ]);
+
+    expect(sorted.map((item) => item.id)).toEqual(["excluded-older", "excluded-newer", "active-personal"]);
   });
 
   it("lists directly added personal expressions before shared expressions", () => {

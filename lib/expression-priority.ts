@@ -1,8 +1,11 @@
 import type { ExpressionCard } from "@/lib/types";
 
-type ExpressionPriorityCandidate = Pick<ExpressionCard, "unknown_count" | "review_count" | "source_order"> & { can_delete?: boolean };
+type ExpressionPriorityCandidate = Pick<ExpressionCard, "unknown_count" | "review_count" | "source_order"> & { can_delete?: boolean; is_memorization_enabled?: boolean };
 
 export function compareExpressionsForPriority<T extends ExpressionPriorityCandidate>(a: T, b: T) {
+  const excludedFromMemorizationDelta = Number(b.is_memorization_enabled === false) - Number(a.is_memorization_enabled === false);
+  if (excludedFromMemorizationDelta !== 0) return excludedFromMemorizationDelta;
+
   const personalDelta = Number(Boolean(b.can_delete)) - Number(Boolean(a.can_delete));
   if (personalDelta !== 0) return personalDelta;
 
