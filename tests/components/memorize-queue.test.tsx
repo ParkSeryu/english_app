@@ -75,7 +75,7 @@ describe("MemorizeQueue", () => {
     window.localStorage.clear();
   });
 
-  it("optimistically advances to the next expression as soon as a review button is submitted", async () => {
+  it("optimistically advances to the next expression as soon as a review button is submitted while recording the again count", async () => {
     const user = userEvent.setup();
     render(<MemorizeQueue expressions={[first, second]} />);
 
@@ -91,7 +91,7 @@ describe("MemorizeQueue", () => {
     expect(redirectReviewAction).not.toHaveBeenCalled();
   });
 
-  it("keeps locally deferred again cards stacked while reviewing before a server refresh lands", async () => {
+  it("keeps locally deferred again cards stacked while reviewing before a server refresh lands and records only counts", async () => {
     const user = userEvent.setup();
     render(<MemorizeQueue expressions={[first, second, third]} />);
 

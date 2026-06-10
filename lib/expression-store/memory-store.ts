@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { nextExpressionReviewSchedule, scheduleMemorizationQueue } from "@/lib/scheduling";
-import { isEasyReviewResult, isHardReviewResult, isOkayReviewResult, isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
+import { isAgainReviewResult, isEasyReviewResult, isHardReviewResult, isOkayReviewResult, isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
 import type {
   CardMemoInput,
   PersonalExpressionInput,
@@ -140,6 +140,12 @@ export class MemoryExpressionStore implements ExpressionStore {
       progress = defaultProgress(this.user.id, id, timestamp);
       memoryState().expressionProgress.push(progress);
     }
+    if (isAgainReviewResult(result)) {
+      progress.unknown_count += 1;
+      progress.updated_at = timestamp;
+      return requireEntity(await this.getExpression(id), "Expression not found");
+    }
+
     const schedule = nextExpressionReviewSchedule(progress, result, new Date(timestamp));
     if (isRememberedReviewResult(result)) {
       if (isHardReviewResult(result)) progress.hard_count += 1;

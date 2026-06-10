@@ -1,7 +1,7 @@
 import { MissingSupabaseServiceRoleEnvError } from "@/lib/env";
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { nextExpressionReviewSchedule, scheduleMemorizationQueue } from "@/lib/scheduling";
-import { isEasyReviewResult, isHardReviewResult, isOkayReviewResult, isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
+import { isAgainReviewResult, isEasyReviewResult, isHardReviewResult, isOkayReviewResult, isRememberedReviewResult, storedReviewResult } from "@/lib/review-result";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service";
 import type {
@@ -489,6 +489,27 @@ export class SupabaseExpressionStore implements ExpressionStore {
     const existing = requireEntity(await this.getExpression(id), "Expression not found");
     const current = (await this.progressForOne(id)) ?? defaultProgress(this.user.id, id, existing.created_at);
     const timestamp = nowIso();
+    if (isAgainReviewResult(result)) {
+      const { error } = await this.upsertProgressWithFallback({
+        user_id: this.user.id,
+        expression_id: id,
+        user_memo: current.user_memo ?? null,
+        is_memorization_enabled: current.is_memorization_enabled,
+        unknown_count: current.unknown_count + 1,
+        hard_count: current.hard_count,
+        okay_count: current.okay_count,
+        easy_count: current.easy_count,
+        review_count: current.review_count,
+        last_result: current.last_result,
+        last_reviewed_at: current.last_reviewed_at,
+        interval_days: current.interval_days,
+        due_at: current.due_at,
+        updated_at: timestamp
+      });
+      if (error) raiseStoreError("supabase query", error);
+      return requireEntity(await this.getExpression(id), "Expression not found");
+    }
+
     const schedule = nextExpressionReviewSchedule(current, result, new Date(timestamp));
     const { error } = await this.upsertProgressWithFallback({
       user_id: this.user.id,

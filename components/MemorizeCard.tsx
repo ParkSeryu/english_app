@@ -31,7 +31,18 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
   }
 
   function handleReview(result: ExpressionReviewResult) {
-    if (isAgainReviewResult(result)) setRevealed(false);
+    if (isAgainReviewResult(result)) {
+      setRevealed(false);
+      if (onReviewSubmit) {
+        onReviewSubmit(result);
+        startTransition(() => {
+          void recordExpressionReviewInPlaceAction(expression.id, result).catch((error: unknown) => {
+            console.error("Failed to record expression review", error);
+          });
+        });
+        return;
+      }
+    }
 
     if (onReviewSubmit) {
       onReviewSubmit(result);

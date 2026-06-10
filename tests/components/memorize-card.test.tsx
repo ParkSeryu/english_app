@@ -53,7 +53,7 @@ type ExpressionCardForTest = {
 };
 
 type MemorizeCardModule = {
-  MemorizeCard: ComponentType<{ expression: ExpressionCardForTest; returnTo?: string; reviewNow?: Date }>;
+  MemorizeCard: ComponentType<{ expression: ExpressionCardForTest; returnTo?: string; reviewNow?: Date; onReviewSubmit?: (result: "again" | "unknown" | "hard" | "okay" | "easy" | "known") => void }>;
 };
 
 class MockSpeechSynthesisUtterance {
@@ -260,16 +260,21 @@ describe("MemorizeCard", () => {
     expect(screen.getByRole("button", { name: /쉬움.*10일 뒤/s })).toBeInTheDocument();
   });
 
-  it("hides the answer again after marking an expression unknown", async () => {
+  it("hides the answer again after marking an expression unknown while recording only the again count", async () => {
     const user = userEvent.setup();
+    const onReviewSubmit = vi.fn();
+    const actions = await importModule<typeof import("@/app/actions")>("@/app/actions");
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
-    render(<MemorizeCard expression={expression} />);
+    render(<MemorizeCard expression={expression} onReviewSubmit={onReviewSubmit} />);
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
     expect(screen.getByText(expression.english)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /다시/ }));
 
+    expect(onReviewSubmit).toHaveBeenCalledWith("again");
+    expect(actions.recordExpressionReviewInPlaceAction).toHaveBeenCalledWith(expression.id, "again");
+    expect(actions.recordExpressionReviewAction).not.toHaveBeenCalled();
     expect(screen.queryByText(expression.english)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /정답 보기/ })).toBeInTheDocument();
   });
