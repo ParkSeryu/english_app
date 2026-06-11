@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { MemorizeCard } from "@/components/MemorizeCard";
 import { isAgainReviewResult } from "@/lib/review-result";
+import { nextExpressionReviewSchedule } from "@/lib/scheduling";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
 const DEFAULT_STORAGE_KEY = "english:memorize-session:v1";
@@ -162,11 +163,11 @@ function reconcileCurrentQueueState(signature: string, expressions: ExpressionCa
   };
 }
 
-function advanceQueue(queueIds: string[], activeId: string, result: ExpressionReviewResult) {
+function advanceQueue(queueIds: string[], activeId: string, shouldDefer: boolean) {
   const activeIndex = Math.max(queueIds.indexOf(activeId), 0);
   const withoutActive = queueIds.filter((id) => id !== activeId);
 
-  if (isAgainReviewResult(result)) {
+  if (shouldDefer) {
     const nextQueueIds = [...withoutActive, activeId];
     return {
       queueIds: nextQueueIds,
@@ -178,6 +179,16 @@ function advanceQueue(queueIds: string[], activeId: string, result: ExpressionRe
     queueIds: withoutActive,
     activeId: withoutActive[activeIndex] ?? withoutActive[0] ?? null
   };
+}
+
+function shouldDeferReviewedCard(expression: ExpressionCard, result: ExpressionReviewResult, now = new Date()) {
+  if (isAgainReviewResult(result)) return true;
+
+  const schedule = nextExpressionReviewSchedule(expression, result, now);
+  if (!schedule.dueAt) return true;
+
+  const dueAt = Date.parse(schedule.dueAt);
+  return Number.isFinite(dueAt) && dueAt <= now.getTime();
 }
 
 export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_STORAGE_KEY }: { expressions: ExpressionCard[]; deferredIds?: string[]; storageKey?: string }) {
@@ -222,14 +233,15 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
 
   function handleReviewSubmit(result: ExpressionReviewResult) {
     hasUserInteractedRef.current = true;
+    const shouldDefer = shouldDeferReviewedCard(activeExpression, result);
     setSessionState((current) => {
       const currentState = current.signature === propsSignature ? current : reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, current);
-      const nextQueue = advanceQueue(currentState.queueIds, activeExpression.id, result);
+      const nextQueue = advanceQueue(currentState.queueIds, activeExpression.id, shouldDefer);
       return {
         signature: propsSignature,
         queueIds: nextQueue.queueIds,
         activeId: nextQueue.activeId,
-        deferredIds: isAgainReviewResult(result) ? appendDeferredId(currentState.deferredIds, activeExpression.id) : removeDeferredId(currentState.deferredIds, activeExpression.id),
+        deferredIds: shouldDefer ? appendDeferredId(currentState.deferredIds, activeExpression.id) : removeDeferredId(currentState.deferredIds, activeExpression.id),
         optimisticUnknownCounts:
           isAgainReviewResult(result)
             ? {

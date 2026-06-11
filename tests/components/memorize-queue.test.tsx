@@ -64,6 +64,11 @@ function expectPromptAbsent(prompt: string) {
   expect(screen.queryByRole("heading", { name: prompt })).not.toBeInTheDocument();
 }
 
+function koreanMidnightUtcIso(daysFromToday: number) {
+  const koreaNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return new Date(Date.UTC(koreaNow.getUTCFullYear(), koreaNow.getUTCMonth(), koreaNow.getUTCDate() + daysFromToday) - 9 * 60 * 60 * 1000).toISOString();
+}
+
 describe("MemorizeQueue", () => {
   const redirectReviewAction = vi.mocked(recordExpressionReviewAction);
   const inPlaceReviewAction = vi.mocked(recordExpressionReviewInPlaceAction);
@@ -126,6 +131,35 @@ describe("MemorizeQueue", () => {
     await user.click(screen.getByRole("button", { name: /쉬움/ }));
 
     expect(screen.getByText("복습할 표현 2개")).toBeInTheDocument();
+  });
+
+  it("keeps a hard-reviewed overdue card in the local queue when the next due date is still today", async () => {
+    const user = userEvent.setup();
+    const overdueHardCard = expression({
+      id: "expression-hard-overdue",
+      korean_prompt: "어려운 카드 한국어",
+      english: "Hard overdue answer",
+      due_at: koreanMidnightUtcIso(-1),
+      interval_days: 1,
+      last_result: "known",
+      last_reviewed_at: koreanMidnightUtcIso(-2),
+      review_count: 3
+    });
+
+    render(<MemorizeQueue expressions={[overdueHardCard, second]} />);
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    await user.click(screen.getByRole("button", { name: /어려움/ }));
+
+    expect(screen.getByText("복습할 표현 2개")).toBeInTheDocument();
+    expectPromptVisible("두 번째 한국어");
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    await user.click(screen.getByRole("button", { name: /쉬움/ }));
+
+    expectPromptVisible("어려운 카드 한국어");
+    await waitFor(() => expect(inPlaceReviewAction).toHaveBeenCalledWith(overdueHardCard.id, "hard"));
+    expect(redirectReviewAction).not.toHaveBeenCalled();
   });
 
   it("shows an optimistic again count when a deferred card returns before server refresh", async () => {
