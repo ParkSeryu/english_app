@@ -41,6 +41,8 @@ describe("BottomNav", () => {
 
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");
+    expect(screen.getByRole("link", { name: "묘사" })).toHaveAttribute("href", "/picture-description");
+    expect(screen.queryByRole("link", { name: "질문거리" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("link", { name: "암기" }));
 
