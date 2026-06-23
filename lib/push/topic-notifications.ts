@@ -159,7 +159,8 @@ export async function getTopicNotificationEligibility(topicId: string, supabase:
 export async function createTopicNotificationSend(
   topicId: string,
   requestedBy: Pick<UserIdentity, "id">,
-  supabase: SupabaseClient = createServiceRoleSupabaseClient()
+  supabase: SupabaseClient = createServiceRoleSupabaseClient(),
+  copy?: { title: string; body: string }
 ) {
   const eligibility = await getTopicNotificationEligibility(topicId, supabase);
   if (!eligibility.eligible) {
@@ -171,8 +172,8 @@ export async function createTopicNotificationSend(
     .insert({
       expression_day_id: topicId,
       requested_by: requestedBy.id,
-      title: eligibility.title,
-      body: eligibility.body,
+      title: copy?.title ?? eligibility.title,
+      body: copy?.body ?? eligibility.body,
       target_url: eligibility.targetUrl,
       status: "pending",
       updated_at: new Date().toISOString()
