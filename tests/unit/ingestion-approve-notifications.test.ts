@@ -112,7 +112,10 @@ describe("ingestion approval notifications", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.createOwnerTopicNotificationSend).not.toHaveBeenCalled();
-    expect(mocks.createTopicNotificationSend).toHaveBeenCalledWith("topic-1", { id: "owner-1" });
+    expect(mocks.createTopicNotificationSend).toHaveBeenCalledWith("topic-1", { id: "owner-1" }, undefined, {
+      title: "새 표현 묶음이 추가됐어요",
+      body: "with Keyri에 새 표현 2개가 준비됐어요."
+    });
     expect(mocks.drainTopicNotificationDeliveries).toHaveBeenCalledWith({ sendId: "send-public-1" });
     expect(body.notification).toMatchObject({ queuedDeliveries: 2, drain: { sent: 1, failed: 0 } });
   });

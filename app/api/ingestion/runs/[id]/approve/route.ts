@@ -4,6 +4,7 @@ import { authenticateIngestionRequest } from "@/lib/ingestion/request-auth";
 import { getAdminExpressionStore } from "@/lib/lesson-store";
 import {
   buildLanguageExchangeNotificationCopy,
+  buildTopicNotificationCopy,
   createOwnerTopicNotificationSend,
   createTopicNotificationSend,
   drainTopicNotificationDeliveries,
@@ -42,7 +43,7 @@ async function maybeNotifyApprovedTopic(
   }
 
   try {
-    const sendResult = await createTopicNotificationSend(expressionDay.id, requestedBy);
+    const sendResult = await createTopicNotificationSend(expressionDay.id, requestedBy, undefined, buildTopicNotificationCopy(expressionDay.title, addedCardCount));
     if (!sendResult.ok) return { skipped: "not-public-topic", reason: sendResult.reason };
 
     const drain = isWebPushConfigured()
