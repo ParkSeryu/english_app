@@ -64,6 +64,48 @@ const pictureDescriptionCards: PictureDescriptionCard[] = [
         modelAnswer: "In the background, there is a large grey stone wall. Overall, it looks like they are close friends."
       }
     ]
+  },
+  {
+    id: "couple-hugging-winter-trees",
+    title: "겨울 숲에서 안고 있는 두 사람",
+    imageSrc: "/picture-description/couple-hugging-winter-trees.jpg",
+    imageAlt: "A man and a woman wearing black clothes hugging in a winter park with leafless trees and fallen leaves.",
+    imageWidth: 1024,
+    imageHeight: 1536,
+    hints: ["a man and a woman", "hugging", "black clothes", "a ring", "trees without leaves", "leaves on the ground"],
+    usefulExpressions: ["a man and a woman hugging", "both wearing black clothes", "on his right hand", "trees without leaves", "leaves on the ground", "It looks like winter"],
+    prompts: [
+      {
+        id: "overview",
+        label: "전체 상황",
+        starter: "This is a picture of...",
+        modelAnswer: "This is a picture of a man and a woman hugging."
+      },
+      {
+        id: "appearance",
+        label: "옷과 머리",
+        starter: "They are both...",
+        modelAnswer: "They are both wearing black clothes and have black hair."
+      },
+      {
+        id: "detail",
+        label: "세부 묘사",
+        starter: "The man is wearing...",
+        modelAnswer: "The man is wearing a ring on his right hand."
+      },
+      {
+        id: "background",
+        label: "배경",
+        starter: "In the background...",
+        modelAnswer: "In the background, there are trees without leaves."
+      },
+      {
+        id: "season",
+        label: "계절과 느낌",
+        starter: "The leaves are... / It looks like...",
+        modelAnswer: "The leaves are on the ground. It looks like winter."
+      }
+    ]
   }
 ];
 
