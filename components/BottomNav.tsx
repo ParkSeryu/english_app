@@ -33,10 +33,13 @@ function currentPathWithSearch(pathname: string, searchParams: { toString(): str
 export function BottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [lastExpressionsPath, setLastExpressionsPath] = useState(readLastExpressionsPath);
+  const [lastExpressionsPath, setLastExpressionsPath] = useState("/expressions");
 
   useEffect(() => {
-    if (pathname !== "/expressions") return;
+    if (pathname !== "/expressions") {
+      setLastExpressionsPath(readLastExpressionsPath());
+      return;
+    }
     const nextPath = currentPathWithSearch(pathname, searchParams);
     window.localStorage.setItem(LAST_EXPRESSIONS_PATH_KEY, nextPath);
     setLastExpressionsPath(nextPath);
