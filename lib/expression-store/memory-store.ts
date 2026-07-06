@@ -78,8 +78,8 @@ export class MemoryExpressionStore implements ExpressionStore {
     return canLearnerSeeExpressionCard({ ...card, day }, this.user) && (card.owner_id === this.user.id || card.owner_id === day.owner_id);
   }
 
-  private canDeleteExpression(day: ExpressionDay | undefined, card: ExpressionCard) {
-    return card.owner_id === this.user.id && (card.user_memo === PERSONAL_EXPRESSION_MARKER || day?.created_by === "user" || card.owner_id !== day?.owner_id);
+  private canDeleteExpression(_day: ExpressionDay | undefined, card: ExpressionCard) {
+    return card.owner_id === this.user.id;
   }
 
   private canEditExpression(day: ExpressionDay | undefined, card: ExpressionCard) {
@@ -224,14 +224,12 @@ export class MemoryExpressionStore implements ExpressionStore {
   async updatePersonalExpression(id: string, input: PersonalExpressionUpdateInput) {
     const located = this.findMutableExpression(id);
     if (!located) throw new Error("Expression not found");
-    const canDelete = this.canDeleteExpression(located.day, located.card);
     if (!this.canEditExpression(located.day, located.card)) throw new Error("수정 가능한 표현만 수정할 수 있습니다.");
 
     const timestamp = nowIso();
     located.card.english = input.english;
     located.card.korean_prompt = input.koreanPrompt;
     located.card.grammar_note = normalizeGrammarNote(input.grammarNote);
-    located.card.user_memo = canDelete ? PERSONAL_EXPRESSION_MARKER : null;
     located.card.updated_at = timestamp;
     located.day.updated_at = timestamp;
 
@@ -250,7 +248,7 @@ export class MemoryExpressionStore implements ExpressionStore {
   async deletePersonalExpression(id: string) {
     const located = this.findMutableExpression(id);
     if (!located) throw new Error("Expression not found");
-    if (!this.canDeleteExpression(located.day, located.card)) throw new Error("직접 추가한 표현만 삭제할 수 있습니다.");
+    if (!this.canDeleteExpression(located.day, located.card)) throw new Error("내가 등록한 표현만 삭제할 수 있습니다.");
 
     located.day.expressions = located.day.expressions.filter((expression) => expression.id !== id);
     located.day.updated_at = nowIso();

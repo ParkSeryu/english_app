@@ -8,6 +8,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import { flattenZodErrors, parseCardMemoFormData, parsePersonalExpressionFormData, parsePersonalExpressionUpdateFormData, parseQuestionNoteFormData, parseQuestionNoteUpdateFormData } from "@/lib/validation";
 import { createPasswordRecoverySupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getExpressionStore } from "@/lib/lesson-store";
+import { safeSameOriginRedirectPath } from "@/lib/safe-redirect";
 import { createPersonalExpression, deletePersonalExpression, recordExpressionReview, updateExpressionMemo, updatePersonalExpression } from "@/lib/use-cases/expressions";
 import { createQuestionNote, updateQuestionNote, updateQuestionStatus } from "@/lib/use-cases/questions";
 import { authCallbackRedirectUrl, passwordResetRedirectUrl } from "@/lib/site-url";
@@ -71,12 +72,12 @@ export async function updatePersonalExpressionAction(expressionId: string, _prev
   redirect(`/expressions/${expressionId}`);
 }
 
-export async function deletePersonalExpressionAction(expressionId: string): Promise<void> {
+export async function deletePersonalExpressionAction(expressionId: string, returnTo: string | null = null): Promise<void> {
   const user = await requireCurrentUser();
   const targetPath = await deletePersonalExpression(getExpressionStore(user), expressionId);
   revalidateAppPaths();
   revalidatePath(`/expressions/${expressionId}`);
-  redirect(targetPath);
+  redirect(returnTo ? safeSameOriginRedirectPath(returnTo) : targetPath);
 }
 
 async function recordExpressionReviewForCurrentUser(expressionId: string, result: ExpressionReviewResult) {

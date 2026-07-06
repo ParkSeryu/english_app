@@ -152,7 +152,7 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     expect(sameDateDifferentTopic.expressionDay.id).not.toBe(first.expressionDay.id);
   });
 
-  it("lets the owner edit language-exchange ingestion cards without making them deletable", async () => {
+  it("lets the owner edit and delete language-exchange ingestion cards", async () => {
     const { MemoryExpressionStore } = await importModule<StoreModule>("@/lib/expression-store");
     const store = new MemoryExpressionStore(userA);
     const draft = await store.createDraft({
@@ -168,7 +168,7 @@ describe("MemoryExpressionStore daily expression behavior", () => {
     const approved = await store.approveDraft(draft.id, "이대로 앱에 넣어줘");
     const expressionId = approved.expressionDay.expressions[0].id;
 
-    expect(await store.getExpression(expressionId)).toMatchObject({ can_edit: true, can_delete: false });
+    expect(await store.getExpression(expressionId)).toMatchObject({ can_edit: true, can_delete: true });
 
     const updated = await store.updatePersonalExpression(expressionId, {
       english: "What is that green thing in the picture?",
@@ -182,9 +182,10 @@ describe("MemoryExpressionStore daily expression behavior", () => {
       korean_prompt: "사진에 있는 저 초록색은 뭐예요?",
       user_memo: "Keyri 언어교환에서 수정",
       can_edit: true,
-      can_delete: false
+      can_delete: true
     });
-    await expect(store.deletePersonalExpression(expressionId)).rejects.toThrow("직접 추가한 표현만 삭제할 수 있습니다");
+    await store.deletePersonalExpression(expressionId);
+    expect(await store.getExpression(expressionId)).toBeNull();
   });
 
   it("records cumulative Anki-lite review counters and next due times", async () => {
@@ -472,7 +473,7 @@ describe("MemoryExpressionStore daily expression behavior", () => {
 
     expect(await learnerStore.getExpression(addedExpression.id)).toMatchObject({ can_delete: true });
     expect(await learnerStore.getExpression(sharedExpressionId)).toMatchObject({ can_delete: false });
-    await expect(learnerStore.deletePersonalExpression(sharedExpressionId)).rejects.toThrow("직접 추가한 표현만 삭제할 수 있습니다");
+    await expect(learnerStore.deletePersonalExpression(sharedExpressionId)).rejects.toThrow("내가 등록한 표현만 삭제할 수 있습니다");
 
     await learnerStore.deletePersonalExpression(addedExpression.id);
     expect(await learnerStore.getExpression(addedExpression.id)).toBeNull();

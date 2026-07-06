@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExpressionCard } from "@/lib/types";
 
 vi.mock("@/app/actions", () => ({
+  deletePersonalExpressionAction: vi.fn(async () => undefined),
   recordExpressionReviewAction: vi.fn(async () => undefined),
   recordExpressionReviewInPlaceAction: vi.fn(async () => ({ ok: true }))
 }));
