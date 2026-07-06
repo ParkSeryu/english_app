@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Fragment, useState, useTransition } from "react";
 
-import { recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
+import { deletePersonalExpressionAction, recordExpressionReviewAction, recordExpressionReviewInPlaceAction } from "@/app/actions";
 import { PronunciationButton } from "@/components/PronunciationButton";
 import { nextExpressionReviewSchedule } from "@/lib/scheduling";
 import { isAgainReviewResult } from "@/lib/review-result";
@@ -62,14 +63,15 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
   return (
     <article className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-card sm:rounded-[2rem] sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex flex-1 items-start gap-2">
           {topicContext ? (
-            <div className="inline-flex w-fit max-w-full items-start rounded-2xl border border-teal-100 bg-teal-50/80 px-3 py-1.5 sm:rounded-full">
+            <div className="inline-flex min-w-0 w-fit max-w-full items-start rounded-2xl border border-teal-100 bg-teal-50/80 px-3 py-1.5 sm:rounded-full">
               <span className="min-w-0 whitespace-normal break-words text-xs font-black leading-snug text-ink sm:text-sm">{topicContext}</span>
             </div>
           ) : (
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">암기 카드</p>
           )}
+          <MemorizeCardActions expressionId={expression.id} canEdit={Boolean(expression.can_edit)} canDelete={Boolean(expression.can_delete)} />
         </div>
         <div className="grid shrink-0 grid-cols-2 justify-items-end gap-x-2 gap-y-0.5 text-right text-[11px] font-bold leading-4 text-slate-500 sm:gap-x-3 sm:text-xs">
           <span>다시 {expression.unknown_count}회</span>
@@ -131,6 +133,63 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
         </>
       )}
     </article>
+  );
+}
+
+function MemorizeCardActions({ expressionId, canEdit, canDelete }: { expressionId: string; canEdit: boolean; canDelete: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  function toggleOpen() {
+    setOpen((current) => {
+      const nextOpen = !current;
+      if (!nextOpen) setConfirmingDelete(false);
+      return nextOpen;
+    });
+  }
+
+  return (
+    <div className="relative z-20 mt-0.5 shrink-0">
+      <button
+        type="button"
+        onClick={toggleOpen}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="표현 작업 메뉴"
+        className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-base font-black leading-none text-slate-500 shadow-sm transition hover:border-teal-200 hover:bg-white hover:text-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-100 sm:h-8 sm:w-8 sm:text-lg"
+      >
+        ⋯
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-10 z-20 w-40 rounded-2xl border border-slate-200 bg-white p-1.5 text-sm font-bold shadow-xl shadow-slate-900/10">
+          {!canEdit && !canDelete ? <p className="px-3 py-2 text-xs font-bold leading-5 text-slate-500">내가 등록한 표현만 수정/삭제할 수 있어요.</p> : null}
+          {canEdit ? (
+            <Link href={`/expressions/${expressionId}/edit`} className="block rounded-xl px-3 py-2 text-slate-700 transition hover:bg-teal-50 hover:text-teal-700">
+              수정
+            </Link>
+          ) : null}
+          {canDelete ? (
+            confirmingDelete ? (
+              <div className="space-y-2 rounded-xl bg-red-50 p-2">
+                <p className="text-xs font-bold leading-5 text-red-700">이 표현을 삭제할까요?</p>
+                <form action={deletePersonalExpressionAction.bind(null, expressionId, "/memorize")} className="grid grid-cols-2 gap-1.5">
+                  <button type="button" onClick={() => setConfirmingDelete(false)} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-black text-slate-600 transition hover:border-slate-300">
+                    취소
+                  </button>
+                  <button type="submit" className="rounded-lg bg-red-600 px-2 py-1.5 text-xs font-black text-white transition hover:bg-red-700">
+                    삭제
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmingDelete(true)} className="block w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
+                삭제
+              </button>
+            )
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

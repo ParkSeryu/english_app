@@ -267,8 +267,8 @@ export class SupabaseExpressionStore implements ExpressionStore {
     return { client, error };
   }
 
-  private canDeleteExpression(card: ExpressionCard, day?: Pick<ExpressionDay | ExpressionDaySummary, "owner_id" | "created_by" | "folder_id" | "folder"> | null) {
-    return card.owner_id === this.user.id && (card.user_memo === PERSONAL_EXPRESSION_MARKER || day?.created_by === "user" || card.owner_id !== day?.owner_id);
+  private canDeleteExpression(card: ExpressionCard, _day?: Pick<ExpressionDay | ExpressionDaySummary, "owner_id" | "created_by" | "folder_id" | "folder"> | null) {
+    return card.owner_id === this.user.id;
   }
 
   private canEditExpression(card: ExpressionCard, day?: Pick<ExpressionDay | ExpressionDaySummary, "owner_id" | "created_by" | "folder_id" | "folder"> | null) {
@@ -647,7 +647,6 @@ export class SupabaseExpressionStore implements ExpressionStore {
         english: input.english,
         korean_prompt: input.koreanPrompt,
         grammar_note: normalizeGrammarNote(input.grammarNote),
-        user_memo: existing.can_delete ? PERSONAL_EXPRESSION_MARKER : null,
         updated_at: timestamp
       })
       .eq("id", id)
@@ -681,7 +680,7 @@ export class SupabaseExpressionStore implements ExpressionStore {
   async deletePersonalExpression(id: string) {
     const expression = await this.getExpression(id);
     if (!expression) throw new Error("Expression not found");
-    if (!expression.can_delete) throw new Error("직접 추가한 표현만 삭제할 수 있습니다.");
+    if (!expression.can_delete) throw new Error("내가 등록한 표현만 삭제할 수 있습니다.");
 
     const supabase = await this.supabase();
     const writeSupabase = this.serviceSupabaseOrNull() ?? supabase;

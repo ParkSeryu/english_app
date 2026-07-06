@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/app/actions", () => ({
+  deletePersonalExpressionAction: vi.fn(async () => undefined),
   recordExpressionReviewAction: vi.fn(async () => undefined),
   recordExpressionReviewInPlaceAction: vi.fn(async () => ({ ok: true }))
 }));
@@ -23,6 +24,8 @@ type ExpressionCardForTest = {
   grammar_note: string | null;
   user_memo: string | null;
   source_order: number;
+  can_delete?: boolean;
+  can_edit?: boolean;
   unknown_count: number;
   hard_count: number;
   okay_count: number;
@@ -171,6 +174,41 @@ describe("MemorizeCard", () => {
 
     const reviewButtons = screen.getAllByRole("button").filter((button) => /^(다시|어려움|알긴암|쉬움)/.test(button.textContent ?? ""));
     expect(reviewButtons.map((button) => button.textContent)).toEqual(["다시오늘 다시", "어려움1일 뒤", "알긴암1일 뒤", "쉬움3일 뒤"]);
+  });
+
+  it("keeps edit and delete actions behind a compact card menu", async () => {
+    const user = userEvent.setup();
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={{ ...expression, can_edit: true, can_delete: true }} />);
+
+    expect(screen.queryByRole("link", { name: "수정" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "표현 작업 메뉴" }));
+
+    expect(screen.getByRole("link", { name: "수정" })).toHaveAttribute("href", `/expressions/${expression.id}/edit`);
+    expect(screen.getByRole("button", { name: "삭제" })).toHaveAttribute("type", "button");
+
+    await user.click(screen.getByRole("button", { name: "삭제" }));
+
+    expect(screen.getByText("이 표현을 삭제할까요?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "취소" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "삭제" })).toHaveAttribute("type", "submit");
+  });
+
+  it("shows a permission note instead of edit and delete actions for shared expressions", async () => {
+    const user = userEvent.setup();
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={expression} />);
+
+    expect(screen.queryByRole("link", { name: "수정" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "표현 작업 메뉴" }));
+
+    expect(screen.getByText("내가 등록한 표현만 수정/삭제할 수 있어요.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "수정" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
   });
 
   it("adds the compact date to topic labels when the stored title no longer includes it", async () => {
