@@ -97,6 +97,25 @@ describe("MemorizeQueue", () => {
     expect(redirectReviewAction).not.toHaveBeenCalled();
   });
 
+  it("keeps the memorization queue usable when a review save fails during a connection change", async () => {
+    const user = userEvent.setup();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    inPlaceReviewAction.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    render(<MemorizeQueue expressions={[first, second]} />);
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    await user.click(screen.getByRole("button", { name: /다시/ }));
+
+    expectPromptVisible("두 번째 한국어");
+    await waitFor(() => expect(warningSpy).toHaveBeenCalledWith("Failed to record expression review", expect.any(TypeError)));
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    errorSpy.mockRestore();
+    warningSpy.mockRestore();
+  });
+
   it("keeps locally deferred again cards stacked while reviewing before a server refresh lands and records only counts", async () => {
     const user = userEvent.setup();
     render(<MemorizeQueue expressions={[first, second, third]} />);

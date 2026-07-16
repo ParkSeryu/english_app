@@ -37,9 +37,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
       if (onReviewSubmit) {
         onReviewSubmit(result);
         startTransition(() => {
-          void recordExpressionReviewInPlaceAction(expression.id, result).catch((error: unknown) => {
-            console.error("Failed to record expression review", error);
-          });
+          void recordExpressionReviewInPlaceAction(expression.id, result).catch(reportReviewSaveFailure);
         });
         return;
       }
@@ -48,9 +46,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
     if (onReviewSubmit) {
       onReviewSubmit(result);
       startTransition(() => {
-        void recordExpressionReviewInPlaceAction(expression.id, result).catch((error: unknown) => {
-          console.error("Failed to record expression review", error);
-        });
+        void recordExpressionReviewInPlaceAction(expression.id, result).catch(reportReviewSaveFailure);
       });
       return;
     }
@@ -134,6 +130,13 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
       )}
     </article>
   );
+}
+
+function reportReviewSaveFailure(error: unknown) {
+  // A connection change can reject a server action even though the optimistic
+  // queue has already advanced. Keep that expected transport failure out of
+  // Next's client-error overlay while leaving a diagnostic breadcrumb.
+  console.warn("Failed to record expression review", error);
 }
 
 function MemorizeCardActions({ expressionId, canEdit, canDelete }: { expressionId: string; canEdit: boolean; canDelete: boolean }) {
