@@ -86,7 +86,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={<AppNav user={null} />}>
           <UserAwareAppNav />
         </Suspense>
-        <main className="mx-auto min-h-[calc(100vh-64px)] max-w-3xl px-4 pb-28 pt-6 sm:py-8">{children}</main>
+        <main className="mx-auto min-h-[calc(100vh-64px)] max-w-3xl px-4 pb-28 pt-6 sm:pt-8">{children}</main>
         <Analytics />
         <SpeedInsights />
       </body>

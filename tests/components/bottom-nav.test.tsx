@@ -38,6 +38,7 @@ describe("BottomNav", () => {
 
   it("keeps stable tab labels and marks the current route", () => {
     render(<BottomNav />);
+    expect(screen.getByRole("navigation", { name: "하단 주요 메뉴" })).not.toHaveClass("sm:hidden");
 
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");

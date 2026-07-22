@@ -53,7 +53,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:hidden" aria-label="하단 주요 메뉴">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur" aria-label="하단 주요 메뉴">
       <div className="mx-auto grid max-w-3xl grid-cols-4 px-2 py-2 text-center text-xs font-black text-slate-700">
         {bottomNavItems.map((item) => {
           const active = isActive(pathname, item.href);
