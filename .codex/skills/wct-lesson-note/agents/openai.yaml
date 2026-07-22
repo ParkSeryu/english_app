@@ -1,0 +1,4 @@
+interface:
+  display_name: "WCT Lesson Note"
+  short_description: "Summarize WCT lessons into focused lesson notes."
+  default_prompt: "Use $wct-lesson-note to turn my WCT textbook material into a Day, topic, key point, and pattern preview."

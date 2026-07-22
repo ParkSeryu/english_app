@@ -279,7 +279,7 @@ export function MemorizeQueue({
 
   function handleReviewSubmit(result: ExpressionReviewResult) {
     hasUserInteractedRef.current = true;
-    const shouldDefer = reviewMode === "virtual-test" ? false : shouldDeferReviewedCard(activeExpression, result);
+    const shouldDefer = reviewMode === "virtual-test" ? isAgainReviewResult(result) : shouldDeferReviewedCard(activeExpression, result);
     setSessionState((current) => {
       const currentState = current.signature === propsSignature ? current : reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, current);
       const nextQueue = advanceQueue(currentState.queueIds, activeExpression.id, shouldDefer);

@@ -1,0 +1,423 @@
+{
+  "created_at": "2026-07-22T11:50:37.777Z",
+  "target": "prod/main ccawzrrkxuirrwvaecvw",
+  "user_email": "pjh971212@gmail.com",
+  "operation": "restore moved date-test rows to today queue by setting due_at",
+  "restore_due_at": "2026-07-21T15:00:00.000+00:00",
+  "rows": [
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "972111d4-be55-482b-899f-ab08fab94e7a",
+      "is_memorization_enabled": true,
+      "due_at": "2026-09-19T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:39:38.042+00:00",
+      "last_result": "known",
+      "interval_days": 60,
+      "review_count": 3,
+      "unknown_count": 0,
+      "hard_count": 0,
+      "okay_count": 1,
+      "easy_count": 2,
+      "updated_at": "2026-07-22T11:39:38.042+00:00",
+      "expressions": {
+        "english": "The company's servers couldn't handle the increased traffic.",
+        "korean_prompt": "회사 서버가 늘어난 트래픽을 감당하지 못했습니다.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-05-11"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "56dc879a-c157-4fc0-acbb-edd981a8a624",
+      "is_memorization_enabled": true,
+      "due_at": "2026-09-19T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:39:47.762+00:00",
+      "last_result": "known",
+      "interval_days": 60,
+      "review_count": 4,
+      "unknown_count": 0,
+      "hard_count": 0,
+      "okay_count": 0,
+      "easy_count": 4,
+      "updated_at": "2026-07-22T11:39:47.762+00:00",
+      "expressions": {
+        "english": "It's about time I bought myself an expensive item.",
+        "korean_prompt": "나 자신에게 비싼 물건을 사줄 때가 됐어요.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-05-04"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "7449d395-dbd3-4b46-8895-db306fce1a55",
+      "is_memorization_enabled": true,
+      "due_at": "2026-09-19T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:39:52.499+00:00",
+      "last_result": "known",
+      "interval_days": 60,
+      "review_count": 4,
+      "unknown_count": 0,
+      "hard_count": 0,
+      "okay_count": 1,
+      "easy_count": 3,
+      "updated_at": "2026-07-22T11:39:52.499+00:00",
+      "expressions": {
+        "english": "I try not to eat.",
+        "korean_prompt": "저는 먹지 않으려고 노력해요.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-04-27"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "a554e721-9281-4fc0-be5f-e5142833cbae",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-24T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:34:29.868+00:00",
+      "last_result": "known",
+      "interval_days": 3,
+      "review_count": 2,
+      "unknown_count": 3,
+      "hard_count": 1,
+      "okay_count": 0,
+      "easy_count": 1,
+      "updated_at": "2026-07-22T11:34:29.868+00:00",
+      "expressions": {
+        "english": "I will make dinner tonight.",
+        "korean_prompt": "저녁 내가 할게.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "7c7e4500-93c3-42e6-950e-3d0e87cc1d4c",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:35:03.011+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 3,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:35:03.011+00:00",
+      "expressions": {
+        "english": "I think it's expensive when it's over 150,000 KRW.",
+        "korean_prompt": "나는 15만 원이 넘어가면 비싸다고 생각한다.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "ab0212a0-456e-43a7-ab96-41af62f502be",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:35:27.946+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 3,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:35:27.946+00:00",
+      "expressions": {
+        "english": "I watched Messi play the game.",
+        "korean_prompt": "나는 메시가 경기하는 것을 보았다.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "3888c384-727f-4e06-b742-15c536e7ba76",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:36:30.401+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:36:30.401+00:00",
+      "expressions": {
+        "english": "Can you take me to the airport?",
+        "korean_prompt": "공항까지 좀 태워줄래?",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "def197b2-9fc3-4650-8752-b1c322aa34fd",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:36:43.511+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:36:43.511+00:00",
+      "expressions": {
+        "english": "It takes two hours to go to Seoul.",
+        "korean_prompt": "서울 가는 데 2시간 걸려.\n(서울 가면 2시간 지나.)",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "28435a41-c5e5-4171-bd53-f9ab1ecd35de",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:36:50.624+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:36:50.624+00:00",
+      "expressions": {
+        "english": "We are late. Let's take a taxi.",
+        "korean_prompt": "늦었어, 택시 타자.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "0be6374f-5c6a-422a-9ce2-0342fdbd4c6d",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:37:22.712+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:37:22.712+00:00",
+      "expressions": {
+        "english": "I run in the park every morning.",
+        "korean_prompt": "매일 아침 공원에서 뛰어요.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "1e9b4f1b-0913-429c-93bf-80bd6967c288",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:37:31.683+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:37:31.683+00:00",
+      "expressions": {
+        "english": "I am usually late by about 30 minutes.",
+        "korean_prompt": "나는 보통 30분 정도 늦는다.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "56c83435-421a-46d1-887b-3955560269d5",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:37:43.096+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:37:43.096+00:00",
+      "expressions": {
+        "english": "My uncle runs a small cafe.",
+        "korean_prompt": "삼촌이 작은 카페를 하세요.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "e21aebc5-4ffb-4b31-aa0d-00a77327ff5e",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:38:07.283+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 2,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:38:07.283+00:00",
+      "expressions": {
+        "english": "My mother made me take a Japanese class.",
+        "korean_prompt": "어머니는 나에게 일본어 수업을 듣게 하셨다.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "47448f1b-390f-487b-a9bf-26dc206bfda1",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:38:52.603+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 1,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:38:52.603+00:00",
+      "expressions": {
+        "english": "I want to take a cooking class.",
+        "korean_prompt": "쿠킹클래스 듣고 싶어.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "53ffde9c-0027-4b8c-bc83-bfbf71a9bf4e",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:39:02.106+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 1,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:39:02.106+00:00",
+      "expressions": {
+        "english": "I can't take this pain anymore.",
+        "korean_prompt": "이 고통을 도저히 못 견디겠어.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "1f93f595-f8d6-4b49-ba92-fc384b1b75ce",
+      "is_memorization_enabled": true,
+      "due_at": "2026-08-20T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:33:47.822+00:00",
+      "last_result": "known",
+      "interval_days": 30,
+      "review_count": 12,
+      "unknown_count": 6,
+      "hard_count": 2,
+      "okay_count": 2,
+      "easy_count": 5,
+      "updated_at": "2026-07-22T11:33:47.822+00:00",
+      "expressions": {
+        "english": "I want to start thinking in English but I never think in English I just think in Korean.",
+        "korean_prompt": "영어로 생각하기 시작하고 싶은데 나는 영어로 생각하지 않아. 그냥 한국어로 생각해.",
+        "expression_days": {
+          "title": "with Keyri",
+          "day_date": "2026-06-08"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "1952f645-38c5-4f94-b004-d00d81bd8524",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-24T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:34:15.529+00:00",
+      "last_result": "known",
+      "interval_days": 3,
+      "review_count": 2,
+      "unknown_count": 4,
+      "hard_count": 1,
+      "okay_count": 0,
+      "easy_count": 1,
+      "updated_at": "2026-07-22T11:34:15.529+00:00",
+      "expressions": {
+        "english": "The actor is important when I choose a movie to watch.",
+        "korean_prompt": "영화를 골라 볼 때는 배우가 중요하다.",
+        "expression_days": {
+          "title": "회화연습반",
+          "day_date": "2026-07-20"
+        }
+      }
+    },
+    {
+      "user_id": "261f2e21-9532-446f-8694-0b2bc54df360",
+      "expression_id": "a786e652-60fa-4992-b5c4-53d11525919f",
+      "is_memorization_enabled": true,
+      "due_at": "2026-07-22T15:00:00+00:00",
+      "last_reviewed_at": "2026-07-22T11:35:09.175+00:00",
+      "last_result": "known",
+      "interval_days": 1,
+      "review_count": 2,
+      "unknown_count": 3,
+      "hard_count": 1,
+      "okay_count": 1,
+      "easy_count": 0,
+      "updated_at": "2026-07-22T11:35:09.175+00:00",
+      "expressions": {
+        "english": "He makes a lot of money on YouTube.",
+        "korean_prompt": "걔 유튜브로 돈 많이 벌어.",
+        "expression_days": {
+          "title": "회화연습반(Make, Take, Run)",
+          "day_date": "2026-07-20"
+        }
+      }
+    }
+  ]
+}

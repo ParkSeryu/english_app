@@ -46,17 +46,24 @@ export function BottomNav() {
     setLastExpressionsPath(nextPath);
   }, [pathname, searchParams]);
 
+  const isTopicTest = pathname === "/memorize" && searchParams.has("topic");
+
   function hrefFor(item: (typeof bottomNavItems)[number]) {
     if (item.href === "/expressions" && pathname !== "/expressions") return lastExpressionsPath;
     if (item.href === "/expressions" && pathname === "/expressions") return currentPathWithSearch(pathname, searchParams);
     return item.href;
   }
 
+  function activeFor(item: (typeof bottomNavItems)[number]) {
+    if (isTopicTest && item.href === "/memorize") return false;
+    return isActive(pathname, item.href);
+  }
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur" aria-label="하단 주요 메뉴">
       <div className="mx-auto grid max-w-3xl grid-cols-4 px-2 py-2 text-center text-xs font-black text-slate-700">
         {bottomNavItems.map((item) => {
-          const active = isActive(pathname, item.href);
+          const active = activeFor(item);
           return (
             <Link
               key={item.href}

@@ -216,13 +216,13 @@ describe("MemorizeQueue", () => {
     expect(screen.queryByRole("button", { name: /정답 보기/ })).not.toBeInTheDocument();
   });
 
-  it("runs topic tests as a virtual exam with only known and unknown buttons and no review persistence", async () => {
+  it("runs topic tests as a virtual exam where unknown cards move to the back and only known answers complete", async () => {
     const user = userEvent.setup();
     const topicStorageKey = "english:topic-test-session:user-a:day-1:v1";
 
     render(
       <MemorizeQueue
-        expressions={[first]}
+        expressions={[first, second]}
         storageKey={topicStorageKey}
         heading="날짜별 표현 테스트"
         description="20260427 · 오늘의 영어표현"
@@ -241,7 +241,7 @@ describe("MemorizeQueue", () => {
 
     expect(screen.getByRole("heading", { name: "날짜별 표현 테스트" })).toBeInTheDocument();
     expect(screen.getByText("20260427 · 오늘의 영어표현")).toBeInTheDocument();
-    expect(screen.getByText("남은 표현 1개")).toBeInTheDocument();
+    expect(screen.getByText("남은 표현 2개")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
     expect(screen.getByRole("button", { name: "모름" })).toBeInTheDocument();
@@ -252,6 +252,18 @@ describe("MemorizeQueue", () => {
     expect(screen.queryByRole("button", { name: /쉬움/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "모름" }));
+
+    expect(screen.getByText("남은 표현 2개")).toBeInTheDocument();
+    expectPromptVisible("두 번째 한국어");
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    await user.click(screen.getByRole("button", { name: "앎" }));
+
+    expect(screen.getByText("남은 표현 1개")).toBeInTheDocument();
+    expectPromptVisible("첫 번째 한국어");
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    await user.click(screen.getByRole("button", { name: "앎" }));
 
     expect(screen.getByText("이 날짜의 표현 테스트를 마쳤습니다")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "표현 목록으로 돌아가기" })).toHaveAttribute("href", "/expressions?topic=day-1");

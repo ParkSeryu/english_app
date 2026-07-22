@@ -61,6 +61,18 @@ describe("BottomNav", () => {
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("href", "/expressions?topic=topic-2");
   });
 
+  it("does not mark the memorization tab active during a date topic test", () => {
+    window.localStorage.setItem("english:last-expressions-path", "/expressions?topic=topic-1");
+    navigation.pathname = "/memorize";
+    navigation.searchParams = new URLSearchParams("topic=topic-1");
+
+    render(<BottomNav />);
+
+    expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");
+    expect(screen.getByRole("link", { name: "암기" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("href", "/expressions?topic=topic-1");
+  });
+
   it("marks the WCT lesson notes route as the class tab", () => {
     navigation.pathname = "/wct";
 
