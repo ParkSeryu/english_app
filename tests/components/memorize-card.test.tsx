@@ -196,7 +196,7 @@ describe("MemorizeCard", () => {
     expect(screen.getByRole("button", { name: "삭제" })).toHaveAttribute("type", "submit");
   });
 
-  it("shows a non-empty saved memo below similar expressions after revealing the answer", async () => {
+  it("shows a non-empty saved memo after revealing the answer", async () => {
     const user = userEvent.setup();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
     render(<MemorizeCard expression={{ ...expression, user_memo: "  to 뒤 형태를 자주 헷갈림.  " }} />);
