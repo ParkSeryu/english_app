@@ -280,6 +280,16 @@ describe("MemorizeQueue", () => {
     expect(window.localStorage.getItem(topicStorageKey)).toBeNull();
   });
 
+  it("can disable localStorage restoration for the normal memorization page", async () => {
+    window.localStorage.setItem(storageKey, storedQueueState({ activeId: second.id }));
+
+    render(<MemorizeQueue expressions={[first, second, third]} persistQueueState={false} />);
+
+    await waitFor(() => expectPromptVisible("첫 번째 한국어"));
+    expectPromptAbsent("두 번째 한국어");
+    expect(window.localStorage.getItem(storageKey)).toBeNull();
+  });
+
   it("server-renders the first card instead of blocking on browser storage", () => {
     const html = renderToString(<MemorizeQueue expressions={[first, second, third]} />);
 
