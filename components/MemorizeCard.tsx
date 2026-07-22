@@ -16,9 +16,11 @@ type MemorizeCardProps = {
   onReveal?: () => void;
   onReviewSubmit?: (result: ExpressionReviewResult) => void;
   reviewNow?: Date;
+  reviewMode?: "memorization" | "virtual-test";
+  persistReview?: boolean;
 };
 
-export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onReviewSubmit, reviewNow = new Date() }: MemorizeCardProps) {
+export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onReviewSubmit, reviewNow = new Date(), reviewMode = "memorization", persistReview = true }: MemorizeCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
   const topicContext = formatTopicContext(expression);
@@ -46,9 +48,11 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
 
     if (onReviewSubmit) {
       onReviewSubmit(result);
-      startTransition(() => {
-        void recordExpressionReviewInPlaceAction(expression.id, result).catch(reportReviewSaveFailure);
-      });
+      if (persistReview) {
+        startTransition(() => {
+          void recordExpressionReviewInPlaceAction(expression.id, result).catch(reportReviewSaveFailure);
+        });
+      }
       return;
     }
 
@@ -109,24 +113,35 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
               </section>
             ) : null}
             {userMemo ? <Info title="내 메모" body={userMemo} /> : null}
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
-              <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-1.5 py-2 text-[13px] font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
-                <span>다시</span>
-                <span className="mt-0.5 text-[11px] font-black text-rose-500 sm:text-xs">오늘 다시</span>
-              </button>
-              <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-1.5 py-2 text-[13px] font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
-                <span>어려움</span>
-                <span className="mt-0.5 text-[11px] font-black text-amber-500 sm:text-xs">{formatReviewDueLabel(hardSchedule, reviewNow)}</span>
-              </button>
-              <button type="button" onClick={() => handleReview("okay")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-1.5 py-2 text-[13px] font-black leading-tight text-sky-700 transition hover:bg-sky-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
-                <span>알긴암</span>
-                <span className="mt-0.5 text-[11px] font-black text-sky-500 sm:text-xs">{formatReviewDueLabel(okaySchedule, reviewNow)}</span>
-              </button>
-              <button type="button" onClick={() => handleReview("easy")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-1.5 py-2 text-[13px] font-black leading-tight text-emerald-700 transition hover:bg-emerald-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
-                <span>쉬움</span>
-                <span className="mt-0.5 text-[11px] font-black text-emerald-500 sm:text-xs">{formatReviewDueLabel(easySchedule, reviewNow)}</span>
-              </button>
-            </div>
+            {reviewMode === "virtual-test" ? (
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <button type="button" onClick={() => handleReview("unknown")} className="flex min-h-[3.25rem] w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                  모름
+                </button>
+                <button type="button" onClick={() => handleReview("known")} className="flex min-h-[3.25rem] w-full items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] font-black leading-tight text-emerald-700 transition hover:bg-emerald-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                  앎
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
+                <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-1.5 py-2 text-[13px] font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                  <span>다시</span>
+                  <span className="mt-0.5 text-[11px] font-black text-rose-500 sm:text-xs">오늘 다시</span>
+                </button>
+                <button type="button" onClick={() => handleReview("hard")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-1.5 py-2 text-[13px] font-black leading-tight text-amber-700 transition hover:bg-amber-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                  <span>어려움</span>
+                  <span className="mt-0.5 text-[11px] font-black text-amber-500 sm:text-xs">{formatReviewDueLabel(hardSchedule, reviewNow)}</span>
+                </button>
+                <button type="button" onClick={() => handleReview("okay")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-1.5 py-2 text-[13px] font-black leading-tight text-sky-700 transition hover:bg-sky-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                  <span>알긴암</span>
+                  <span className="mt-0.5 text-[11px] font-black text-sky-500 sm:text-xs">{formatReviewDueLabel(okaySchedule, reviewNow)}</span>
+                </button>
+                <button type="button" onClick={() => handleReview("easy")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-1.5 py-2 text-[13px] font-black leading-tight text-emerald-700 transition hover:bg-emerald-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
+                  <span>쉬움</span>
+                  <span className="mt-0.5 text-[11px] font-black text-emerald-500 sm:text-xs">{formatReviewDueLabel(easySchedule, reviewNow)}</span>
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

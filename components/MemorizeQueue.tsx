@@ -46,6 +46,7 @@ type MemorizeQueueProps = {
   emptyState?: MemorizeQueueEmptyState;
   returnTo?: string;
   clearStoredStateOnComplete?: boolean;
+  reviewMode?: "memorization" | "virtual-test";
 };
 
 function appendDeferredId(ids: string[], id: string) {
@@ -224,7 +225,8 @@ export function MemorizeQueue({
     actionLabel: "표현 모아보기"
   },
   returnTo = "/memorize",
-  clearStoredStateOnComplete = false
+  clearStoredStateOnComplete = false,
+  reviewMode = "memorization"
 }: MemorizeQueueProps) {
   const deferredIdInput = deferredIds ?? EMPTY_DEFERRED_IDS;
   const initialDeferredIds = useMemo(() => normalizeDeferredIds(deferredIdInput, expressions), [deferredIdInput, expressions]);
@@ -271,7 +273,7 @@ export function MemorizeQueue({
 
   function handleReviewSubmit(result: ExpressionReviewResult) {
     hasUserInteractedRef.current = true;
-    const shouldDefer = shouldDeferReviewedCard(activeExpression, result);
+    const shouldDefer = reviewMode === "virtual-test" ? false : shouldDeferReviewedCard(activeExpression, result);
     setSessionState((current) => {
       const currentState = current.signature === propsSignature ? current : reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, current);
       const nextQueue = advanceQueue(currentState.queueIds, activeExpression.id, shouldDefer);
@@ -300,6 +302,8 @@ export function MemorizeQueue({
         returnTo={returnTo}
         onReveal={handleReveal}
         onReviewSubmit={handleReviewSubmit}
+        reviewMode={reviewMode}
+        persistReview={reviewMode !== "virtual-test"}
       />
     </div>
   );

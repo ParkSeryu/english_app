@@ -36,11 +36,12 @@ export default async function MemorizePage({ searchParams }: { searchParams: Sea
           remainingLabel={isTopicTest ? "남은 표현" : undefined}
           emptyState={isTopicTest ? {
             title: "이 날짜의 표현 테스트를 마쳤습니다",
-            body: "결과가 암기 기록에 반영되었습니다. 표현 목록에서 언제든 다시 테스트할 수 있습니다.",
+            body: "결과는 암기 기록에 반영되지 않습니다. 표현 목록에서 언제든 다시 테스트할 수 있습니다.",
             actionHref: topicReturnHref,
             actionLabel: "표현 목록으로 돌아가기"
           } : undefined}
           returnTo={isTopicTest ? `/memorize?topic=${topic?.id}` : undefined}
+          reviewMode={isTopicTest ? "virtual-test" : "memorization"}
           clearStoredStateOnComplete={isTopicTest}
         />
       ) : (

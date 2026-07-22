@@ -216,7 +216,7 @@ describe("MemorizeQueue", () => {
     expect(screen.queryByRole("button", { name: /정답 보기/ })).not.toBeInTheDocument();
   });
 
-  it("shows topic-test copy and clears its saved session after completion", async () => {
+  it("runs topic tests as a virtual exam with only known and unknown buttons and no review persistence", async () => {
     const user = userEvent.setup();
     const topicStorageKey = "english:topic-test-session:user-a:day-1:v1";
 
@@ -229,10 +229,11 @@ describe("MemorizeQueue", () => {
         remainingLabel="남은 표현"
         emptyState={{
           title: "이 날짜의 표현 테스트를 마쳤습니다",
-          body: "결과가 암기 기록에 반영되었습니다.",
+          body: "결과는 암기 기록에 반영되지 않습니다.",
           actionHref: "/expressions?topic=day-1",
           actionLabel: "표현 목록으로 돌아가기"
         }}
+        reviewMode="virtual-test"
         clearStoredStateOnComplete
       />
     );
@@ -242,10 +243,19 @@ describe("MemorizeQueue", () => {
     expect(screen.getByText("남은 표현 1개")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /정답 보기/ }));
-    await user.click(screen.getByRole("button", { name: /쉬움/ }));
+    expect(screen.getByRole("button", { name: "모름" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "앎" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /다시/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /어려움/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /알긴암/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /쉬움/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "앎" }));
 
     expect(screen.getByText("이 날짜의 표현 테스트를 마쳤습니다")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "표현 목록으로 돌아가기" })).toHaveAttribute("href", "/expressions?topic=day-1");
+    expect(inPlaceReviewAction).not.toHaveBeenCalled();
+    expect(redirectReviewAction).not.toHaveBeenCalled();
     await waitFor(() => expect(window.localStorage.getItem(topicStorageKey)).toBeNull());
   });
 
