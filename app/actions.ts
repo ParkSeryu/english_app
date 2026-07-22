@@ -22,7 +22,18 @@ function revalidateAppPaths() {
 }
 
 function errorState(error: unknown): ActionState {
-  return { ok: false, message: error instanceof Error ? error.message : "문제가 발생했습니다. 다시 시도해 주세요." };
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error && typeof error.message === "string"
+        ? error.message
+        : null;
+
+  if (message && /^(fetch failed|failed to fetch)$/i.test(message.trim())) {
+    return { ok: false, message: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요." };
+  }
+
+  return { ok: false, message: message ?? "문제가 발생했습니다. 다시 시도해 주세요." };
 }
 
 export async function updateExpressionMemoAction(expressionId: string, _previousState: ActionState, formData: FormData): Promise<ActionState> {
@@ -139,7 +150,7 @@ export async function signInAction(_previousState: ActionState, formData: FormDa
   try {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { ok: false, message: error.message };
+    if (error) return errorState(error);
   } catch (error) {
     return errorState(error);
   }
@@ -165,7 +176,7 @@ export async function signInWithKakaoAction(_previousState: ActionState, formDat
       }
     });
 
-    if (error) return { ok: false, message: error.message };
+    if (error) return errorState(error);
     oauthUrl = data.url;
   } catch (error) {
     return errorState(error);
@@ -186,7 +197,7 @@ export async function signUpAction(_previousState: ActionState, formData: FormDa
   try {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { ok: false, message: error.message };
+    if (error) return errorState(error);
   } catch (error) {
     return errorState(error);
   }
@@ -205,7 +216,7 @@ export async function resetPasswordAction(_previousState: ActionState, formData:
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: passwordResetRedirectUrl(headerStore)
     });
-    if (error) return { ok: false, message: error.message };
+    if (error) return errorState(error);
   } catch (error) {
     return errorState(error);
   }
@@ -228,7 +239,7 @@ export async function updatePasswordAction(_previousState: ActionState, formData
     }
 
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) return { ok: false, message: error.message };
+    if (error) return errorState(error);
 
     await supabase.auth.signOut();
   } catch (error) {

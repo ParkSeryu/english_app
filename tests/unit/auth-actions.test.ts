@@ -30,6 +30,25 @@ describe("auth actions", () => {
     vi.clearAllMocks();
   });
 
+  it("returns a user-friendly message when the auth server cannot be reached", async () => {
+    const signInWithPassword = vi.fn(async () => ({ error: { message: "fetch failed" } }));
+    mocks.createServerSupabaseClient.mockResolvedValue({
+      auth: { signInWithPassword }
+    });
+
+    const { signInAction } = await import("@/app/actions");
+    const formData = new FormData();
+    formData.set("email", "student@example.com");
+    formData.set("password", "secret123");
+
+    const result = await signInAction({}, formData);
+
+    expect(result).toEqual({
+      ok: false,
+      message: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."
+    });
+  });
+
   it("sends password reset emails back to the password update flow", async () => {
     const resetPasswordForEmail = vi.fn(async () => ({ error: null }));
     mocks.createPasswordRecoverySupabaseClient.mockReturnValue({
