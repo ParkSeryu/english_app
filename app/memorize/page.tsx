@@ -42,7 +42,7 @@ export default async function MemorizePage({ searchParams }: { searchParams: Sea
           } : undefined}
           returnTo={isTopicTest ? `/memorize?topic=${topic?.id}` : undefined}
           reviewMode={isTopicTest ? "virtual-test" : "memorization"}
-          persistQueueState={false}
+          persistQueueState={!isTopicTest}
           clearStoredStateOnComplete={isTopicTest}
         />
       ) : (
