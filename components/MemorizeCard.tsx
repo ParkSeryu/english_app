@@ -39,9 +39,11 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
       setRevealed(false);
       if (onReviewSubmit) {
         onReviewSubmit(result);
-        startTransition(() => {
-          void recordExpressionReviewInPlaceAction(expression.id, result).catch(reportReviewSaveFailure);
-        });
+        if (persistReview) {
+          startTransition(() => {
+            void recordExpressionReviewInPlaceAction(expression.id, result).catch(reportReviewSaveFailure);
+          });
+        }
         return;
       }
     }

@@ -8,7 +8,7 @@ import { isAgainReviewResult } from "@/lib/review-result";
 import { nextExpressionReviewSchedule } from "@/lib/scheduling";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
-const DEFAULT_STORAGE_KEY = "english:memorize-session:v1";
+const DEFAULT_STORAGE_KEY = "english:memorize-session:v2";
 const EMPTY_DEFERRED_IDS: string[] = [];
 const KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -46,6 +46,7 @@ type MemorizeQueueProps = {
   emptyState?: MemorizeQueueEmptyState;
   returnTo?: string;
   clearStoredStateOnComplete?: boolean;
+  persistQueueState?: boolean;
   reviewMode?: "memorization" | "virtual-test";
 };
 
@@ -226,6 +227,7 @@ export function MemorizeQueue({
   },
   returnTo = "/memorize",
   clearStoredStateOnComplete = false,
+  persistQueueState = true,
   reviewMode = "memorization"
 }: MemorizeQueueProps) {
   const deferredIdInput = deferredIds ?? EMPTY_DEFERRED_IDS;
@@ -245,18 +247,22 @@ export function MemorizeQueue({
   useEffect(() => {
     setSessionState((current) => {
       if (hasUserInteractedRef.current) return reconcileCurrentQueueState(propsSignature, expressions, initialDeferredIds, current);
-      return reconcileQueueState(propsSignature, expressions, initialDeferredIds, readStoredQueueState(storageKey));
+      return reconcileQueueState(propsSignature, expressions, initialDeferredIds, persistQueueState ? readStoredQueueState(storageKey) : null);
     });
-  }, [expressions, initialDeferredIds, propsSignature, storageKey]);
+  }, [expressions, initialDeferredIds, persistQueueState, propsSignature, storageKey]);
 
   useEffect(() => {
+    if (!persistQueueState) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
     if (sessionState.signature !== propsSignature) return;
     if (clearStoredStateOnComplete && sessionState.queueIds.length === 0) {
       window.localStorage.removeItem(storageKey);
       return;
     }
     writeStoredQueueState(storageKey, sessionState);
-  }, [clearStoredStateOnComplete, propsSignature, sessionState, storageKey]);
+  }, [clearStoredStateOnComplete, persistQueueState, propsSignature, sessionState, storageKey]);
 
   if (!activeExpression) {
     return (

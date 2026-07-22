@@ -30,7 +30,7 @@ export default async function MemorizePage({ searchParams }: { searchParams: Sea
         <MemorizeQueue
           expressions={displayQueue}
           deferredIds={deferredIds}
-          storageKey={isTopicTest ? `english:topic-test-session:${user.id}:${topic?.id}:v1` : `english:memorize-session:${user.id}:v1`}
+          storageKey={isTopicTest ? `english:topic-test-session:${user.id}:${topic?.id}:v1` : `english:memorize-session:${user.id}:v2`}
           heading={isTopicTest ? "날짜별 표현 테스트" : undefined}
           description={topic ? [topic.day_date, topic.title].filter(Boolean).join(" · ") : undefined}
           remainingLabel={isTopicTest ? "남은 표현" : undefined}
@@ -42,6 +42,7 @@ export default async function MemorizePage({ searchParams }: { searchParams: Sea
           } : undefined}
           returnTo={isTopicTest ? `/memorize?topic=${topic?.id}` : undefined}
           reviewMode={isTopicTest ? "virtual-test" : "memorization"}
+          persistQueueState={!isTopicTest}
           clearStoredStateOnComplete={isTopicTest}
         />
       ) : (

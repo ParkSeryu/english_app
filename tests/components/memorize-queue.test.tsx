@@ -45,7 +45,7 @@ function expression(overrides: Partial<ExpressionCard>): ExpressionCard {
 const first = expression({ id: "expression-1", korean_prompt: "첫 번째 한국어", english: "First answer" });
 const second = expression({ id: "expression-2", korean_prompt: "두 번째 한국어", english: "Second answer", source_order: 1 });
 const third = expression({ id: "expression-3", korean_prompt: "세 번째 한국어", english: "Third answer", source_order: 2 });
-const storageKey = "english:memorize-session:v1";
+const storageKey = "english:memorize-session:v2";
 
 function storedQueueState(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
@@ -234,6 +234,7 @@ describe("MemorizeQueue", () => {
           actionLabel: "표현 목록으로 돌아가기"
         }}
         reviewMode="virtual-test"
+        persistQueueState={false}
         clearStoredStateOnComplete
       />
     );
@@ -250,13 +251,33 @@ describe("MemorizeQueue", () => {
     expect(screen.queryByRole("button", { name: /알긴암/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /쉬움/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "앎" }));
+    await user.click(screen.getByRole("button", { name: "모름" }));
 
     expect(screen.getByText("이 날짜의 표현 테스트를 마쳤습니다")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "표현 목록으로 돌아가기" })).toHaveAttribute("href", "/expressions?topic=day-1");
     expect(inPlaceReviewAction).not.toHaveBeenCalled();
     expect(redirectReviewAction).not.toHaveBeenCalled();
     await waitFor(() => expect(window.localStorage.getItem(topicStorageKey)).toBeNull());
+  });
+
+  it("does not restore a stale localStorage position for topic tests", async () => {
+    const topicStorageKey = "english:topic-test-session:user-a:day-1:v1";
+    window.localStorage.setItem(topicStorageKey, storedQueueState({ activeId: second.id }));
+
+    render(
+      <MemorizeQueue
+        expressions={[first, second, third]}
+        storageKey={topicStorageKey}
+        heading="날짜별 표현 테스트"
+        remainingLabel="남은 표현"
+        reviewMode="virtual-test"
+        persistQueueState={false}
+      />
+    );
+
+    await waitFor(() => expectPromptVisible("첫 번째 한국어"));
+    expectPromptAbsent("두 번째 한국어");
+    expect(window.localStorage.getItem(topicStorageKey)).toBeNull();
   });
 
   it("server-renders the first card instead of blocking on browser storage", () => {
