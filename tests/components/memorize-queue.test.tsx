@@ -45,7 +45,7 @@ function expression(overrides: Partial<ExpressionCard>): ExpressionCard {
 const first = expression({ id: "expression-1", korean_prompt: "첫 번째 한국어", english: "First answer" });
 const second = expression({ id: "expression-2", korean_prompt: "두 번째 한국어", english: "Second answer", source_order: 1 });
 const third = expression({ id: "expression-3", korean_prompt: "세 번째 한국어", english: "Third answer", source_order: 2 });
-const storageKey = "english:memorize-session:v2";
+const storageKey = "english:memorize-session:v1";
 
 function storedQueueState(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({

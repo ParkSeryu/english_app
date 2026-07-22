@@ -8,7 +8,7 @@ import { isAgainReviewResult } from "@/lib/review-result";
 import { nextExpressionReviewSchedule } from "@/lib/scheduling";
 import type { ExpressionCard, ExpressionReviewResult } from "@/lib/types";
 
-const DEFAULT_STORAGE_KEY = "english:memorize-session:v2";
+const DEFAULT_STORAGE_KEY = "english:memorize-session:v1";
 const EMPTY_DEFERRED_IDS: string[] = [];
 const KOREA_TIME_OFFSET_MS = 9 * 60 * 60 * 1000;
 
