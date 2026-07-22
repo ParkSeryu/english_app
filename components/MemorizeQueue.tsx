@@ -29,6 +29,25 @@ type StoredQueueState = {
   savedAt?: unknown;
 };
 
+type MemorizeQueueEmptyState = {
+  title: string;
+  body: string;
+  actionHref: string;
+  actionLabel: string;
+};
+
+type MemorizeQueueProps = {
+  expressions: ExpressionCard[];
+  deferredIds?: string[];
+  storageKey?: string;
+  heading?: string;
+  description?: string;
+  remainingLabel?: string;
+  emptyState?: MemorizeQueueEmptyState;
+  returnTo?: string;
+  clearStoredStateOnComplete?: boolean;
+};
+
 function appendDeferredId(ids: string[], id: string) {
   return [...removeDeferredId(ids, id), id];
 }
@@ -191,7 +210,22 @@ function shouldDeferReviewedCard(expression: ExpressionCard, result: ExpressionR
   return Number.isFinite(dueAt) && dueAt <= now.getTime();
 }
 
-export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_STORAGE_KEY }: { expressions: ExpressionCard[]; deferredIds?: string[]; storageKey?: string }) {
+export function MemorizeQueue({
+  expressions,
+  deferredIds,
+  storageKey = DEFAULT_STORAGE_KEY,
+  heading = "오늘의 복습",
+  description,
+  remainingLabel = "복습할 표현",
+  emptyState = {
+    title: "암기할 표현이 없습니다",
+    body: "배운 표현이 생기면 한국어 힌트로 바로 복습할 수 있습니다.",
+    actionHref: "/expressions",
+    actionLabel: "표현 모아보기"
+  },
+  returnTo = "/memorize",
+  clearStoredStateOnComplete = false
+}: MemorizeQueueProps) {
   const deferredIdInput = deferredIds ?? EMPTY_DEFERRED_IDS;
   const initialDeferredIds = useMemo(() => normalizeDeferredIds(deferredIdInput, expressions), [deferredIdInput, expressions]);
   const propsSignature = useMemo(() => queueSignature(expressions, initialDeferredIds), [expressions, initialDeferredIds]);
@@ -215,14 +249,18 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
 
   useEffect(() => {
     if (sessionState.signature !== propsSignature) return;
+    if (clearStoredStateOnComplete && sessionState.queueIds.length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
     writeStoredQueueState(storageKey, sessionState);
-  }, [propsSignature, sessionState, storageKey]);
+  }, [clearStoredStateOnComplete, propsSignature, sessionState, storageKey]);
 
   if (!activeExpression) {
     return (
       <div className="space-y-4 sm:space-y-5">
-        <MemorizeQueueHeader remainingCount={remainingCount} />
-        <EmptyState title="암기할 표현이 없습니다" body="배운 표현이 생기면 한국어 힌트로 바로 복습할 수 있습니다." actionHref="/expressions" actionLabel="표현 모아보기" />
+        <MemorizeQueueHeader heading={heading} description={description} remainingLabel={remainingLabel} remainingCount={remainingCount} />
+        <EmptyState {...emptyState} />
       </div>
     );
   }
@@ -255,10 +293,11 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <MemorizeQueueHeader remainingCount={remainingCount} />
+      <MemorizeQueueHeader heading={heading} description={description} remainingLabel={remainingLabel} remainingCount={remainingCount} />
       <MemorizeCard
         key={activeExpression.id}
         expression={activeExpression}
+        returnTo={returnTo}
         onReveal={handleReveal}
         onReviewSubmit={handleReviewSubmit}
       />
@@ -266,11 +305,14 @@ export function MemorizeQueue({ expressions, deferredIds, storageKey = DEFAULT_S
   );
 }
 
-function MemorizeQueueHeader({ remainingCount }: { remainingCount: number }) {
+function MemorizeQueueHeader({ heading, description, remainingLabel, remainingCount }: { heading: string; description?: string; remainingLabel: string; remainingCount: number }) {
   return (
     <header className="flex items-end justify-between gap-3 sm:block">
-      <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] text-ink sm:text-3xl">오늘의 복습</h1>
-      <p className="text-sm font-semibold text-slate-500 sm:mt-2">복습할 표현 {remainingCount}개</p>
+      <div>
+        <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] text-ink sm:text-3xl">{heading}</h1>
+        {description ? <p className="mt-1 text-sm font-semibold text-slate-600">{description}</p> : null}
+      </div>
+      <p className="shrink-0 text-sm font-semibold text-slate-500 sm:mt-2">{remainingLabel} {remainingCount}개</p>
     </header>
   );
 }

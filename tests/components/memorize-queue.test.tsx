@@ -197,6 +197,39 @@ describe("MemorizeQueue", () => {
     expect(screen.queryByRole("button", { name: /정답 보기/ })).not.toBeInTheDocument();
   });
 
+  it("shows topic-test copy and clears its saved session after completion", async () => {
+    const user = userEvent.setup();
+    const topicStorageKey = "english:topic-test-session:user-a:day-1:v1";
+
+    render(
+      <MemorizeQueue
+        expressions={[first]}
+        storageKey={topicStorageKey}
+        heading="날짜별 표현 테스트"
+        description="20260427 · 오늘의 영어표현"
+        remainingLabel="남은 표현"
+        emptyState={{
+          title: "이 날짜의 표현 테스트를 마쳤습니다",
+          body: "결과가 암기 기록에 반영되었습니다.",
+          actionHref: "/expressions?topic=day-1",
+          actionLabel: "표현 목록으로 돌아가기"
+        }}
+        clearStoredStateOnComplete
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: "날짜별 표현 테스트" })).toBeInTheDocument();
+    expect(screen.getByText("20260427 · 오늘의 영어표현")).toBeInTheDocument();
+    expect(screen.getByText("남은 표현 1개")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+    await user.click(screen.getByRole("button", { name: /쉬움/ }));
+
+    expect(screen.getByText("이 날짜의 표현 테스트를 마쳤습니다")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "표현 목록으로 돌아가기" })).toHaveAttribute("href", "/expressions?topic=day-1");
+    await waitFor(() => expect(window.localStorage.getItem(topicStorageKey)).toBeNull());
+  });
+
   it("server-renders the first card instead of blocking on browser storage", () => {
     const html = renderToString(<MemorizeQueue expressions={[first, second, third]} />);
 

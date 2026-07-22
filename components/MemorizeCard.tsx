@@ -71,7 +71,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
           ) : (
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">암기 카드</p>
           )}
-          <MemorizeCardActions expressionId={expression.id} canEdit={Boolean(expression.can_edit)} canDelete={Boolean(expression.can_delete)} />
+          <MemorizeCardActions expressionId={expression.id} canEdit={Boolean(expression.can_edit)} canDelete={Boolean(expression.can_delete)} returnTo={returnTo} />
         </div>
         <div className="grid shrink-0 grid-cols-2 justify-items-end gap-x-2 gap-y-0.5 text-right text-[11px] font-bold leading-4 text-slate-500 sm:gap-x-3 sm:text-xs">
           <span>다시 {expression.unknown_count}회</span>
@@ -136,7 +136,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
   );
 }
 
-function MemorizeCardActions({ expressionId, canEdit, canDelete }: { expressionId: string; canEdit: boolean; canDelete: boolean }) {
+function MemorizeCardActions({ expressionId, canEdit, canDelete, returnTo }: { expressionId: string; canEdit: boolean; canDelete: boolean; returnTo: string }) {
   const [open, setOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -172,7 +172,7 @@ function MemorizeCardActions({ expressionId, canEdit, canDelete }: { expressionI
             confirmingDelete ? (
               <div className="space-y-2 rounded-xl bg-red-50 p-2">
                 <p className="text-xs font-bold leading-5 text-red-700">이 표현을 삭제할까요?</p>
-                <form action={deletePersonalExpressionAction.bind(null, expressionId, "/memorize")} className="grid grid-cols-2 gap-1.5">
+                <form action={deletePersonalExpressionAction.bind(null, expressionId, returnTo)} className="grid grid-cols-2 gap-1.5">
                   <button type="button" onClick={() => setConfirmingDelete(false)} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-black text-slate-600 transition hover:border-slate-300">
                     취소
                   </button>
