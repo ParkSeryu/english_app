@@ -22,6 +22,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
   const [revealed, setRevealed] = useState(false);
   const [, startTransition] = useTransition();
   const topicContext = formatTopicContext(expression);
+  const userMemo = expression.user_memo?.trim();
   const hardSchedule = nextExpressionReviewSchedule(expression, "hard", reviewNow);
   const okaySchedule = nextExpressionReviewSchedule(expression, "okay", reviewNow);
   const easySchedule = nextExpressionReviewSchedule(expression, "easy", reviewNow);
@@ -107,6 +108,7 @@ export function MemorizeCard({ expression, returnTo = "/memorize", onReveal, onR
                 </ul>
               </section>
             ) : null}
+            {userMemo ? <Info title="내 메모" body={userMemo} /> : null}
             <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
               <button type="button" onClick={() => handleReview("again")} className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-1.5 py-2 text-[13px] font-black leading-tight text-rose-700 transition hover:bg-rose-100 sm:min-h-14 sm:rounded-full sm:px-5 sm:py-3 sm:text-base">
                 <span>다시</span>

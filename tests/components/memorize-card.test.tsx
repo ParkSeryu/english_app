@@ -196,6 +196,22 @@ describe("MemorizeCard", () => {
     expect(screen.getByRole("button", { name: "삭제" })).toHaveAttribute("type", "submit");
   });
 
+  it("shows a non-empty saved memo below similar expressions after revealing the answer", async () => {
+    const user = userEvent.setup();
+    const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
+    render(<MemorizeCard expression={{ ...expression, user_memo: "  to 뒤 형태를 자주 헷갈림.  " }} />);
+
+    expect(screen.queryByRole("heading", { name: "내 메모" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /정답 보기/ }));
+
+    const memoHeading = screen.getByRole("heading", { name: "내 메모" });
+    const examplesHeading = screen.getByRole("heading", { name: "비슷한 표현" });
+    expect(memoHeading).toBeInTheDocument();
+    expect(screen.getByText("to 뒤 형태를 자주 헷갈림.")).toBeInTheDocument();
+    expect(examplesHeading.compareDocumentPosition(memoHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("shows a permission note instead of edit and delete actions for shared expressions", async () => {
     const user = userEvent.setup();
     const { MemorizeCard } = await importModule<MemorizeCardModule>("@/components/MemorizeCard");
