@@ -1,7 +1,5 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-
 export type TopicFilterOption = {
   id: string;
   label: string;
@@ -11,10 +9,7 @@ export type TopicFilterOption = {
   depth?: number;
 };
 
-export function TopicFilterSelect({ options, selectedId }: { options: TopicFilterOption[]; selectedId: string }) {
-  const pathname = usePathname();
-  const router = useRouter();
-
+export function TopicFilterSelect({ options, selectedId, onSelect }: { options: TopicFilterOption[]; selectedId: string; onSelect: (topicId: string) => void }) {
   if (options.length === 0) return null;
 
   return (
@@ -22,9 +17,7 @@ export function TopicFilterSelect({ options, selectedId }: { options: TopicFilte
       <span className="text-xs font-black uppercase tracking-[0.18em] text-teal-700">토픽 선택</span>
       <select
         value={selectedId}
-        onChange={(event) => {
-          router.push(`${pathname}?topic=${event.target.value}`);
-        }}
+        onChange={(event) => onSelect(event.target.value)}
         className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-black text-ink outline-none transition focus:border-teal-400 focus:bg-white focus:ring-4 focus:ring-teal-100"
         aria-label="표현 토픽 선택"
       >

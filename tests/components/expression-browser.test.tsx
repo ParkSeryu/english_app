@@ -54,6 +54,53 @@ function day(id: string, title: string, expression: ExpressionCard): ExpressionD
 }
 
 describe("ExpressionBrowser", () => {
+  it("switches topics immediately while keeping the selected topic in the URL", () => {
+    window.history.replaceState({}, "", "/expressions?topic=topic-1");
+    const days = [
+      day("topic-1", "First topic", card("first", "First expression", "First prompt")),
+      day("topic-2", "Second topic", card("second", "Second expression", "Second prompt"))
+    ];
+
+    render(<ExpressionBrowser days={days} selectedTopicId="topic-1" requestedTopicBlocked={false} initialQuery="" />);
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "topic-2" } });
+
+    expect(screen.queryByRole("heading", { name: "First expression" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Second expression" })).toBeInTheDocument();
+    expect(window.location.search).toBe("?topic=topic-2");
+  });
+
+  it("keeps the add-expression target aligned with the visible topic", () => {
+    const days = [
+      day("topic-1", "First topic", card("first", "First expression", "First prompt")),
+      day("topic-2", "Second topic", card("second", "Second expression", "Second prompt"))
+    ];
+
+    render(<ExpressionBrowser days={days} selectedTopicId="topic-1" requestedTopicBlocked={false} initialQuery="" />);
+    expect(document.querySelector('a[href^="/expressions/new"]')).toHaveAttribute("href", "/expressions/new?topic=topic-1");
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "topic-2" } });
+
+    expect(document.querySelector('a[href^="/expressions/new"]')).toHaveAttribute("href", "/expressions/new?topic=topic-2");
+  });
+
+  it("restores the visible topic when browser history changes the URL", () => {
+    window.history.replaceState({}, "", "/expressions?topic=topic-2");
+    const days = [
+      day("topic-1", "First topic", card("first", "First expression", "First prompt")),
+      day("topic-2", "Second topic", card("second", "Second expression", "Second prompt"))
+    ];
+
+    render(<ExpressionBrowser days={days} selectedTopicId="topic-2" requestedTopicBlocked={false} initialQuery="" />);
+    expect(screen.getByRole("heading", { name: "Second expression" })).toBeInTheDocument();
+
+    window.history.replaceState({}, "", "/expressions?topic=topic-1");
+    fireEvent(window, new PopStateEvent("popstate"));
+
+    expect(screen.queryByRole("heading", { name: "Second expression" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "First expression" })).toBeInTheDocument();
+  });
+
   it("filters cards immediately while typing without waiting for URL synchronization", () => {
     const days = [
       day("topic-1", "첫 토픽", card("first", "First expression", "첫 표현")),

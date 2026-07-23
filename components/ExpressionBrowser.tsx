@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ExpressionReviewStats } from "@/components/ExpressionReviewStats";
 import { ExpressionSearchBox } from "@/components/ExpressionSearchBox";
@@ -22,9 +22,10 @@ type ExpressionBrowserProps = {
 
 export function ExpressionBrowser({ days, selectedTopicId, requestedTopicBlocked, initialQuery }: ExpressionBrowserProps) {
   const [query, setQuery] = useState(initialQuery);
+  const [activeTopicId, setActiveTopicId] = useState(selectedTopicId);
   const normalizedQuery = query.trim();
   const isSearching = normalizedQuery.length > 0;
-  const selectedDay = days.find((day) => day.id === selectedTopicId) ?? null;
+  const selectedDay = days.find((day) => day.id === activeTopicId) ?? null;
   const topicOptions = days.map((day) => ({
     id: day.id,
     label: getExpressionTopicDisplayLabel(day),
@@ -42,15 +43,35 @@ export function ExpressionBrowser({ days, selectedTopicId, requestedTopicBlocked
     [days, isSearching, normalizedQuery, selectedDay]
   );
   const resultCount = visibleDays.reduce((count, day) => count + day.expressions.length, 0);
+  useEffect(() => {
+    setActiveTopicId(selectedTopicId);
+
+    function syncTopicFromUrl() {
+      const topicId = new URL(window.location.href).searchParams.get("topic");
+      setActiveTopicId(topicId && days.some((day) => day.id === topicId) ? topicId : selectedTopicId);
+    }
+
+    window.addEventListener("popstate", syncTopicFromUrl);
+    return () => window.removeEventListener("popstate", syncTopicFromUrl);
+  }, [days, selectedTopicId]);
+
+  function selectTopic(topicId: string) {
+    setActiveTopicId(topicId);
+    const url = new URL(window.location.href);
+    url.searchParams.set("topic", topicId);
+    url.searchParams.delete("day");
+    url.searchParams.delete("q");
+    window.history.pushState(window.history.state, "", `${url.pathname}${url.search}`);
+  }
 
   return (
     <div className="space-y-5">
-      <ExpressionSearchBox query={query} onQueryChange={setQuery} selectedTopicId={selectedTopicId} />
+      <ExpressionSearchBox query={query} onQueryChange={setQuery} selectedTopicId={activeTopicId} />
       {isSearching ? <p className="text-sm font-semibold text-slate-600" role="status"><span className="font-black text-ink">{normalizedQuery}</span> 검색 결과 {resultCount}개</p> : null}
-      {!isSearching && requestedTopicBlocked ? (
+      {!isSearching && requestedTopicBlocked && activeTopicId === selectedTopicId ? (
         <p className="text-sm text-amber-700" role="status" aria-live="polite">요청한 토픽에는 접근할 수 없어서 첫 번째 토픽으로 이동했습니다.</p>
       ) : null}
-      {!isSearching && selectedTopicId ? <TopicFilterSelect options={topicOptions} selectedId={selectedTopicId} /> : null}
+      {!isSearching && activeTopicId ? <TopicFilterSelect options={topicOptions} selectedId={activeTopicId} onSelect={selectTopic} /> : null}
       {isSearching && visibleDays.length === 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
           <h2 className="text-xl font-black text-ink">일치하는 표현이 없습니다</h2>
@@ -100,6 +121,7 @@ export function ExpressionBrowser({ days, selectedTopicId, requestedTopicBlocked
           })}
         </section>
       ))}
+      <Link href={activeTopicId ? `/expressions/new?topic=${activeTopicId}` : "/expressions/new"} aria-label="현재 학습 토픽에 표현 추가" className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-teal-600 text-3xl font-black text-white shadow-xl shadow-teal-900/20 transition hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-200">+</Link>
     </div>
   );
 }
