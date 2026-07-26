@@ -115,6 +115,48 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
 
+### 2026-07-26 — T-007: WCT 개인 수업 라이브러리
+
+- Status: Complete
+- Priority: High
+- Workstream: Course Reference
+- Surface: 하단 GNB, 수업 책장/Day 화면, 개인 저장소와 RLS, 승인형 import API
+- Why: 학원 WCT 교재에서 배운 회화 패턴을 Day별로 다시 읽을 전용 공간이 필요합니다.
+- Scope:
+  - 하단 `수업`에서 개인 WCT 책과 Day를 읽을 수 있습니다.
+  - Topic, 암기 모드, 사용자 편집 없이 교재 내용과 중요한 메모만 표시합니다.
+  - 명시적으로 승인한 구조화 데이터만 원자적으로 import합니다.
+  - 기존 레거시 수업 테이블은 제거하고 `ingestion_runs` 및 표현/암기 기능은 보존합니다.
+- Non-goals: 앱 내 OCR 업로드, 공동 교재, 학습 진도, 운영 DB 자동 데이터 import
+- Acceptance criteria:
+  - [x] 하단 `수업`에서 WCT 책과 Day를 읽을 수 있습니다.
+  - [x] WCT 데이터는 소유자만 읽고 브라우저에서 수정할 수 없습니다.
+  - [x] 명시적으로 승인한 구조화 데이터만 원자적으로 저장됩니다.
+  - [x] `ingestion_runs`와 표현/암기 기능은 보존됩니다.
+- Changed files:
+  - `app/api/wct/import/*`
+  - `app/lessons/**`
+  - `components/BottomNav.tsx`
+  - `components/wct/*`
+  - `lib/wct-store*`
+  - `lib/wct/*`
+  - `supabase/migrations/2026072612*.sql`
+  - `e2e/wct-course-library.spec.ts`
+  - `tests/components/wct-library.test.tsx`
+  - `tests/integration/*wct*`
+  - `tests/unit/wct-*`
+  - `docs/prd/complete/wct-course-library/*`
+- Verification:
+  - [x] `npm run lint` — passed
+  - [x] `npm run typecheck` — passed
+  - [x] `npm test` — 217 passed, 1 skipped
+  - [x] `npm run build` — passed
+  - [x] targeted WCT Playwright flow — passed
+  - [x] live `/lessons`, book, and Day routes — HTTP 200 and browser navigation verified on dev
+- Remaining risks:
+  - 운영 DB 스키마와 WCT 교재 데이터는 코드 승격과 별도이며, 운영 적용 전 별도 확인이 필요합니다.
+  - 기존 `mobile-review` E2E의 Next 개발 오버레이 클릭 차단은 변경 전 `origin/main`에서도 재현됩니다.
+
 ### 2026-06-01 — T-009: 공통 토픽 PWA 푸시 알림 MVP
 
 - Status: Complete

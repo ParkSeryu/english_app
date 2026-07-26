@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const DESKTOP_FCP_BUDGET_MS = 3000;
 const DESKTOP_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-const BUDGETED_ROUTES = ["/", "/expressions", "/memorize", "/questions"];
+const BUDGETED_ROUTES = ["/", "/expressions", "/memorize", "/questions", "/lessons"];
 const MEASURED_ATTEMPTS_PER_ROUTE = 2;
 
 test.beforeEach(async ({ request }) => {
@@ -11,6 +11,8 @@ test.beforeEach(async ({ request }) => {
   expect(reset.ok()).toBe(true);
   const seed = await request.post("/test/seed-approved-expression-day");
   expect(seed.ok()).toBe(true);
+  const wctSeed = await request.post("/test/seed-wct-book");
+  expect(wctSeed.ok()).toBe(true);
 });
 
 test("desktop FCP stays under the 3s Speed Insights budget @perf", async ({ baseURL, browser }) => {

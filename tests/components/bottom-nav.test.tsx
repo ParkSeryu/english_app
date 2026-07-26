@@ -42,9 +42,10 @@ describe("BottomNav", () => {
 
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");
-    expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("href", "/wct");
+    expect(screen.getByRole("link", { name: "질문거리" })).toHaveAttribute("href", "/questions");
+    expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("href", "/lessons");
     expect(screen.getByRole("link", { name: "묘사" })).toHaveAttribute("href", "/picture-description");
-    expect(screen.queryByRole("link", { name: "질문거리" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link")).toHaveLength(5);
 
     fireEvent.click(screen.getByRole("link", { name: "암기" }));
 
@@ -73,12 +74,12 @@ describe("BottomNav", () => {
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("href", "/expressions?topic=topic-1");
   });
 
-  it("marks the WCT lesson notes route as the class tab", () => {
-    navigation.pathname = "/wct";
+  it("marks the WCT course library route as the class tab", () => {
+    navigation.pathname = "/lessons";
 
     render(<BottomNav />);
 
-    expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("href", "/wct");
+    expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("href", "/lessons");
     expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("aria-current", "page");
   });
 });

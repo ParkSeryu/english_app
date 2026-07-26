@@ -17,3 +17,4 @@ coverage/
 .omx/tmux-hook.json
 playwright-report/
 test-results/
+.worktrees/
