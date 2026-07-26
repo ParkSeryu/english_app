@@ -23,9 +23,6 @@ export function WctPatternCard({ pattern }: { pattern: WctPattern }) {
             <div key={example.id} className="rounded-2xl bg-slate-50 p-4">
               <p className="font-bold text-ink">{example.englishText}</p>
               {example.meaningKo ? <p className="mt-1 text-sm text-slate-600">{example.meaningKo}</p> : null}
-              {example.sourcePage ? (
-                <p className="mt-2 text-xs font-bold text-slate-500">교재 {example.sourcePage}쪽</p>
-              ) : null}
             </div>
           ))}
         </div>

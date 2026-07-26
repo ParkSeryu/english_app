@@ -75,6 +75,7 @@ describe("WCT library components", () => {
     render(<WctDayCard bookId="book-1" day={day} />);
     expect(screen.getByRole("link", { name: /Day 13 \(if 가능\)/ }))
       .toHaveAttribute("href", "/lessons/books/book-1/days/day-13");
+    expect(screen.queryByText(/교재 102–108쪽/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Topic/i)).not.toBeInTheDocument();
   });
 
@@ -82,7 +83,7 @@ describe("WCT library components", () => {
     render(<WctPatternCard pattern={pattern} />);
     expect(screen.getByText("AI 보완")).toBeVisible();
     expect(screen.getByText("It is made of wood.")).toBeVisible();
-    expect(screen.getByText("교재 8쪽")).toBeVisible();
+    expect(screen.queryByText("교재 8쪽")).not.toBeInTheDocument();
   });
 
   it("renders all Day sections as read-only content", () => {
@@ -92,6 +93,7 @@ describe("WCT library components", () => {
     expect(screen.getByText("중요 메모")).toBeVisible();
     expect(screen.getByText("핵심 연습")).toBeVisible();
     expect(screen.getByText("원문 확인 필요")).toBeVisible();
+    expect(screen.queryByText("교재 104쪽")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /추가|수정|삭제|저장/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Topic/i)).not.toBeInTheDocument();
   });

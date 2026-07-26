@@ -16,12 +16,6 @@ export function WctDayCard({ bookId, day }: { bookId: string; day: WctDaySummary
           </span>
         ) : null}
       </div>
-      {day.sourcePageStart ? (
-        <p className="mt-3 text-xs font-bold text-slate-500">
-          교재 {day.sourcePageStart}
-          {day.sourcePageEnd && day.sourcePageEnd !== day.sourcePageStart ? `–${day.sourcePageEnd}` : ""}쪽
-        </p>
-      ) : null}
     </Link>
   );
 }

@@ -41,7 +41,6 @@ export function WctDayContent({ day }: { day: WctDay }) {
             {day.importantNotes.map((note) => (
               <div key={note.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                 <p className="text-sm leading-6 text-slate-700">{note.noteText}</p>
-                {note.sourcePage ? <p className="mt-2 text-xs font-bold text-slate-500">교재 {note.sourcePage}쪽</p> : null}
               </div>
             ))}
           </div>
