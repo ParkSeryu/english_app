@@ -24,6 +24,7 @@ If code implementation has started or an implementation PR is open, the feature 
 | New-member learning load | T-002 | `complete/` | `complete/new-member-learning-load/prd.md` | `complete/new-member-learning-load/test-spec.md` | `complete/new-member-learning-load/implementation-plan.md` | Completed signup-date based onboarding load reduction. |
 | Ebbinghaus/SRS interval policy | T-003 | `complete/` | `complete/spaced-repetition-interval-policy/prd.md` | Focused scheduling, memory-store, and memorize-card tests in PR #5 | PR #5 | Completed 3-button SRS policy: `다시` keeps interval, `어려움` steps down, `쉬움` stretches to 365 days. |
 | Kakao social login | T-006 | `complete/` | `complete/kakao-social-login/prd.md` | `complete/kakao-social-login/test-spec.md` | `complete/kakao-social-login/implementation-plan.md` | Completed first social login code slice using Supabase Kakao OAuth; external Kakao/Supabase provider setup remains required for real sign-in. |
+| WCT private course library | T-007 | `active/` | `active/wct-course-library/prd.md` | `active/wct-course-library/test-spec.md` | `docs/superpowers/plans/2026-07-26-wct-course-library.md` | Active private read-only textbook/Day reference work. |
 | Push notifications | T-004 | `backlog/` | TBD | TBD | TBD | Brief: `backlog/push-notifications/README.md`. Needs browser/PWA permission and scheduling decisions before implementation. |
 | LLM-assisted lesson ingestion predecessor | Historical | `complete/` | `complete/english-review-app-llm-ingestion-superseded/prd.md` | `complete/english-review-app-llm-ingestion-superseded/test-spec.md` | `complete/english-review-app-llm-ingestion-superseded/implementation-plan.md` | Superseded historical planning context. |
 
@@ -35,6 +36,11 @@ docs/prd/
   future-work.md
   active/
     README.md
+    wct-course-library/
+      README.md
+      prd.md
+      test-spec.md
+      implementation-plan.md
   backlog/
     push-notifications/
       README.md

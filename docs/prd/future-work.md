@@ -107,7 +107,36 @@
 
 ## Active
 
-_현재 진행 중인 작업은 없습니다._
+### T-007: WCT private course library
+
+- Status: Active
+- Priority: High
+- Workstream: Course Reference
+- Surface: bottom navigation, lesson routes, private persistence, RLS, ingestion API
+- Pull readiness:
+  - [x] User value is clear.
+  - [x] Acceptance criteria are testable.
+  - [x] Required data/schema changes are identified.
+  - [x] Required live route/action checks are identified.
+- Artifacts:
+  - PRD: `docs/prd/active/wct-course-library/prd.md`
+  - Test spec: `docs/prd/active/wct-course-library/test-spec.md`
+  - Implementation plan: `docs/superpowers/plans/2026-07-26-wct-course-library.md`
+- Why: 학원 WCT 교재에서 배운 회화 패턴을 Day별로 다시 읽을 전용 공간이 필요합니다.
+- Scope: 개인 전용 WCT 책장, Day 목록/상세, 승인형 OCR 배치 import, 레거시 수업 테이블 제거.
+- Non-goals: Topic, 암기 모드, 사용자 편집, 앱 내 OCR 업로드.
+- Acceptance criteria:
+  - [ ] 하단 `수업`에서 WCT 책과 Day를 읽을 수 있습니다.
+  - [ ] WCT 데이터는 소유자만 읽고 브라우저에서 수정할 수 없습니다.
+  - [ ] 명시적으로 승인한 구조화 데이터만 원자적으로 저장됩니다.
+  - [ ] `ingestion_runs`와 표현/암기 기능은 보존됩니다.
+- Verification:
+  - [ ] `npm run lint`
+  - [ ] `npm run typecheck`
+  - [ ] `npm test`
+  - [ ] `npm run verify:rls`
+  - [ ] `npm run build`
+  - [ ] live `/lessons` route and book/Day navigation
 
 ## Backlog
 
