@@ -31,6 +31,8 @@ describe("BottomNav", () => {
 
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");
+    expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("href", "/lessons");
+    expect(screen.getAllByRole("link")).toHaveLength(4);
 
     fireEvent.click(screen.getByRole("link", { name: "암기" }));
 
