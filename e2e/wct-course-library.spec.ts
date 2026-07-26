@@ -28,6 +28,14 @@ test("reads WCT by book and Day without Topic or edit controls", async ({ page }
   await expect(page.getByRole("button", { name: /추가|수정|삭제|저장/ })).toHaveCount(0);
 });
 
+test("keeps the bottom navigation visible at desktop widths", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/");
+
+  await expect(page.getByRole("navigation", { name: "하단 주요 메뉴" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "수업" })).toBeVisible();
+});
+
 test("does not expose another owner's book by guessed URL", async ({ page }) => {
   await page.goto(`/lessons/books/${otherOwnerBookId}`);
   await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
