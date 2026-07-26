@@ -349,15 +349,16 @@ function toBookSummary(book: StoredWctBook): WctBookSummary {
 }
 
 function toDaySummary(day: WctDay) {
-  const {
-    learningSummary: _learningSummary,
-    concepts: _concepts,
-    patterns: _patterns,
-    importantNotes: _importantNotes,
-    practicePrompts: _practicePrompts,
-    ...summary
-  } = day;
-  return summary;
+  return {
+    id: day.id,
+    bookId: day.bookId,
+    dayNumber: day.dayNumber,
+    shortLabel: day.shortLabel,
+    displayLabel: day.displayLabel,
+    sourcePageStart: day.sourcePageStart,
+    sourcePageEnd: day.sourcePageEnd,
+    sourceNeedsReview: day.sourceNeedsReview
+  };
 }
 
 function sortDays(days: WctDay[]) {
