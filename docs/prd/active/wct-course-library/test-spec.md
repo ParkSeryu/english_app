@@ -47,3 +47,14 @@
   missing-module, or failed-action error.
 - Production database and production content remain untouched pending
   separate explicit authorization.
+- Approved dev import (`wct-pre-novice-days-1-16-approved-v1`): HTTP 201,
+  receipt `370cdad9-4863-4214-a697-f31480465e30`, 16 `created` operations,
+  and no duplicate Days.
+- Dev data readback: `WCT Pattern book Prenovice` has level `Pre Novice`,
+  exactly 16 numerically ordered Days, with Day 1, Day 13, and Day 16 labels
+  matching the reviewed OCR draft.
+- Authenticated owner browser verification: the private dev book, all 16 Day
+  cards, Day 13 `can` content, Day 16 AI supplement badge, and absence of
+  Topic content were rendered against the real dev Supabase data.
+- Authenticated cross-owner check: a different dev user read `0` rows for the
+  imported book ID.
