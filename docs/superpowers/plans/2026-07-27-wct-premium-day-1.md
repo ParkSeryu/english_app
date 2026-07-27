@@ -26,7 +26,7 @@
 ## File Map
 
 - Create `lib/wct/premium-lessons.ts`: Premium-only types, approved Day 1 data, list/get functions.
-- Create `tests/wct-premium-lessons.test.ts`: exact static-content and lookup contract tests.
+- Create `tests/unit/wct-premium-lessons.test.ts`: exact static-content and lookup contract tests.
 - Create `components/wct/WctPremiumCard.tsx`: `/lessons` entry link.
 - Delete `components/wct/WctPremiumPlaceholderCard.tsx`: obsolete non-interactive placeholder.
 - Create `components/wct/WctPremiumDayCard.tsx`: Premium Day list link.
@@ -43,7 +43,7 @@
 
 **Files:**
 - Create: `lib/wct/premium-lessons.ts`
-- Create: `tests/wct-premium-lessons.test.ts`
+- Create: `tests/unit/wct-premium-lessons.test.ts`
 
 **Interfaces:**
 - Produces: `WctPremiumContentBlock`, `WctPremiumSection`, `WctPremiumLesson`.
@@ -53,7 +53,7 @@
 
 - [ ] **Step 1: Write the failing content contract test**
 
-Create `tests/wct-premium-lessons.test.ts`:
+Create `tests/unit/wct-premium-lessons.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -96,7 +96,7 @@ describe("WCT Premium lessons", () => {
 Run:
 
 ```bash
-npm test -- tests/wct-premium-lessons.test.ts
+npm test -- tests/unit/wct-premium-lessons.test.ts
 ```
 
 Expected: FAIL because `@/lib/wct/premium-lessons` does not exist.
@@ -313,7 +313,7 @@ export function getWctPremiumLesson(id: string): WctPremiumLesson | null {
 Run:
 
 ```bash
-npm test -- tests/wct-premium-lessons.test.ts
+npm test -- tests/unit/wct-premium-lessons.test.ts
 ```
 
 Expected: PASS with two tests.
@@ -321,7 +321,7 @@ Expected: PASS with two tests.
 - [ ] **Step 5: Commit the Premium content contract**
 
 ```bash
-git add lib/wct/premium-lessons.ts tests/wct-premium-lessons.test.ts
+git add lib/wct/premium-lessons.ts tests/unit/wct-premium-lessons.test.ts
 git commit -m "feat: add WCT Premium Day 1 content"
 ```
 
@@ -619,7 +619,7 @@ export default async function WctPremiumDayPage({
 Run:
 
 ```bash
-npm test -- tests/wct-premium-lessons.test.ts tests/components/wct-library.test.tsx
+npm test -- tests/unit/wct-premium-lessons.test.ts tests/components/wct-library.test.tsx
 ```
 
 Expected: PASS, including all pre-existing WCT component tests.
@@ -732,7 +732,7 @@ Expected: both exit 0 with no warnings or type errors.
 - [ ] **Step 2: Run focused and full tests**
 
 ```bash
-npm test -- tests/wct-premium-lessons.test.ts tests/components/wct-library.test.tsx
+npm test -- tests/unit/wct-premium-lessons.test.ts tests/components/wct-library.test.tsx
 npm test
 ```
 
@@ -912,7 +912,7 @@ From `/home/ubuntu/code/english_app` run:
 ```bash
 npm run lint
 npm run typecheck
-npm test -- tests/wct-premium-lessons.test.ts tests/components/wct-library.test.tsx
+npm test -- tests/unit/wct-premium-lessons.test.ts tests/components/wct-library.test.tsx
 npm run build
 npm run test:e2e -- e2e/wct-course-library.spec.ts
 ```
