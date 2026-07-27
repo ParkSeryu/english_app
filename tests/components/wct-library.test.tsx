@@ -80,6 +80,7 @@ describe("WCT library components", () => {
 
     const link = screen.getByRole("link", { name: "WCT Premium" });
     expect(link).toHaveAttribute("href", "/lessons/premium");
+    expect(link).toHaveClass("border-slate-200", "bg-white", "hover:border-teal-300");
     expect(within(link).getByText("Day 1")).toBeVisible();
     expect(screen.queryByText("준비 중")).not.toBeInTheDocument();
   });
@@ -90,9 +91,12 @@ describe("WCT library components", () => {
 
     render(<WctPremiumDayCard lesson={lesson} />);
 
-    expect(screen.getByRole("link", {
+    const link = screen.getByRole("link", {
       name: /Day 1.*관계대명사 기초/
-    })).toHaveAttribute("href", "/lessons/premium/days/day-1");
+    });
+
+    expect(link).toHaveAttribute("href", "/lessons/premium/days/day-1");
+    expect(link).toHaveClass("border-slate-200", "bg-white", "hover:border-teal-300");
   });
 
   it("renders the approved Premium lesson without edit controls or source badges", () => {
@@ -106,8 +110,16 @@ describe("WCT library components", () => {
     expect(screen.getByText("생략 규칙")).toBeVisible();
     expect(screen.getByText("what과의 차이")).toBeVisible();
     expect(screen.getByText("핵심 패턴")).toBeVisible();
-    expect(screen.getAllByText("→ I know the person who came to WCT.").length).toBeGreaterThan(0);
+    const example = screen.getAllByText("→ I know the person who came to WCT.")[0].parentElement;
+    expect(example).toHaveClass("bg-slate-50", "text-ink");
     expect(screen.getByText("what = the thing that")).toBeVisible();
+    expect(screen.getByText("what = the thing that").parentElement).toHaveClass("bg-teal-50", "text-slate-700");
+    expect(screen.getByText("선행사 + who / which / that + 설명").parentElement).toHaveClass(
+      "rounded-3xl",
+      "border-slate-200",
+      "bg-white",
+      "shadow-sm"
+    );
     expect(screen.queryByText("AI 보완")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /추가|수정|삭제|저장/ })).not.toBeInTheDocument();
   });

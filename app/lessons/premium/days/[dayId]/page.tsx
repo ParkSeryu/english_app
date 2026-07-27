@@ -19,7 +19,7 @@ export default async function WctPremiumDayPage({
   return (
     <div className="space-y-7">
       <header>
-        <p className="text-sm font-black uppercase tracking-[0.2em] text-violet-700">
+        <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-700">
           WCT Premium
         </p>
         <h1 className="mt-2 text-3xl font-black text-ink">{lesson.displayLabel}</h1>

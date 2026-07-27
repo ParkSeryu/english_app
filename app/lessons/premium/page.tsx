@@ -12,7 +12,7 @@ export default async function WctPremiumPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-black uppercase tracking-[0.2em] text-violet-700">WCT</p>
+        <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-700">WCT</p>
         <h1 className="mt-2 text-3xl font-black text-ink">WCT Premium</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           대화로 완성한 Premium 수업을 Day 순서대로 읽어보세요.
