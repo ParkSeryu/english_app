@@ -14,10 +14,10 @@ test("reads WCT by book and Day without Topic or edit controls", async ({ page }
   await page.getByRole("link", { name: "수업" }).click();
 
   await expect(page).toHaveURL("/lessons");
-  const premium = page.getByRole("article", { name: "WCT Premium 준비 중" });
+  const premium = page.getByRole("link", { name: "WCT Premium" });
   await expect(premium).toBeVisible();
-  await expect(premium.getByRole("link")).toHaveCount(0);
-  await expect(premium.getByRole("button")).toHaveCount(0);
+  await expect(premium).toHaveAttribute("href", "/lessons/premium");
+  await expect(page.getByText("준비 중")).toHaveCount(0);
 
   const bottomNavLabels = await page
     .getByRole("navigation", { name: "하단 주요 메뉴" })
@@ -36,6 +36,33 @@ test("reads WCT by book and Day without Topic or edit controls", async ({ page }
   await expect(page.getByText("핵심 연습")).toBeVisible();
   await expect(page.getByText(/Topic/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /추가|수정|삭제|저장/ })).toHaveCount(0);
+});
+
+test("reads the approved WCT Premium Day 1 lesson", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "수업" }).click();
+  await page.getByRole("link", { name: "WCT Premium" }).click();
+
+  await expect(page).toHaveURL("/lessons/premium");
+  await expect(page.getByRole("heading", { name: "WCT Premium" })).toBeVisible();
+
+  await page.getByRole("link", {
+    name: /Day 1.*관계대명사 기초/
+  }).click();
+
+  await expect(page).toHaveURL("/lessons/premium/days/day-1");
+  await expect(page.getByRole("heading", { name: "Day 1" })).toBeVisible();
+  await expect(page.getByText("주격과 목적격")).toBeVisible();
+  await expect(page.getByText("관계대명사 뒤에 바로 동사가 나오면 → 생략 불가")).toBeVisible();
+  await expect(page.getByText("관계대명사 뒤에 별도의 주어 + 동사가 나오면 → 생략 가능")).toBeVisible();
+  await expect(page.getByText("what = the thing that")).toBeVisible();
+  await expect(page.getByRole("button", { name: /추가|수정|삭제|저장/ })).toHaveCount(0);
+  await expect(page.getByText("AI 보완")).toHaveCount(0);
+});
+
+test("returns 404 for an unknown WCT Premium Day", async ({ page }) => {
+  await page.goto("/lessons/premium/days/missing-day");
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
 });
 
 test("keeps the bottom navigation visible at desktop widths", async ({ page }) => {
