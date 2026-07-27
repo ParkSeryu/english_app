@@ -7,9 +7,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 const bottomNavItems = [
   { href: "/expressions", label: "표현" },
   { href: "/memorize", label: "암기" },
-  { href: "/questions", label: "질문거리" },
   { href: "/lessons", label: "수업" },
-  { href: "/picture-description", label: "묘사" }
+  { href: "/picture-description", label: "묘사" },
+  { href: "/questions", label: "질문" }
 ];
 
 const LAST_EXPRESSIONS_PATH_KEY = "english:last-expressions-path";

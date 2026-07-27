@@ -40,12 +40,21 @@ describe("BottomNav", () => {
     render(<BottomNav />);
     expect(screen.getByRole("navigation", { name: "하단 주요 메뉴" })).not.toHaveClass("sm:hidden");
 
+    const links = screen.getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual([
+      "표현",
+      "암기",
+      "수업",
+      "묘사",
+      "질문"
+    ]);
+
     expect(screen.getByRole("link", { name: "표현" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "암기" })).toHaveAttribute("href", "/memorize");
-    expect(screen.getByRole("link", { name: "질문거리" })).toHaveAttribute("href", "/questions");
     expect(screen.getByRole("link", { name: "수업" })).toHaveAttribute("href", "/lessons");
     expect(screen.getByRole("link", { name: "묘사" })).toHaveAttribute("href", "/picture-description");
-    expect(screen.getAllByRole("link")).toHaveLength(5);
+    expect(screen.getByRole("link", { name: "질문" })).toHaveAttribute("href", "/questions");
+    expect(links).toHaveLength(5);
 
     fireEvent.click(screen.getByRole("link", { name: "암기" }));
 
