@@ -81,6 +81,9 @@ describe("WCT library components", () => {
     const link = screen.getByRole("link", { name: "WCT Premium" });
     expect(link).toHaveAttribute("href", "/lessons/premium");
     expect(link).toHaveClass("border-slate-200", "bg-white", "hover:border-teal-300");
+    expect(link).not.toHaveClass("bg-violet-50");
+    expect(link).not.toHaveClass("border-violet-200");
+    expect(link).not.toHaveClass("bg-slate-900");
     expect(within(link).getByText("Day 1")).toBeVisible();
     expect(screen.queryByText("준비 중")).not.toBeInTheDocument();
   });
@@ -97,13 +100,16 @@ describe("WCT library components", () => {
 
     expect(link).toHaveAttribute("href", "/lessons/premium/days/day-1");
     expect(link).toHaveClass("border-slate-200", "bg-white", "hover:border-teal-300");
+    expect(link).not.toHaveClass("bg-violet-50");
+    expect(link).not.toHaveClass("border-violet-200");
+    expect(link).not.toHaveClass("bg-slate-900");
   });
 
   it("renders the approved Premium lesson without edit controls or source badges", () => {
     const lesson = getWctPremiumLesson("day-1");
     if (!lesson) throw new Error("Expected Premium Day 1 fixture");
 
-    render(<WctPremiumDayContent lesson={lesson} />);
+    const { container } = render(<WctPremiumDayContent lesson={lesson} />);
 
     expect(screen.getByText("핵심 내용")).toBeVisible();
     expect(screen.getByText("주격과 목적격")).toBeVisible();
@@ -120,6 +126,9 @@ describe("WCT library components", () => {
       "bg-white",
       "shadow-sm"
     );
+    expect(container.innerHTML).not.toContain("bg-violet-50");
+    expect(container.innerHTML).not.toContain("border-violet-200");
+    expect(container.innerHTML).not.toContain("bg-slate-900");
     expect(screen.queryByText("AI 보완")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /추가|수정|삭제|저장/ })).not.toBeInTheDocument();
   });
