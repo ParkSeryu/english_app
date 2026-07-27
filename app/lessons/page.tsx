@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/EmptyState";
 import { WctBookCard } from "@/components/wct/WctBookCard";
-import { WctPremiumPlaceholderCard } from "@/components/wct/WctPremiumPlaceholderCard";
+import { WctPremiumCard } from "@/components/wct/WctPremiumCard";
 import { requireCurrentUser } from "@/lib/auth";
 import { getWctStore } from "@/lib/wct-store";
 
@@ -21,7 +21,7 @@ export default async function WctLessonsPage() {
       </header>
       <div className="grid gap-4 sm:grid-cols-2">
         {books.map((book) => <WctBookCard key={book.id} book={book} />)}
-        <WctPremiumPlaceholderCard />
+        <WctPremiumCard />
       </div>
       {books.length === 0 ? (
         <EmptyState

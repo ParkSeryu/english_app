@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { WctDayCard } from "@/components/wct/WctDayCard";
 import { WctDayContent } from "@/components/wct/WctDayContent";
 import { WctPatternCard } from "@/components/wct/WctPatternCard";
-import { WctPremiumPlaceholderCard } from "@/components/wct/WctPremiumPlaceholderCard";
+import { WctPremiumCard } from "@/components/wct/WctPremiumCard";
+import { WctPremiumDayCard } from "@/components/wct/WctPremiumDayCard";
+import { WctPremiumDayContent } from "@/components/wct/WctPremiumDayContent";
+import { getWctPremiumLesson } from "@/lib/wct/premium-lessons";
 import type { WctDay, WctPattern } from "@/lib/wct/types";
 
 vi.mock("next/link", () => ({
@@ -72,14 +75,41 @@ const day: WctDay = {
 };
 
 describe("WCT library components", () => {
-  it("renders WCT Premium as a non-interactive placeholder", () => {
-    render(<WctPremiumPlaceholderCard />);
+  it("links WCT Premium from the lesson shelf", () => {
+    render(<WctPremiumCard />);
 
-    const card = screen.getByRole("article", { name: "WCT Premium 준비 중" });
-    expect(within(card).getByText("WCT Premium")).toBeVisible();
-    expect(within(card).getByText("준비 중")).toBeVisible();
-    expect(within(card).queryByRole("link")).not.toBeInTheDocument();
-    expect(within(card).queryByRole("button")).not.toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "WCT Premium" });
+    expect(link).toHaveAttribute("href", "/lessons/premium");
+    expect(within(link).getByText("Day 1")).toBeVisible();
+    expect(screen.queryByText("준비 중")).not.toBeInTheDocument();
+  });
+
+  it("links the approved Premium Day 1", () => {
+    const lesson = getWctPremiumLesson("day-1");
+    if (!lesson) throw new Error("Expected Premium Day 1 fixture");
+
+    render(<WctPremiumDayCard lesson={lesson} />);
+
+    expect(screen.getByRole("link", {
+      name: /Day 1.*관계대명사 기초/
+    })).toHaveAttribute("href", "/lessons/premium/days/day-1");
+  });
+
+  it("renders the approved Premium lesson without edit controls or source badges", () => {
+    const lesson = getWctPremiumLesson("day-1");
+    if (!lesson) throw new Error("Expected Premium Day 1 fixture");
+
+    render(<WctPremiumDayContent lesson={lesson} />);
+
+    expect(screen.getByText("핵심 내용")).toBeVisible();
+    expect(screen.getByText("주격과 목적격")).toBeVisible();
+    expect(screen.getByText("생략 규칙")).toBeVisible();
+    expect(screen.getByText("what과의 차이")).toBeVisible();
+    expect(screen.getByText("핵심 패턴")).toBeVisible();
+    expect(screen.getAllByText("→ I know the person who came to WCT.").length).toBeGreaterThan(0);
+    expect(screen.getByText("what = the thing that")).toBeVisible();
+    expect(screen.queryByText("AI 보완")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /추가|수정|삭제|저장/ })).not.toBeInTheDocument();
   });
 
   it("links a compact Day label without exposing Topic", () => {
