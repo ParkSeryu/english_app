@@ -14,6 +14,16 @@ test("reads WCT by book and Day without Topic or edit controls", async ({ page }
   await page.getByRole("link", { name: "수업" }).click();
 
   await expect(page).toHaveURL("/lessons");
+  const premium = page.getByRole("article", { name: "WCT Premium 준비 중" });
+  await expect(premium).toBeVisible();
+  await expect(premium.getByRole("link")).toHaveCount(0);
+  await expect(premium.getByRole("button")).toHaveCount(0);
+
+  const bottomNavLabels = await page
+    .getByRole("navigation", { name: "하단 주요 메뉴" })
+    .getByRole("link")
+    .allTextContents();
+  expect(bottomNavLabels).toEqual(["표현", "암기", "수업", "묘사", "질문"]);
   await page.getByRole("link", { name: /WCT Pattern book Prenovice/ }).click();
   await expect(page.getByText("Day 1 (수동태)")).toBeVisible();
   await expect(page.getByText("Day 13 (if 가능)")).toBeVisible();

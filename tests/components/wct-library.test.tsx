@@ -1,10 +1,11 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WctDayCard } from "@/components/wct/WctDayCard";
 import { WctDayContent } from "@/components/wct/WctDayContent";
 import { WctPatternCard } from "@/components/wct/WctPatternCard";
+import { WctPremiumPlaceholderCard } from "@/components/wct/WctPremiumPlaceholderCard";
 import type { WctDay, WctPattern } from "@/lib/wct/types";
 
 vi.mock("next/link", () => ({
@@ -71,6 +72,16 @@ const day: WctDay = {
 };
 
 describe("WCT library components", () => {
+  it("renders WCT Premium as a non-interactive placeholder", () => {
+    render(<WctPremiumPlaceholderCard />);
+
+    const card = screen.getByRole("article", { name: "WCT Premium 준비 중" });
+    expect(within(card).getByText("WCT Premium")).toBeVisible();
+    expect(within(card).getByText("준비 중")).toBeVisible();
+    expect(within(card).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(card).queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("links a compact Day label without exposing Topic", () => {
     render(<WctDayCard bookId="book-1" day={day} />);
     expect(screen.getByRole("link", { name: /Day 13 \(if 가능\)/ }))

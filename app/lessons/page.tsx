@@ -1,5 +1,6 @@
 import { EmptyState } from "@/components/EmptyState";
 import { WctBookCard } from "@/components/wct/WctBookCard";
+import { WctPremiumPlaceholderCard } from "@/components/wct/WctPremiumPlaceholderCard";
 import { requireCurrentUser } from "@/lib/auth";
 import { getWctStore } from "@/lib/wct-store";
 
@@ -18,16 +19,16 @@ export default async function WctLessonsPage() {
           학원에서 배운 핵심 패턴을 교재와 Day 순서대로 다시 읽어보세요.
         </p>
       </header>
-      {books.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {books.map((book) => <WctBookCard key={book.id} book={book} />)}
-        </div>
-      ) : (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {books.map((book) => <WctBookCard key={book.id} book={book} />)}
+        <WctPremiumPlaceholderCard />
+      </div>
+      {books.length === 0 ? (
         <EmptyState
           title="아직 WCT 교재가 없습니다"
           body="검토하고 승인한 WCT Day가 생기면 이 책장에 표시됩니다."
         />
-      )}
+      ) : null}
     </div>
   );
 }
