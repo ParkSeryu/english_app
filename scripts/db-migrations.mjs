@@ -171,18 +171,21 @@ function readMigrations() {
 }
 
 function runPsql(sql, options = {}) {
-  const args = [databaseUrl, "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--no-align", "--tuples-only", "--command", sql];
+  const args = [databaseUrl, "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--no-align", "--tuples-only", "--file", "-"];
+  const stdio = options.inherit ? ["pipe", "inherit", "inherit"] : ["pipe", "pipe", "pipe"];
   let result = spawnSync("psql", args, {
     cwd: ROOT,
     encoding: "utf8",
-    stdio: options.inherit ? "inherit" : ["ignore", "pipe", "pipe"]
+    input: sql,
+    stdio
   });
 
   if (result.error?.code === "ENOENT" && process.platform === "win32") {
     result = spawnSync("wsl.exe", ["psql", ...args], {
       cwd: ROOT,
       encoding: "utf8",
-      stdio: options.inherit ? "inherit" : ["ignore", "pipe", "pipe"]
+      input: sql,
+      stdio
     });
   }
 

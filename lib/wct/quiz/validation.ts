@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { normalizeWctIdentity } from "@/lib/wct/normalization";
+import { normalizeWctIdentity } from "../normalization.ts";
 
 const choiceSchema = z.object({
   id: z.string().min(1).max(160),

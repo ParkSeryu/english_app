@@ -1,4 +1,4 @@
-import { normalizeWctIdentity } from "@/lib/wct/normalization";
+import { normalizeWctIdentity } from "../normalization.ts";
 
 function lessonKeyIdentity(value: string) {
   return normalizeWctIdentity(value)

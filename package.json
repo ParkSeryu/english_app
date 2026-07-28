@@ -26,7 +26,9 @@
     "db:status:main": "node scripts/db-migrations.mjs status --env main",
     "db:migrate:main": "node scripts/db-migrations.mjs migrate --env main",
     "db:baseline:main": "node scripts/db-migrations.mjs baseline --env main",
-    "db:validate:main": "node scripts/db-migrations.mjs validate --env main"
+    "db:validate:main": "node scripts/db-migrations.mjs validate --env main",
+    "wct:quiz-backfill:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts generate --env dev --output supabase/migrations/20260728121000_backfill_wct_review_quizzes.sql",
+    "wct:quiz-backfill:verify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts verify --env dev"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

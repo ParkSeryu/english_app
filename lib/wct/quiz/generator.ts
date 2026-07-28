@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 
-import { normalizeWctIdentity, stableStringify } from "@/lib/wct/normalization";
+import { normalizeWctIdentity, stableStringify } from "../normalization.ts";
 import {
   WCT_QUIZ_GENERATOR_VERSION,
   type WctQuizQuestionSeed,
   type WctQuizSetCreateInput,
   type WctQuizSource
-} from "@/lib/wct/quiz/types";
-import { wctQuizSetCreateSchema } from "@/lib/wct/quiz/validation";
+} from "./types.ts";
+import { wctQuizSetCreateSchema } from "./validation.ts";
 
 function stableRank(scope: string, value: string) {
   return createHash("sha256").update(`${scope}\0${value}`).digest("hex");

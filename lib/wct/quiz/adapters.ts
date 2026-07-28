@@ -1,14 +1,14 @@
-import { normalizeWctIdentity } from "@/lib/wct/normalization";
+import { normalizeWctIdentity } from "../normalization.ts";
 import type {
   WctPremiumContentBlock,
   WctPremiumLesson
-} from "@/lib/wct/premium-lessons";
-import type { WctBook, WctDay, WctExample, WctPattern } from "@/lib/wct/types";
-import { premiumWctLessonKey, standardWctLessonKey } from "@/lib/wct/quiz/keys";
+} from "../premium-lessons.ts";
+import type { WctBook, WctDay, WctExample, WctPattern } from "../types.ts";
+import { premiumWctLessonKey, standardWctLessonKey } from "./keys.ts";
 import type {
   WctQuizQuestionSeed,
   WctQuizSource
-} from "@/lib/wct/quiz/types";
+} from "./types.ts";
 
 type StandardExampleSource = {
   day: WctDay;
