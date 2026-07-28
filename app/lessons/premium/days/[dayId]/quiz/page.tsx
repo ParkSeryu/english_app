@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { WctPremiumDayContent } from "@/components/wct/WctPremiumDayContent";
-import { WctQuizBadge } from "@/components/wct/WctQuizBadge";
+import { WctQuizRunner } from "@/components/wct/WctQuizRunner";
 import { requireCurrentUser } from "@/lib/auth";
 import {
   getAdminWctQuizStore,
@@ -13,7 +12,7 @@ import { premiumWctLessonKey } from "@/lib/wct/quiz/keys";
 
 export const dynamic = "force-dynamic";
 
-export default async function WctPremiumDayPage({
+export default async function WctPremiumDayQuizPage({
   params
 }: {
   params: Promise<{ dayId: string }>;
@@ -30,10 +29,8 @@ export default async function WctPremiumDayPage({
     await ensurePremiumWctQuiz(getAdminWctQuizStore(user), lesson);
     quizSet = await quizStore.getSetByLessonKey(lessonKey);
   }
-  const summary = await quizStore.getSummaryByLessonKey(lessonKey);
   if (
     !quizSet
-    || !summary
     || quizSet.sourceKind !== "wct_premium"
     || quizSet.sourceId !== lesson.id
   ) {
@@ -41,19 +38,11 @@ export default async function WctPremiumDayPage({
   }
 
   return (
-    <div className="space-y-7">
-      <header>
-        <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-700">
-          WCT Premium
-        </p>
-        <h1 className="mt-2 text-3xl font-black text-ink">{lesson.displayLabel}</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">{lesson.title}</p>
-      </header>
-      <WctQuizBadge
-        href={`/lessons/premium/days/${lesson.id}/quiz`}
-        summary={summary}
+    <main className="min-h-screen px-1 py-6 sm:px-4 sm:py-10">
+      <WctQuizRunner
+        quizSet={quizSet}
+        returnHref={`/lessons/premium/days/${lesson.id}`}
       />
-      <WctPremiumDayContent lesson={lesson} />
-    </div>
+    </main>
   );
 }
