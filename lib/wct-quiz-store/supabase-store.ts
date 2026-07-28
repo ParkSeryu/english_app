@@ -1,0 +1,121 @@
+import type { UserIdentity } from "@/lib/types";
+import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
+import {
+  mapWctQuizAttemptResult,
+  mapWctQuizSet
+} from "@/lib/wct-quiz-store/mappers";
+import type {
+  WctQuizAttemptResult,
+  WctQuizSet,
+  WctQuizSetCreateInput,
+  WctQuizSubmission,
+  WctQuizSummary
+} from "@/lib/wct/quiz/types";
+import {
+  wctQuizSetCreateSchema,
+  wctQuizSubmissionSchema
+} from "@/lib/wct/quiz/validation";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/service";
+
+type SupabaseLike =
+  | Awaited<ReturnType<typeof createServerSupabaseClient>>
+  | ReturnType<typeof createServiceRoleSupabaseClient>;
+
+const QUIZ_SET_SELECT =
+  "id,owner_id,lesson_key,source_kind,source_id,generator_version,source_hash,questions,created_at";
+
+export class SupabaseWctQuizStore implements WctQuizStore {
+  constructor(
+    private readonly user: UserIdentity,
+    private readonly createClient:
+      () => Promise<SupabaseLike> | SupabaseLike = createServerSupabaseClient,
+    private readonly admin = false
+  ) {}
+
+  private async client() {
+    return this.createClient();
+  }
+
+  private async selectSetByLessonKey(
+    lessonKey: string
+  ): Promise<WctQuizSet | null> {
+    const { data, error } = await (await this.client())
+      .from("wct_quiz_sets")
+      .select(QUIZ_SET_SELECT)
+      .eq("owner_id", this.user.id)
+      .eq("lesson_key", lessonKey)
+      .maybeSingle();
+    if (error) throw new Error(`WCT quiz set query failed: ${error.message}`);
+    return data ? mapWctQuizSet(data) : null;
+  }
+
+  async getSetByLessonKey(lessonKey: string): Promise<WctQuizSet | null> {
+    return this.selectSetByLessonKey(lessonKey);
+  }
+
+  async getSummaryByLessonKey(
+    lessonKey: string
+  ): Promise<WctQuizSummary | null> {
+    const set = await this.selectSetByLessonKey(lessonKey);
+    if (!set) return null;
+    const { data, error } = await (await this.client())
+      .from("wct_quiz_progress")
+      .select("latest_score,completed_at")
+      .eq("quiz_set_id", set.id)
+      .eq("user_id", this.user.id)
+      .maybeSingle();
+    if (error) {
+      throw new Error(`WCT quiz progress query failed: ${error.message}`);
+    }
+    return {
+      quizSetId: set.id,
+      questionCount: 5,
+      latestScore: data ? Number(data.latest_score) : null,
+      completedAt: data ? String(data.completed_at) : null
+    };
+  }
+
+  async createSetIfMissing(
+    input: WctQuizSetCreateInput
+  ): Promise<WctQuizSet> {
+    if (!this.admin) {
+      throw new Error("WCT quiz creation requires an admin store");
+    }
+    const parsed = wctQuizSetCreateSchema.parse(input);
+    const { error } = await (await this.client())
+      .from("wct_quiz_sets")
+      .upsert({
+        owner_id: this.user.id,
+        lesson_key: parsed.lessonKey,
+        source_kind: parsed.sourceKind,
+        source_id: parsed.sourceId,
+        generator_version: parsed.generatorVersion,
+        source_hash: parsed.sourceHash,
+        questions: parsed.questions
+      }, {
+        onConflict: "owner_id,lesson_key",
+        ignoreDuplicates: true
+      });
+    if (error) throw new Error(`WCT quiz creation failed: ${error.message}`);
+
+    const stored = await this.selectSetByLessonKey(parsed.lessonKey);
+    if (!stored) throw new Error("WCT quiz creation did not return a set");
+    return stored;
+  }
+
+  async submitAttempt(
+    input: WctQuizSubmission
+  ): Promise<WctQuizAttemptResult> {
+    const parsed = wctQuizSubmissionSchema.parse(input);
+    const { data, error } = await (await this.client()).rpc(
+      "submit_wct_quiz_attempt",
+      {
+        p_quiz_set_id: parsed.quizSetId,
+        p_answers: parsed.answers
+      }
+    );
+    if (error) throw new Error(`WCT quiz submission failed: ${error.message}`);
+    return mapWctQuizAttemptResult(data);
+  }
+}
