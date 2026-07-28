@@ -10,9 +10,7 @@ export function WctBookCard({ book }: { book: WctBookSummary }) {
     >
       <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-700">WCT</p>
       <h2 className="mt-2 text-xl font-black text-ink">{book.title}</h2>
-      <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-        {book.levelLabel ? <span>{book.levelLabel}</span> : null}
-        {book.levelLabel ? <span aria-hidden="true">·</span> : null}
+      <div className="mt-4 text-sm text-slate-600">
         <span>Day {book.dayCount}개</span>
       </div>
     </Link>
