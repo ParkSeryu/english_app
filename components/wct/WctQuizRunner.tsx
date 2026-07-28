@@ -201,6 +201,9 @@ export function WctQuizRunner({
                 ? "정답이에요"
                 : "아쉬워요. 정답을 확인해 보세요."}
             </p>
+            <p className="mt-3 text-xs font-black uppercase tracking-[0.16em]">
+              해설
+            </p>
             <p className="mt-2 text-sm font-medium leading-6">
               {question.explanation}
             </p>
