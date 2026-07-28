@@ -31,4 +31,3 @@
 - [ ] Apply the minimal section-card and pattern-mini-card class changes.
 - [ ] Run focused tests, lint, typecheck, WCT E2E, and live route checks.
 - [ ] Commit as `feat: add WCT Premium section cards`.
-

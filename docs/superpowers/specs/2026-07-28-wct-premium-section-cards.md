@@ -19,4 +19,3 @@ Only `WctPremiumDayContent` presentation and its component regression test chang
 ## Verification
 
 Use a failing component assertion for all five section cards before implementation. Then run focused tests, lint, typecheck, the WCT Playwright flow, and live route checks.
-
