@@ -9,7 +9,6 @@ export function WctPremiumDayCard({ lesson }: { lesson: WctPremiumLesson }) {
       className="block rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-300 hover:shadow-card"
     >
       <h2 className="text-lg font-black text-ink">{lesson.displayLabel}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{lesson.title}</p>
     </Link>
   );
 }

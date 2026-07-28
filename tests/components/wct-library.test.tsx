@@ -12,66 +12,22 @@ import { getWctPremiumLesson } from "@/lib/wct/premium-lessons";
 import type { WctDay, WctPattern } from "@/lib/wct/types";
 
 vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) => (
+  default: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: ReactNode }) => (
     <a href={href} {...props}>{children}</a>
   )
 }));
 
 const pattern: WctPattern = {
-  id: "pattern-1",
-  patternText: "be + p.p.",
-  meaningKo: "~되어지다",
-  usageNote: "상태나 결과를 강조할 때 사용한다.",
-  usageSource: "ai_supplement",
-  sourcePage: 7,
-  sourceNeedsReview: false,
-  sortOrder: 0,
-  examples: [{
-    id: "example-1",
-    englishText: "It is made of wood.",
-    meaningKo: "그것은 나무로 만들어진다.",
-    sourcePage: 8,
-    sourceNeedsReview: false,
-    sortOrder: 0
-  }]
+  id: "pattern-1", patternText: "be + p.p.", meaningKo: "~되어지다", usageNote: "상태나 결과를 강조할 때 사용한다.", usageSource: "ai_supplement", sourcePage: 7, sourceNeedsReview: false, sortOrder: 0,
+  examples: [{ id: "example-1", englishText: "It is made of wood.", meaningKo: "그것은 나무로 만들어진다.", sourcePage: 8, sourceNeedsReview: false, sortOrder: 0 }]
 };
 
 const day: WctDay = {
-  id: "day-13",
-  bookId: "book-1",
-  dayNumber: 13,
-  shortLabel: "if 가능",
-  displayLabel: "Day 13 (if 가능)",
-  learningSummary: "가능성을 조건으로 말한다.",
-  sourcePageStart: 102,
-  sourcePageEnd: 108,
-  sourceNeedsReview: true,
-  concepts: [{
-    id: "concept-1",
-    text: "if 뒤에는 조건을 둔다.",
-    sourceKind: "book",
-    sortOrder: 0
-  }],
+  id: "day-13", bookId: "book-1", dayNumber: 13, shortLabel: "if 가능", displayLabel: "Day 13 (if 가능)", learningSummary: "가능성을 조건으로 말한다.", sourcePageStart: 102, sourcePageEnd: 108, sourceNeedsReview: true,
+  concepts: [{ id: "concept-1", text: "if 뒤에는 조건을 둔다.", sourceKind: "book", sortOrder: 0 }],
   patterns: [pattern],
-  importantNotes: [{
-    id: "note-1",
-    patternId: "pattern-1",
-    noteText: "will을 if절에 바로 쓰지 않는다.",
-    sourcePage: 104,
-    sortOrder: 0
-  }],
-  practicePrompts: [{
-    id: "practice-1",
-    patternId: "pattern-1",
-    promptText: "시간이 되면 전화할게.",
-    meaningKo: null,
-    sourcePage: 106,
-    sortOrder: 0
-  }]
+  importantNotes: [{ id: "note-1", patternId: "pattern-1", noteText: "will을 if절에 바로 쓰지 않는다.", sourcePage: 104, sortOrder: 0 }],
+  practicePrompts: [{ id: "practice-1", patternId: "pattern-1", promptText: "시간이 되면 전화할게.", meaningKo: null, sourcePage: 106, sortOrder: 0 }]
 };
 
 describe("WCT library components", () => {
@@ -84,7 +40,9 @@ describe("WCT library components", () => {
     expect(link).not.toHaveClass("bg-violet-50");
     expect(link).not.toHaveClass("border-violet-200");
     expect(link).not.toHaveClass("bg-slate-900");
-    expect(within(link).getByText("Day 1")).toBeVisible();
+    expect(within(link).getByText("WCT")).toHaveClass("text-xs", "uppercase", "text-teal-700");
+    expect(within(link).getByRole("heading", { name: "WCT Premium" })).toBeVisible();
+    expect(within(link).getByText("Day 1개")).toBeVisible();
     expect(screen.queryByText("준비 중")).not.toBeInTheDocument();
   });
 
@@ -94,15 +52,13 @@ describe("WCT library components", () => {
 
     render(<WctPremiumDayCard lesson={lesson} />);
 
-    const link = screen.getByRole("link", {
-      name: /Day 1.*관계대명사 기초/
-    });
-
+    const link = screen.getByRole("link", { name: "Day 1" });
     expect(link).toHaveAttribute("href", "/lessons/premium/days/day-1");
     expect(link).toHaveClass("border-slate-200", "bg-white", "hover:border-teal-300");
     expect(link).not.toHaveClass("bg-violet-50");
     expect(link).not.toHaveClass("border-violet-200");
     expect(link).not.toHaveClass("bg-slate-900");
+    expect(screen.queryByText("관계대명사 기초 — 두 문장을 하나로 합치기")).not.toBeInTheDocument();
   });
 
   it("renders the approved Premium lesson without edit controls or source badges", () => {
@@ -120,12 +76,7 @@ describe("WCT library components", () => {
     expect(example).toHaveClass("bg-slate-50", "text-ink");
     expect(screen.getByText("what = the thing that")).toBeVisible();
     expect(screen.getByText("what = the thing that").parentElement).toHaveClass("bg-teal-50", "text-slate-700");
-    expect(screen.getByText("선행사 + who / which / that + 설명").parentElement).toHaveClass(
-      "rounded-3xl",
-      "border-slate-200",
-      "bg-white",
-      "shadow-sm"
-    );
+    expect(screen.getByText("선행사 + who / which / that + 설명").parentElement).toHaveClass("rounded-3xl", "border-slate-200", "bg-white", "shadow-sm");
     expect(container.innerHTML).not.toContain("bg-violet-50");
     expect(container.innerHTML).not.toContain("border-violet-200");
     expect(container.innerHTML).not.toContain("bg-slate-900");
@@ -135,8 +86,7 @@ describe("WCT library components", () => {
 
   it("links a compact Day label without exposing Topic", () => {
     render(<WctDayCard bookId="book-1" day={day} />);
-    expect(screen.getByRole("link", { name: /Day 13 \(if 가능\)/ }))
-      .toHaveAttribute("href", "/lessons/books/book-1/days/day-13");
+    expect(screen.getByRole("link", { name: /Day 13 \(if 가능\)/ })).toHaveAttribute("href", "/lessons/books/book-1/days/day-13");
     expect(screen.queryByText(/교재 102–108쪽/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Topic/i)).not.toBeInTheDocument();
   });
