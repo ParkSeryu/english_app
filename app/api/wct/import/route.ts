@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 
 import { isExplicitLessonSaveApproval } from "@/lib/ingestion/approval";
 import { authenticateIngestionRequest } from "@/lib/ingestion/request-auth";
+import { getAdminWctQuizStore } from "@/lib/wct-quiz-store";
+import { ensureImportedWctQuizzes } from "@/lib/wct/quiz/ensure";
 import { stableStringify } from "@/lib/wct/normalization";
 import { wctImportRequestSchema } from "@/lib/wct/validation";
 import { getAdminWctStore } from "@/lib/wct-store";
@@ -29,11 +31,17 @@ export async function POST(request: Request) {
   const payload = { book: parsed.data.book, days: parsed.data.days };
   const payloadHash = createHash("sha256").update(stableStringify(payload)).digest("hex");
   try {
-    const result = await getAdminWctStore(ownerOrResponse).importApprovedBatch({
+    const wctStore = getAdminWctStore(ownerOrResponse);
+    const result = await wctStore.importApprovedBatch({
       idempotencyKey: parsed.data.idempotencyKey,
       payloadHash,
       ...payload
     });
+    await ensureImportedWctQuizzes(
+      wctStore,
+      getAdminWctQuizStore(ownerOrResponse),
+      result
+    );
     return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "WCT import failed";

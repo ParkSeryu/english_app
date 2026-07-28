@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resetMemoryWctStoreForTests } from "@/lib/wct-store/memory-store";
+import { getWctQuizStore } from "@/lib/wct-quiz-store";
+import { resetMemoryWctQuizStoreForTests } from "@/lib/wct-quiz-store/memory-store";
+import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
+import { MemoryWctStore, resetMemoryWctStoreForTests } from "@/lib/wct-store/memory-store";
 
 const OWNER_ID = "00000000-0000-4000-8000-000000000001";
 const validBody = {
@@ -14,8 +17,20 @@ const validBody = {
     concepts: [],
     patterns: [{
       patternText: "be + p.p.",
+      meaningKo: "수동태",
       usageSource: "book",
-      examples: [{ englishText: "It is made of wood." }]
+      examples: [
+        { englishText: "It is made of wood.", meaningKo: "그것은 나무로 만들어집니다." },
+        { englishText: "It is used every day.", meaningKo: "그것은 매일 사용됩니다." }
+      ]
+    }, {
+      patternText: "get + p.p.",
+      meaningKo: "상태 변화 수동태",
+      usageSource: "book",
+      examples: [
+        { englishText: "It gets broken easily.", meaningKo: "그것은 쉽게 고장 납니다." },
+        { englishText: "The door gets locked.", meaningKo: "문이 잠깁니다." }
+      ]
     }],
     importantNotes: [],
     practicePrompts: []
@@ -40,6 +55,7 @@ describe("WCT import API", () => {
     vi.stubEnv("E2E_MEMORY_STORE", "1");
     vi.stubEnv("E2E_FAKE_USER_ID", OWNER_ID);
     resetMemoryWctStoreForTests();
+    resetMemoryWctQuizStoreForTests();
   });
 
   it("rejects a request without the configured bearer token", async () => {
@@ -79,6 +95,12 @@ describe("WCT import API", () => {
     });
     expect(replay.status).toBe(200);
     expect(await replay.json()).toMatchObject({ replayed: true });
+
+    const book = (await new MemoryWctStore({ id: OWNER_ID }).listBooks())[0];
+    const quizStore = getWctQuizStore({ id: OWNER_ID });
+    await expect(quizStore.getSetByLessonKey(
+      standardWctLessonKey(book.title, 1)
+    )).resolves.toMatchObject({ generatorVersion: "wct-review-v1" });
   });
 
   it("preflights duplicate Days for the server-configured owner", async () => {
