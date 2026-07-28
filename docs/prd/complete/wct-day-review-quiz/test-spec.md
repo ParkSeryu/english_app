@@ -17,4 +17,17 @@
 | Premium route | first-load ensure, source 관계 검증, 동일한 전체화면 runner 사용 |
 | Playwright | 일반과 Premium에서 5문항 완료, 저장된 배지 확인, 재응시 최신 점수 확인 |
 | Command gate | lint, typecheck, Vitest, RLS, dev migration status, backfill verify, build |
-| Live app | `0.0.0.0:3000`에서 일반/Premium 퀴즈 완료 및 서버 로그의 500/청크/schema 오류 부재 |
+| Live app | task-owned `0.0.0.0:3101`에서 일반/Premium 퀴즈 완료 및 서버 로그의 500/청크/schema 오류 부재 |
+
+## Evidence log — 2026-07-28
+
+- Full Vitest: 60 files and 306 tests passed, 1 conditional skip.
+- RLS/RPC: owner isolation, anonymous/direct-write denial, server scoring, latest-score replacement, duplicate/unknown answer rejection passed.
+- Dev `uixpyibcpleuwsgemdno`: 35 applied migrations, pending 0, checksum mismatches 0.
+- Backfill verify: standard 44, Premium 1, question payload 45, Korean 45 matched.
+- Production build passed and emitted both Standard/Premium quiz routes.
+- Combined mobile Chromium WCT run passed 8/8; post-build running-server quiz run passed 3/3.
+- Task server listened on `0.0.0.0:3101`; local/external `/lessons` and both quiz routes returned 200.
+- Server log scan found no InternalServerError, HTTP 500, missing module/chunk, schema error, or failed server action.
+- Port 3000 was occupied by a pre-existing `.env.main.local` server and was not stopped or modified.
+- Production `ccawzrrkxuirrwvaecvw` remains untouched.

@@ -107,38 +107,6 @@
 
 ## Active
 
-### T-010: WCT Day 복습 객관식 퀴즈
-
-- Status: Active
-- Priority: High
-- Workstream: Course Reference
-- Surface: WCT Day 상세, 전체화면 퀴즈, 개인 세트/진행도, RLS, 승인 import
-- Pull readiness:
-  - [x] User value is clear.
-  - [x] Acceptance criteria are testable.
-  - [x] Required data/schema changes are identified.
-  - [x] Required live route/action checks are identified.
-- Artifacts:
-  - PRD: `docs/prd/active/wct-day-review-quiz/prd.md`
-  - Test spec: `docs/prd/active/wct-day-review-quiz/test-spec.md`
-  - Implementation plan: `docs/prd/active/wct-day-review-quiz/implementation-plan.md`
-  - Approved design: `docs/superpowers/specs/2026-07-28-wct-day-review-quiz-design.md`
-- Why: WCT 수업 내용을 Day별 객관식 문제로 바로 복습하고 최신 결과를 확인할 수 있어야 합니다.
-- Scope:
-  - dev의 기존 일반 44 Days와 Premium 1 Day에 고정 5문항 세트를 생성합니다.
-  - Day 상세 배지, 별도 전체화면 문제 풀이, 즉시 피드백, 최신 점수를 제공합니다.
-  - 미래 일반 Day import와 Premium 첫 상세 요청에서 누락된 세트를 자동 생성합니다.
-  - dev Supabase 프로젝트는 `uixpyibcpleuwsgemdno`, 통합 대상은 `dev`입니다.
-- Non-goals: 런타임 AI API, 퀴즈 편집, 자유 입력/오디오, 시도 이력, main/production 적용
-- Acceptance criteria:
-  - [ ] 45개 기존 Day가 검증된 5문항 세트를 가집니다.
-  - [ ] 일반/Premium 상세 배지와 5문항 즉시 피드백 흐름이 동작합니다.
-  - [ ] 서버 계산 최신 점수가 Day 복귀 후 표시됩니다.
-  - [ ] owner 격리와 브라우저 직접 쓰기 차단이 검증됩니다.
-- Verification:
-  - [ ] lint, typecheck, 관련 Vitest, RLS, dev migration status, backfill verify, build
-  - [ ] 일반/Premium Playwright와 `0.0.0.0:3000` live route/server log 확인
-
 ## Backlog
 
 ## Blocked
@@ -146,6 +114,45 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-07-28 — T-010: WCT Day 복습 객관식 퀴즈
+
+- Status: Complete
+- Priority: High
+- Workstream: Course Reference
+- Surface: WCT Day 상세, 전체화면 퀴즈, 개인 세트/진행도, RLS, 승인 import
+- Artifacts:
+  - PRD: `docs/prd/complete/wct-day-review-quiz/prd.md`
+  - Test spec: `docs/prd/complete/wct-day-review-quiz/test-spec.md`
+  - Implementation plan: `docs/prd/complete/wct-day-review-quiz/implementation-plan.md`
+  - Approved design: `docs/superpowers/specs/2026-07-28-wct-day-review-quiz-design.md`
+- Why: WCT 수업 내용을 Day별 객관식 문제로 바로 복습하고 최신 결과를 확인할 수 있어야 합니다.
+- Scope:
+  - 일반 Day 번역 3 + 패턴 2, Premium 개념 3 + 패턴/예문 2의 고정 5문항을 제공합니다.
+  - Day 상세 배지, 전체화면 풀이, 즉시 피드백/해설, 최신 점수를 제공합니다.
+  - 승인 import/Premium 첫 요청의 누락 세트 생성과 기존 일반 44 + Premium 1 백필을 완료했습니다.
+- Non-goals: 런타임 AI API, 퀴즈 편집, 자유 입력/오디오, 시도 이력, main/production 적용
+- Acceptance criteria:
+  - [x] 기존 45개 Day가 검증된 5문항 세트를 가집니다.
+  - [x] 일반/Premium 배지와 5문항 즉시 피드백 흐름이 동작합니다.
+  - [x] 서버 계산 최신 점수가 Day 복귀 후 표시되고 재응시는 최신 점수를 교체합니다.
+  - [x] owner 격리와 브라우저 직접 쓰기 차단이 검증됩니다.
+- Changed files:
+  - `app/api/wct/import/route.ts`, `app/lessons/**`, `components/wct/WctQuiz*.tsx`
+  - `lib/wct/quiz/*`, `lib/wct-quiz-store*`
+  - `scripts/*wct-quiz*`, `scripts/db-migrations.mjs`, `supabase/migrations/2026072812*.sql`
+  - `tests/**/*wct-quiz*`, `e2e/wct-day-review-quiz.spec.ts`
+  - `docs/prd/complete/wct-day-review-quiz/*`
+- Verification:
+  - [x] lint/typecheck passed; Vitest 306 passed, 1 skipped
+  - [x] RLS/RPC passed; dev migration pending 0, mismatch 0
+  - [x] backfill verify: standard 44, Premium 1, payload 45, Korean 45
+  - [x] production build passed; combined WCT Playwright 8 passed
+  - [x] post-build `0.0.0.0:3101` local/external routes 200, Playwright 3 passed, fatal log scan clean
+- Remaining risks:
+  - Main/production `ccawzrrkxuirrwvaecvw` is untouched and requires separate authorization.
+  - Immutable `wct-review-v1` changes require a new generator version/migration.
+  - Port 3000's unrelated `.env.main.local` server was preserved; live verification used 3101.
 
 ### 2026-07-26 — T-007: WCT 개인 수업 라이브러리
 
