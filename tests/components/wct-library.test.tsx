@@ -76,7 +76,12 @@ describe("WCT library components", () => {
     expect(example).toHaveClass("bg-slate-50", "text-ink");
     expect(screen.getByText("what = the thing that")).toBeVisible();
     expect(screen.getByText("what = the thing that").parentElement).toHaveClass("bg-teal-50", "text-slate-700");
-    expect(screen.getByText("선행사 + who / which / that + 설명").parentElement).toHaveClass("rounded-3xl", "border-slate-200", "bg-white", "shadow-sm");
+    expect(screen.getByText("선행사 + who / which / that + 설명").parentElement).toHaveClass("rounded-2xl", "bg-slate-100", "p-4");
+    for (const heading of ["핵심 내용", "주격과 목적격", "생략 규칙", "what과의 차이", "핵심 패턴"]) {
+      expect(screen.getByRole("heading", { name: heading }).parentElement).toHaveClass(
+        "rounded-3xl", "border-slate-200", "bg-white", "p-5", "shadow-sm"
+      );
+    }
     expect(container.innerHTML).not.toContain("bg-violet-50");
     expect(container.innerHTML).not.toContain("border-violet-200");
     expect(container.innerHTML).not.toContain("bg-slate-900");

@@ -38,17 +38,19 @@ export function WctPremiumDayContent({ lesson }: { lesson: WctPremiumLesson }) {
   return (
     <div className="space-y-7">
       {lesson.sections.map((section) => (
-        <section key={section.id} className="space-y-3">
+        <section key={section.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black text-ink">{section.title}</h2>
           {section.blocks.map((block) => <PremiumBlock key={block.id} block={block} />)}
         </section>
       ))}
 
-      <section className="space-y-3">
+      <section className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-xl font-black text-ink">핵심 패턴</h2>
-        <div className="space-y-2 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="space-y-2">
           {lesson.patterns.map((pattern) => (
-            <p key={pattern} className="text-sm font-bold leading-6 text-slate-700">{pattern}</p>
+            <div key={pattern} className="rounded-2xl bg-slate-100 p-4 text-sm font-bold leading-6 text-slate-700">
+              <p>{pattern}</p>
+            </div>
           ))}
         </div>
       </section>
