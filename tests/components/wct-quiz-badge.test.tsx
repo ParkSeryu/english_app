@@ -16,7 +16,7 @@ vi.mock("next/link", () => ({
 }));
 
 describe("WctQuizBadge", () => {
-  it("shows the pending and completed labels", () => {
+  it("shows full-width pending and completed CTA states", () => {
     const { rerender } = render(
       <WctQuizBadge
         href="/quiz"
@@ -29,8 +29,12 @@ describe("WctQuizBadge", () => {
       />
     );
 
-    expect(screen.getByRole("link", { name: "복습 문제 5개" }))
-      .toHaveAttribute("href", "/quiz");
+    const pendingLink = screen.getByRole("link", {
+      name: "문제 풀기 5문제"
+    });
+    expect(pendingLink).toHaveAttribute("href", "/quiz");
+    expect(pendingLink).toHaveClass("flex", "w-full", "bg-teal-600");
+    expect(pendingLink).toHaveClass("focus-visible:ring-4");
 
     rerender(
       <WctQuizBadge
@@ -44,7 +48,8 @@ describe("WctQuizBadge", () => {
       />
     );
 
-    expect(screen.getByRole("link", { name: "복습 완료 · 4/5" }))
-      .toBeVisible();
+    expect(screen.getByRole("link", {
+      name: "다시 풀기 최근 4/5"
+    })).toBeVisible();
   });
 });

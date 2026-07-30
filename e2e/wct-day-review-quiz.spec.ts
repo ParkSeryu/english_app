@@ -48,23 +48,23 @@ test("completes and retakes a standard WCT Day quiz", async ({ page }) => {
     `/lessons/books/${seedResult.bookId}/days/${seedResult.day13Id}`;
   await page.goto(dayHref);
 
-  await page.getByRole("link", { name: "복습 문제 5개" }).click();
+  await page.getByRole("link", { name: "문제 풀기 5문제" }).click();
   await expect(page).toHaveURL(`${dayHref}/quiz`);
   const firstScore = await completeQuiz(page);
 
   await page.getByRole("link", { name: "Day로 돌아가기" }).click();
   await expect(page.getByRole("link", {
-    name: `복습 완료 · ${firstScore.replaceAll(" ", "")}`
+    name: `다시 풀기 최근 ${firstScore.replaceAll(" ", "")}`
   })).toBeVisible();
 
   await page.getByRole("link", {
-    name: `복습 완료 · ${firstScore.replaceAll(" ", "")}`
+    name: `다시 풀기 최근 ${firstScore.replaceAll(" ", "")}`
   }).click();
   const secondScore = await completeQuiz(page, 1);
 
   await page.getByRole("link", { name: "Day로 돌아가기" }).click();
   await expect(page.getByRole("link", {
-    name: `복습 완료 · ${secondScore.replaceAll(" ", "")}`
+    name: `다시 풀기 최근 ${secondScore.replaceAll(" ", "")}`
   })).toBeVisible();
 });
 
@@ -72,13 +72,13 @@ test("completes a WCT Premium Day quiz", async ({ page }) => {
   const dayHref = "/lessons/premium/days/day-1";
   await page.goto(dayHref);
 
-  await page.getByRole("link", { name: "복습 문제 5개" }).click();
+  await page.getByRole("link", { name: "문제 풀기 5문제" }).click();
   await expect(page).toHaveURL(`${dayHref}/quiz`);
   const score = await completeQuiz(page);
 
   await page.getByRole("link", { name: "Day로 돌아가기" }).click();
   await expect(page.getByRole("link", {
-    name: `복습 완료 · ${score.replaceAll(" ", "")}`
+    name: `다시 풀기 최근 ${score.replaceAll(" ", "")}`
   })).toBeVisible();
 });
 
