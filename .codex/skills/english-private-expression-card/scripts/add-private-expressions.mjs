@@ -5,21 +5,17 @@ import process from "node:process";
 import { createRequire } from "node:module";
 
 const PERSONAL_EXPRESSION_MARKER = "__personal_expression__";
-const PROJECT_REFS = {
-  dev: "uixpyibcpleuwsgemdno",
-  main: "ccawzrrkxuirrwvaecvw"
-};
+const PROJECT_REF = "ccawzrrkxuirrwvaecvw";
 
 function usage() {
-  console.error(`Usage: node add-private-expressions.mjs --env dev|main --payload <file.json> [--repo <path>] [--apply] [--confirm-production]\n\nDry-run is the default. Use --apply to write. Main writes also require --confirm-production.`);
+  console.error(`Usage: node add-private-expressions.mjs --payload <file.json> [--repo <path>] [--apply] [--confirm-production]\n\nTarget: main project ${PROJECT_REF} from .env.local.\nDry-run is the default. Every write requires --apply --confirm-production.`);
 }
 
 function parseArgs(argv) {
-  const args = { env: "dev", repo: process.cwd(), apply: false, confirmProduction: false };
+  const args = { repo: process.cwd(), apply: false, confirmProduction: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--env") args.env = argv[++i];
-    else if (arg === "--payload") args.payload = argv[++i];
+    if (arg === "--payload") args.payload = argv[++i];
     else if (arg === "--repo") args.repo = argv[++i];
     else if (arg === "--apply") args.apply = true;
     else if (arg === "--confirm-production") args.confirmProduction = true;
@@ -31,7 +27,6 @@ function parseArgs(argv) {
     }
   }
   if (!args.payload) throw new Error("Missing --payload <file.json>");
-  if (!Object.hasOwn(PROJECT_REFS, args.env)) throw new Error("--env must be dev or main");
   return args;
 }
 
@@ -117,8 +112,8 @@ async function loadSupabase(repo) {
   return { createClient };
 }
 
-function envFileFor(repo, envName) {
-  return path.join(repo, envName === "main" ? ".env.main.local" : ".env.local");
+function envFileFor(repo) {
+  return path.join(repo, ".env.local");
 }
 
 async function getTargetUser(client, targetUserId) {
@@ -275,16 +270,15 @@ async function verifyWritten(client, targetUserId, expressionIds) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const repo = path.resolve(args.repo);
-  const envPath = envFileFor(repo, args.env);
+  const envPath = envFileFor(repo);
   const env = parseEnvFile(envPath);
   const url = env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error(`${envPath} must define NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY`);
 
   const actualRef = projectRefFromUrl(url);
-  const expectedRef = PROJECT_REFS[args.env];
-  if (actualRef !== expectedRef) throw new Error(`Refusing to use ${args.env}: expected project ${expectedRef}, got ${actualRef ?? url}`);
-  if (args.env === "main" && args.apply && !args.confirmProduction) {
+  if (actualRef !== PROJECT_REF) throw new Error(`Refusing to use .env.local: expected main project ${PROJECT_REF}, got ${actualRef ?? url}`);
+  if (args.apply && !args.confirmProduction) {
     throw new Error("Main/production writes require --confirm-production");
   }
 
@@ -310,7 +304,7 @@ async function main() {
 
   const output = {
     mode: args.apply ? "applied" : "dry-run",
-    environment: args.env,
+    environment: "main",
     projectRef: actualRef,
     targetUser: { id: user.id, email: user.email ?? null },
     targetTopic: { id: day.id, title: day.title, day_date: day.day_date, created_by: day.created_by },

@@ -63,4 +63,30 @@ describe("main-only environment CLIs", () => {
       "dev"
     ])).toThrow("Unknown option: --env");
   });
+
+  it("documents one guarded main private-expression target", () => {
+    const result = runNode(
+      ".codex/skills/english-private-expression-card/scripts/add-private-expressions.mjs",
+      ["--help"]
+    );
+    const output = outputOf(result);
+
+    expect(result.status).toBe(0);
+    expect(output).toContain(".env.local");
+    expect(output).toContain("ccawzrrkxuirrwvaecvw");
+    expect(output).toContain("--confirm-production");
+    expect(output).not.toContain("uixpyibcpleuwsgemdno");
+    expect(output).not.toContain(".env.main.local");
+    expect(output).not.toContain("--env");
+  });
+
+  it("rejects the retired private-expression environment option before hosted access", () => {
+    const result = runNode(
+      ".codex/skills/english-private-expression-card/scripts/add-private-expressions.mjs",
+      ["--env", "dev", "--payload", "missing.json"]
+    );
+
+    expect(result.status).toBe(1);
+    expect(outputOf(result)).toContain("Unknown argument: --env");
+  });
 });

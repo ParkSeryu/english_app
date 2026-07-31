@@ -19,7 +19,7 @@ Collect or infer these before saving:
 - Target topic/day: prefer `targetExpressionDayId`. An exact topic title plus optional `day_date` is acceptable if it resolves to one visible topic for the target user.
 - Cards: `english`, `koreanPrompt`, optional `grammarNote`, optional `userMemo`.
 - Memorization inclusion: default `isMemorizationEnabled: true` because this skill is for 암기카드. Use `false` only if the user says list-only/not in memorize queue.
-- Environment: default to dev unless the user explicitly asks for main/production. Before hosted DB access, state which environment is targeted.
+- Hosted environment: main/production only. Before hosted DB access, state that the main Supabase project is targeted.
 
 ## Card Rules
 
@@ -79,31 +79,20 @@ From `/home/ubuntu/code/english_app`:
 
 ```bash
 node .codex/skills/english-private-expression-card/scripts/add-private-expressions.mjs \
-  --env dev \
   --payload /tmp/private-expression-payload.json
 
 node .codex/skills/english-private-expression-card/scripts/add-private-expressions.mjs \
-  --env dev \
-  --payload /tmp/private-expression-payload.json \
-  --apply
-```
-
-For production/main, require explicit production intent and use:
-
-```bash
-node .codex/skills/english-private-expression-card/scripts/add-private-expressions.mjs \
-  --env main \
   --payload /tmp/private-expression-payload.json \
   --apply \
   --confirm-production
 ```
 
-The script reads `.env.local` for dev and `.env.main.local` for main. It requires `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+The script always reads `.env.local`, which must target main/production. It requires `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Safety Checks
 
-- Dev must point to project ref `uixpyibcpleuwsgemdno`; main must point to `ccawzrrkxuirrwvaecvw`.
-- Main/production writes require `--confirm-production`.
+- `.env.local` must point to main project ref `ccawzrrkxuirrwvaecvw`.
+- Every write requires `--confirm-production`.
 - The script verifies the target auth user exists.
 - The script verifies the target topic is visible to the target user before writing.
 - Private expression rows use `owner_id = targetUserId` and `user_memo = "__personal_expression__"`.
