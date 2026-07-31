@@ -27,7 +27,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-or-anon-key
 
 ## Supabase Auth redirect URLs
 
-For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production project (`ccawzrrkxuirrwvaecvw`) separately, allow these app URLs in Supabase Dashboard > Authentication > URL Configuration:
+For the sole main/production Supabase project (`ccawzrrkxuirrwvaecvw`), allow these app URLs in Supabase Dashboard > Authentication > URL Configuration:
 
 - `http://localhost:3000/auth/callback`
 - `http://localhost:3000/auth/update-password`
@@ -38,18 +38,17 @@ For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production pr
 
 ## Kakao social login setup
 
-The app includes a Kakao OAuth entry point on `/login`, but actual sign-in succeeds only after each Supabase environment has Kakao credentials configured.
+The app includes a Kakao OAuth entry point on `/login`, but actual sign-in succeeds only after the main Supabase project has Kakao credentials configured.
 
-For the dev Supabase project (`uixpyibcpleuwsgemdno`) and the main/production project (`ccawzrrkxuirrwvaecvw`) separately:
+For the main/production project (`ccawzrrkxuirrwvaecvw`):
 
 1. In Kakao Developers, create or open the app for this service.
 2. Copy the Kakao **REST API key**; Supabase uses it as the Kakao provider client ID.
 3. Enable Kakao Login and activate the Kakao Login Client Secret.
 4. Register the Supabase Auth callback URL in Kakao Login Redirect URI:
-   - Dev: `https://uixpyibcpleuwsgemdno.supabase.co/auth/v1/callback`
-   - Main/production: `https://ccawzrrkxuirrwvaecvw.supabase.co/auth/v1/callback`
+   - `https://ccawzrrkxuirrwvaecvw.supabase.co/auth/v1/callback`
 5. In Supabase Dashboard > Authentication > Providers > Kakao, enable Kakao and enter the REST API key plus Kakao Login Client Secret.
-6. In Supabase Auth URL configuration, allow the app callback URL for each deployed app origin as listed above.
+6. In Supabase Auth URL configuration, allow the app callback URL for the deployed app origin as listed above.
 
 This app overrides Kakao's OAuth `scope` query parameter to request only `profile_nickname profile_image` and intentionally does not request `account_email`. If Kakao `account_email` consent is not available or not requested, configure the Supabase Kakao provider to allow users without an email before testing real sign-in.
 
@@ -87,7 +86,7 @@ Safety requirements:
 
 The app can store browser push subscriptions and send topic-level PWA notifications after a shared topic is ready.
 
-Generate VAPID keys once per environment:
+Generate the VAPID keys once:
 
 ```bash
 npx web-push generate-vapid-keys
@@ -105,7 +104,7 @@ Notes:
 
 - `WEB_PUSH_VAPID_PRIVATE_KEY` must never be exposed to the browser.
 - iOS Web Push requires a Home Screen PWA on supported iOS/iPadOS versions.
-- Dev and main Supabase projects must both receive the push notification migration before hosted delivery is claimed live.
+- The main Supabase project must receive the push notification migration before hosted delivery is claimed live.
 
 ## App-managed updated_at
 

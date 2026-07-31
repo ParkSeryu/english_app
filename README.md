@@ -42,6 +42,7 @@ Excluded from MVP:
 ```bash
 npm install
 cp .env.example .env.local
+# .env.local is the sole hosted configuration and points to main/production Supabase.
 # Fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 # For Codex/assistant ingestion, also set server-only INGESTION_API_TOKEN, INGESTION_OWNER_ID, and SUPABASE_SERVICE_ROLE_KEY.
 # INGESTION_API_TOKEN is a random app secret, not an OpenAI/LLM API key.
@@ -49,6 +50,14 @@ npm run dev
 ```
 
 Create a Supabase project, enable email/password Auth, then apply all migrations in `supabase/migrations/` in timestamp order.
+
+The repository has one hosted branch and one hosted database: `main`. Local `.env.local` also targets that production database, so local writes are live production writes. Inspect migration state with:
+
+```bash
+npm run db:status
+npm run db:validate
+npm run db:migrate -- --confirm-production
+```
 
 ## Codex/assistant ingestion safety
 

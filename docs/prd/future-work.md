@@ -107,6 +107,21 @@
 
 ## Active
 
+### 2026-07-31 — Main-only infrastructure retirement
+
+- Status: Active
+- Surface: Git branches/worktrees, Vercel deployments/config, Supabase project, local environment, operational tooling/docs
+- Goal: remove the retired `dev` environment and keep only `main`.
+- Progress:
+  - [x] Database/WCT/private-expression tooling targets main from `.env.local`.
+  - [x] Local `.env.local` points to main Supabase and `.env.main.local` is removed.
+  - [ ] Push verified main code and confirm the Production deployment.
+  - [ ] Delete Vercel dev/Preview deployments and Preview-only config.
+  - [ ] Delete Supabase project `uixpyibcpleuwsgemdno`.
+  - [ ] Remove the local dev worktree plus local/remote `dev` branches.
+- Design: `docs/superpowers/specs/2026-07-31-main-only-infrastructure-design.md`
+- Plan: `docs/superpowers/plans/2026-07-31-main-only-infrastructure.md`
+
 ## Backlog
 
 ## Blocked

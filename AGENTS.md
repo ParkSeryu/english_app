@@ -35,33 +35,29 @@ This repo follows the workspace-level OMX/autonomous-agent instructions. The fol
 - If the user explicitly asks to proceed with a separated working tree, create or use a separate `git worktree` before making task changes.
 - Do not mix that requested work with the current working tree's uncommitted edits; keep the isolated worktree on its own branch/path and report the path being used.
 - If a separate worktree cannot be created or used, stop before task edits and report the blocker instead of continuing in the original tree.
-- When integrating separated work, merge or raise the PR toward the `dev` branch by default. Do not target `main`, `origin/main`, or a release branch unless the user explicitly says so.
-- Only target `main` when the user explicitly instructs to put the work on `main`; otherwise keep integration directed at `dev`.
-- Before any merge/push handoff, state the source branch/worktree and confirm the target branch is `dev`.
+- When integrating separated work, merge or raise the PR toward `main`.
+- Before any merge/push handoff, state the source branch/worktree and confirm the target branch is `main`.
 - After a feature/fix branch has been successfully integrated into the target branch and pushed, delete the merged source branch both locally and remotely when it is no longer needed; do not leave stale task branches behind.
 
 ## Database and Supabase environment boundaries
 
-- Treat `dev` and `main` as using separate Supabase/database environments unless the user explicitly says otherwise.
-- Current environment mapping:
-  - `dev` / Codex Supabase MCP / `.env.local` points to Supabase project `uixpyibcpleuwsgemdno`.
-  - `main` / production DB / `.env.main.local` points to Supabase project `ccawzrrkxuirrwvaecvw`.
-- The currently configured Codex Supabase MCP connection is scoped to the **dev** Supabase project, not the main/production database.
-- Before reading or writing hosted Supabase data, state which environment is being targeted (`dev` MCP / `.env.local` or `main` / `.env.main.local`) and verify the project ref/host.
-- Do not assume a migration or data fix applied through the dev MCP has also been applied to main/production; apply or verify each environment separately.
-- When promoting code from `dev` to `main`, separately confirm whether any schema/data changes must be applied to the main/production database.
+- The sole hosted environment is main/production. `.env.local` must point to Supabase project `ccawzrrkxuirrwvaecvw`.
+- Before reading or writing hosted Supabase data, state that main/production is targeted and verify the project ref/host.
+- Do not use a Supabase MCP connection unless its connected project ref has been verified as `ccawzrrkxuirrwvaecvw`.
+- Treat every hosted write as a production write and use the relevant explicit confirmation guard.
 - For any hosted Supabase write containing Korean or other non-ASCII user text, verify text integrity after the write by querying the target database and comparing saved fields to the intended payload. This is mandatory for `expression_days.raw_input`, `expression_days.source_note`, `expressions.korean_prompt`, and ingestion draft payload fields. Do not report completion if saved text contains replacement output such as `???` or differs from the intended text.
-- When sending Korean or other non-ASCII payloads from PowerShell into WSL/stdin, explicitly force UTF-8 first (`$OutputEncoding = [System.Text.UTF8Encoding]::new($false)` and `[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)`), or use a verified UTF-8 file/script path. Default shell pipe encoding is not acceptable for production or dev data writes.
+- When sending Korean or other non-ASCII payloads from PowerShell into WSL/stdin, explicitly force UTF-8 first (`$OutputEncoding = [System.Text.UTF8Encoding]::new($false)` and `[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)`), or use a verified UTF-8 file/script path. Default shell pipe encoding is not acceptable for production data writes.
 - Manage schema/data migrations Flyway-style through `supabase/migrations/*.sql` plus the `scripts/db-migrations.mjs` ledger runner, not ad-hoc SQL Editor execution.
-  - Use `npm run db:status:dev` / `npm run db:status:main` to see which migration files are applied, pending, baselined, or checksum-mismatched.
-  - Use `npm run db:baseline:dev` only to record already-applied SQL Editor migrations before the runner takes ownership; do not baseline new migrations instead of applying them.
-  - Use `npm run db:migrate:dev` for dev migration application. For main/production, run status first and require an explicit production confirmation path (`-- --confirm-production`) before applying.
+  - Use `npm run db:status` to see which migration files are applied, pending, baselined, or checksum-mismatched.
+  - Use `npm run db:validate` to verify the main ledger without applying changes.
+  - Use `npm run db:baseline -- --confirm-production` only to record already-applied SQL Editor migrations before the runner takes ownership; do not baseline new migrations instead of applying them.
+  - Use `npm run db:migrate -- --confirm-production` for migration application after checking status.
   - Never edit an already-applied migration file; create a new timestamped migration so the ledger checksum remains meaningful.
-  - If emergency SQL Editor execution is unavoidable, immediately add the matching migration file and baseline the ledger in the same environment before claiming completion.
-- For schema/RLS migrations, verify both databases when relevant:
+  - If emergency SQL Editor execution is unavoidable, immediately add the matching migration file and baseline the ledger before claiming completion.
+- For schema/RLS migrations, verify the main database directly:
   - service-role/admin reads can confirm tables, rows, folders, and RPC existence;
   - an authenticated-user read smoke should confirm RLS actually allows `content_folders`, `expression_days`, and `expressions` where applicable;
-  - do not claim a migration is live in an environment unless that environment was checked directly.
+  - do not claim a migration is live unless main/production was checked directly.
 
 ## Local dev server access
 
