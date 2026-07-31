@@ -107,20 +107,6 @@
 
 ## Active
 
-### 2026-07-31 — Main-only infrastructure retirement
-
-- Status: Active
-- Surface: Git branches/worktrees, Vercel deployments/config, Supabase project, local environment, operational tooling/docs
-- Goal: remove the retired `dev` environment and keep only `main`.
-- Progress:
-  - [x] Database/WCT/private-expression tooling targets main from `.env.local`.
-  - [x] Local `.env.local` points to main Supabase and `.env.main.local` is removed.
-  - [ ] Push verified main code and confirm the Production deployment.
-  - [ ] Delete Vercel dev/Preview deployments and Preview-only config.
-  - [ ] Delete Supabase project `uixpyibcpleuwsgemdno`.
-  - [ ] Remove the local dev worktree plus local/remote `dev` branches.
-- Design: `docs/superpowers/specs/2026-07-31-main-only-infrastructure-design.md`
-- Plan: `docs/superpowers/plans/2026-07-31-main-only-infrastructure.md`
 
 ## Backlog
 
@@ -129,6 +115,47 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-07-31 — Main-only infrastructure retirement
+
+- Status: Complete
+- Surface: Git branches/worktrees, Vercel deployments/config, Supabase project, local environment, operational tooling/docs
+- Result:
+  - [x] Database, WCT, and private-expression tooling targets main from `.env.local`.
+  - [x] Local `.env.local` points to main Supabase and `.env.main.local` is removed.
+  - [x] GitHub, local branches, and worktrees contain only `main`.
+  - [x] Vercel dev Preview deployments (24) and Preview environment variables (3) are deleted.
+  - [x] Vercel Production for `b98b01d` is READY and the public alias returns HTTP 200.
+  - [x] Supabase dev project `uixpyibcpleuwsgemdno` is deleted; main `ccawzrrkxuirrwvaecvw` is `ACTIVE_HEALTHY`.
+- Changed files:
+  - `package.json`
+  - `scripts/db-migrations.mjs`
+  - `scripts/generate-wct-quiz-backfill.ts`
+  - `scripts/sync-main-to-dev.mjs` (deleted)
+  - `.codex/skills/english-private-expression-card/SKILL.md`
+  - `.codex/skills/english-private-expression-card/scripts/add-private-expressions.mjs`
+  - `tests/unit/main-only-environment.test.ts`
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/supabase-setup.md`
+  - `docs/prd/future-work.md`
+- Verification:
+  - [x] `npm run lint` — passed
+  - [x] `npm run typecheck` — passed
+  - [x] `npm test` — 312 passed, 1 skipped
+  - [x] `npm run build` — passed
+  - [x] `npm run db:status` — main, 35 migrations, pending 0, mismatch 0
+  - [x] `npm run db:validate` — 35 migration records validated
+  - [x] Local live `/` and `/login` — HTTP 200 on `127.0.0.1:3000` and `172.22.48.149:3000`
+  - [x] Vercel Production `https://english-phi-drab.vercel.app` — HTTP 200
+  - [x] Vercel dev Preview count 0, Preview env count 0, dev alias HTTP 404
+  - [x] `git branch -a`, GitHub branches, and `git worktree list` — only `main`
+  - [x] `supabase projects list` — only `ccawzrrkxuirrwvaecvw`
+- Remaining risks:
+  - Supabase's GitHub check is still labeled `Supabase Preview` and can report migration replay failures even though no preview database branch exists.
+  - Historical completed documents retain dev references intentionally.
+- Design: `docs/superpowers/specs/2026-07-31-main-only-infrastructure-design.md`
+- Plan: `docs/superpowers/plans/2026-07-31-main-only-infrastructure.md`
 
 ### 2026-07-28 — T-010: WCT Day 복습 객관식 퀴즈
 
