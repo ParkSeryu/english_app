@@ -18,17 +18,12 @@
     "verify:rls": "bash scripts/verify-rls-local.sh",
     "clean:runtime": "rm -rf .next test-results playwright-report",
     "verify:all": "npm run verify && npm run test:perf && npm run verify:rls",
-    "sync:main-to-dev": "node scripts/sync-main-to-dev.mjs",
-    "db:status:dev": "node scripts/db-migrations.mjs status --env dev",
-    "db:migrate:dev": "node scripts/db-migrations.mjs migrate --env dev",
-    "db:baseline:dev": "node scripts/db-migrations.mjs baseline --env dev",
-    "db:validate:dev": "node scripts/db-migrations.mjs validate --env dev",
-    "db:status:main": "node scripts/db-migrations.mjs status --env main",
-    "db:migrate:main": "node scripts/db-migrations.mjs migrate --env main",
-    "db:baseline:main": "node scripts/db-migrations.mjs baseline --env main",
-    "db:validate:main": "node scripts/db-migrations.mjs validate --env main",
-    "wct:quiz-backfill:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts generate --env dev --output supabase/migrations/20260728121000_backfill_wct_review_quizzes.sql",
-    "wct:quiz-backfill:verify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts verify --env dev"
+    "db:status": "node scripts/db-migrations.mjs status",
+    "db:migrate": "node scripts/db-migrations.mjs migrate",
+    "db:baseline": "node scripts/db-migrations.mjs baseline",
+    "db:validate": "node scripts/db-migrations.mjs validate",
+    "wct:quiz-backfill:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts generate --output supabase/migrations/20260728121000_backfill_wct_review_quizzes.sql",
+    "wct:quiz-backfill:verify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts verify"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

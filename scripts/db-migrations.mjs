@@ -8,24 +8,22 @@ import { spawnSync } from "node:child_process";
 const ROOT = process.cwd();
 const MIGRATIONS_DIR = path.join(ROOT, "supabase", "migrations");
 const LEDGER_TABLE = "public.app_schema_migrations";
-const ENVIRONMENTS = {
-  dev: {
-    envFile: ".env.local",
-    projectRef: "uixpyibcpleuwsgemdno",
-    production: false
-  },
-  main: {
-    envFile: ".env.main.local",
-    projectRef: "ccawzrrkxuirrwvaecvw",
-    production: true
-  }
+const ENVIRONMENT = {
+  name: "main",
+  envFile: ".env.local",
+  projectRef: "ccawzrrkxuirrwvaecvw"
 };
 
 const args = process.argv.slice(2);
 const command = args.find((arg) => !arg.startsWith("-")) ?? "help";
-const envName = valueAfter("--env") ?? "dev";
 const showHelp = args.includes("--help") || args.includes("-h") || command === "help";
 const confirmProduction = args.includes("--confirm-production");
+const unknownOption = args.find((arg) => (
+  arg.startsWith("-")
+  && !["--confirm-production", "--help", "-h"].includes(arg)
+));
+
+if (unknownOption) fail(`Unknown option: ${unknownOption}`);
 
 if (showHelp) {
   printHelp();
@@ -36,20 +34,18 @@ if (!["status", "migrate", "baseline", "validate"].includes(command)) {
   fail(`Unknown command: ${command}`);
 }
 
-const environment = ENVIRONMENTS[envName];
-if (!environment) fail(`Unknown environment: ${envName}. Expected one of: ${Object.keys(ENVIRONMENTS).join(", ")}`);
-if (environment.production && ["migrate", "baseline"].includes(command) && !confirmProduction) {
+if (["migrate", "baseline"].includes(command) && !confirmProduction) {
   fail(`Refusing to ${command} production/main without --confirm-production. Run status first, then re-run with explicit confirmation if intended.`);
 }
 
-const env = loadEnvFile(path.join(ROOT, environment.envFile));
-const apiUrl = requiredEnv(env, "NEXT_PUBLIC_SUPABASE_URL", environment.envFile);
+const env = loadEnvFile(path.join(ROOT, ENVIRONMENT.envFile));
+const apiUrl = requiredEnv(env, "NEXT_PUBLIC_SUPABASE_URL", ENVIRONMENT.envFile);
 const apiProjectRef = projectRefFromUrl(apiUrl);
-if (apiProjectRef !== environment.projectRef) {
-  fail(`${environment.envFile} points to ${apiProjectRef}, expected ${environment.projectRef}. Aborting to avoid cross-environment migration.`);
+if (apiProjectRef !== ENVIRONMENT.projectRef) {
+  fail(`${ENVIRONMENT.envFile} points to ${apiProjectRef}, expected ${ENVIRONMENT.projectRef}. Aborting to avoid cross-environment migration.`);
 }
 
-const databaseUrl = databaseUrlFromEnv(env, environment.envFile);
+const databaseUrl = databaseUrlFromEnv(env, ENVIRONMENT.envFile);
 const migrations = readMigrations();
 
 main().catch((error) => fail(error instanceof Error ? error.message : String(error)));
@@ -64,7 +60,7 @@ async function main() {
   if (command === "validate") {
     const applied = await readLedgerIfPresent();
     validateAppliedChecksums(applied);
-    console.log(`Validated ${applied.size} applied migration record(s) for ${envName}.`);
+    console.log(`Validated ${applied.size} applied migration record(s) for ${ENVIRONMENT.name}.`);
     return;
   }
 
@@ -85,7 +81,7 @@ async function main() {
 }
 
 function printHelp() {
-  console.log(`Usage: node scripts/db-migrations.mjs <command> --env <dev|main> [--confirm-production]
+  console.log(`Usage: node scripts/db-migrations.mjs <command> [--confirm-production]
 
 Flyway-style migration runner for supabase/migrations/*.sql.
 
@@ -95,21 +91,14 @@ Commands:
   baseline   Create the ledger and mark current local files as already applied without executing SQL.
   migrate    Execute pending migrations in filename order and record checksums.
 
-Environment mapping:
-  dev  -> .env.local      -> project ${ENVIRONMENTS.dev.projectRef}
-  main -> .env.main.local -> project ${ENVIRONMENTS.main.projectRef}
+Hosted target:
+  main -> .env.local -> project ${ENVIRONMENT.projectRef}
 
-Required DB URL in the selected env file:
+Required DB URL in .env.local:
   SUPABASE_DB_URL, SUPABASE_DIRECT_URL, DATABASE_URL, or POSTGRES_URL
 
 Production safety:
-  baseline/migrate with --env main requires --confirm-production.`);
-}
-
-function valueAfter(flag) {
-  const index = args.indexOf(flag);
-  if (index < 0) return null;
-  return args[index + 1] ?? null;
+  baseline/migrate requires --confirm-production.`);
 }
 
 function loadEnvFile(filePath) {
@@ -248,7 +237,7 @@ function baseline(applied) {
   runPsql(`insert into ${LEDGER_TABLE} (version, name, checksum, execution_ms, baseline)
 values ${values}
 on conflict (version) do nothing;`);
-  console.log(`Baselined ${pending.length} migration(s) for ${envName}.`);
+  console.log(`Baselined ${pending.length} migration(s) for ${ENVIRONMENT.name}.`);
 }
 
 function migrate(applied) {
@@ -260,7 +249,7 @@ function migrate(applied) {
 
   for (const migration of pending) {
     const startedAt = Date.now();
-    console.log(`Applying ${migration.file} to ${envName}...`);
+    console.log(`Applying ${migration.file} to ${ENVIRONMENT.name}...`);
     const executionSql = migration.sql.includes("migrate: no-transaction")
       ? `${migration.sql}\ninsert into ${LEDGER_TABLE} (version, name, checksum, execution_ms, baseline) values (${sqlLiteral(migration.version)}, ${sqlLiteral(migration.name)}, ${sqlLiteral(migration.checksum)}, ${Date.now() - startedAt}, false);`
       : `begin;\n${migration.sql}\ninsert into ${LEDGER_TABLE} (version, name, checksum, execution_ms, baseline) values (${sqlLiteral(migration.version)}, ${sqlLiteral(migration.name)}, ${sqlLiteral(migration.checksum)}, ${Date.now() - startedAt}, false);\ncommit;`;
@@ -277,9 +266,9 @@ function printStatus(applied, ledgerWasEnsured) {
   const pendingCount = rows.filter((row) => row.state === "pending").length;
   const mismatchCount = rows.filter((row) => row.state === "checksum-mismatch").length;
   console.log(JSON.stringify({
-    environment: envName,
-    projectRef: environment.projectRef,
-    envFile: environment.envFile,
+    environment: ENVIRONMENT.name,
+    projectRef: ENVIRONMENT.projectRef,
+    envFile: ENVIRONMENT.envFile,
     ledgerTable: LEDGER_TABLE,
     ledgerPresent: ledgerWasEnsured || applied.size > 0 || ledgerExists(),
     migrationCount: migrations.length,
