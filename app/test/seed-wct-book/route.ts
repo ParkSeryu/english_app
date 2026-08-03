@@ -4,6 +4,7 @@ import { getAdminWctQuizStore } from "@/lib/wct-quiz-store";
 import { getAdminWctStore } from "@/lib/wct-store";
 import { getE2EFakeUserId, isE2EMemoryMode } from "@/lib/test-mode";
 import { ensureImportedWctQuizzes } from "@/lib/wct/quiz/ensure";
+import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
 import type { WctImportDayInput } from "@/lib/wct/types";
 
 const OTHER_OWNER_ID = "00000000-0000-4000-8000-000000000099";
@@ -38,20 +39,38 @@ export async function POST() {
 
   const user = { id: fakeUserId, email: "e2e@example.com" };
   const store = getAdminWctStore(user);
+  const prenoviceTitle = "WCT Pattern book Prenovice";
   const result = await store.importApprovedBatch({
-      idempotencyKey: "e2e-wct-book-v1",
-      payloadHash: "e2e-wct-book-hash-v1",
-      book: { title: "WCT Pattern book Prenovice", levelLabel: "Pre Novice" },
-      days: [
-        day(1, "수동태", passivePatterns()),
-        day(13, "if 가능", conditionalPatterns()),
-        day(16, "간접의문문", indirectQuestionPatterns())
-      ]
-    });
+    idempotencyKey: "e2e-wct-prenovice-book-v2",
+    payloadHash: "e2e-wct-prenovice-book-hash-v2",
+    book: { title: prenoviceTitle, levelLabel: "Pre Novice" },
+    days: Array.from({ length: 16 }, (_, index) => {
+      const dayNumber = index + 1;
+      if (dayNumber === 1) return day(dayNumber, "수동태", passivePatterns());
+      if (dayNumber === 13) return day(dayNumber, "if 가능", conditionalPatterns());
+      if (dayNumber === 16) return day(dayNumber, "간접의문문", indirectQuestionPatterns());
+      return day(dayNumber, `Prenovice practice ${dayNumber}`, testOnlyPatterns("Prenovice", dayNumber));
+    })
+  });
   await ensureImportedWctQuizzes(
     store,
     getAdminWctQuizStore(user),
     result
+  );
+
+  const noviceTitle = "WCT Pattern book Novice";
+  const noviceResult = await store.importApprovedBatch({
+    idempotencyKey: "e2e-wct-novice-book-v2",
+    payloadHash: "e2e-wct-novice-book-hash-v2",
+    book: { title: noviceTitle, levelLabel: "Novice" },
+    days: Array.from({ length: 28 }, (_, index) => (
+      day(index + 1, `Novice practice ${index + 1}`, testOnlyPatterns("Novice", index + 1))
+    ))
+  });
+  await ensureImportedWctQuizzes(
+    store,
+    getAdminWctQuizStore(user),
+    noviceResult
   );
 
   const otherOwner = { id: OTHER_OWNER_ID, email: "other@example.com" };
@@ -71,17 +90,81 @@ export async function POST() {
   const day13Id = result.operations.find(
     (operation) => operation.dayNumber === 13
   )?.dayId;
+  const noviceDay13Id = noviceResult.operations.find(
+    (operation) => operation.dayNumber === 13
+  )?.dayId;
   const otherOwnerDayId = otherOwnerResult.operations[0]?.dayId;
-  if (!day13Id || !otherOwnerDayId) {
+  if (!day13Id || !noviceDay13Id || !otherOwnerDayId) {
     throw new Error("WCT E2E seed did not create the expected Days");
   }
+
+  const questions = await seededQuestions(user, [
+    { title: prenoviceTitle, operations: result.operations },
+    { title: noviceTitle, operations: noviceResult.operations }
+  ]);
 
   return NextResponse.json({
     bookId: result.bookId,
     day13Id,
+    prenoviceBookId: result.bookId,
+    prenoviceDay13Id: day13Id,
+    noviceBookId: noviceResult.bookId,
+    noviceDay13Id,
+    questions,
     otherOwnerBookId: otherOwnerResult.bookId,
     otherOwnerDayId
   });
+}
+
+async function seededQuestions(
+  user: { id: string; email: string },
+  books: Array<{ title: string; operations: Array<{ dayId: string; dayNumber: number }> }>
+) {
+  const quizStore = getAdminWctQuizStore(user);
+  const questions: Array<{ id: string; prompt: string; correctChoiceText: string; dayId: string }> = [];
+  for (const { title, operations } of books) {
+    const dayIdByNumber = new Map(operations.map((operation) => [operation.dayNumber, operation.dayId]));
+    const sets = await quizStore.listSetsByLessonKeys(
+      operations.map((operation) => standardWctLessonKey(title, operation.dayNumber))
+    );
+    for (const set of sets) {
+      const dayNumber = operations.find((operation) => (
+        standardWctLessonKey(title, operation.dayNumber) === set.lessonKey
+      ))?.dayNumber;
+      if (!dayNumber) throw new Error("WCT E2E seed could not map a quiz set to its Day");
+      const dayId = dayIdByNumber.get(dayNumber);
+      if (!dayId) throw new Error("WCT E2E seed could not map a quiz set Day ID");
+      for (const question of set.questions) {
+        const correctChoiceText = question.choices.find((choice) => choice.id === question.correctChoiceId)?.text;
+        if (!correctChoiceText) throw new Error("WCT E2E seed could not find a correct quiz choice");
+        questions.push({ id: question.id, prompt: question.prompt, correctChoiceText, dayId });
+      }
+    }
+  }
+  return questions;
+}
+
+function testOnlyPatterns(level: string, dayNumber: number): WctImportDayInput["patterns"] {
+  return [
+    {
+      patternText: `${level} Day ${dayNumber}: review + before + time`,
+      meaningKo: `${level} Day ${dayNumber}을 아침 식사 전에 복습하다`,
+      usageSource: "book",
+      examples: [
+        { englishText: `I review ${level} Day ${dayNumber} before breakfast.`, meaningKo: `나는 ${level} Day ${dayNumber}을 아침 식사 전에 복습한다.` },
+        { englishText: `My partner reviews ${level} Day ${dayNumber} before class.`, meaningKo: `내 짝은 수업 전에 ${level} Day ${dayNumber}을 복습한다.` }
+      ]
+    },
+    {
+      patternText: `${level} Day ${dayNumber}: can + verb`,
+      meaningKo: `${level} Day ${dayNumber}에서 할 수 있다`,
+      usageSource: "book",
+      examples: [
+        { englishText: `I can explain ${level} Day ${dayNumber} clearly.`, meaningKo: `나는 ${level} Day ${dayNumber}을 분명하게 설명할 수 있다.` },
+        { englishText: `We can practice ${level} Day ${dayNumber} together.`, meaningKo: `우리는 ${level} Day ${dayNumber}을 함께 연습할 수 있다.` }
+      ]
+    }
+  ];
 }
 
 function passivePatterns(): WctImportDayInput["patterns"] {

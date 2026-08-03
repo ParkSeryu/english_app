@@ -45,6 +45,7 @@ test("reads the approved WCT Premium Day 1 lesson", async ({ page }) => {
 
   await expect(page).toHaveURL("/lessons/premium");
   await expect(page.getByRole("heading", { name: "WCT Premium" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Pop Quiz|이어 풀기|다시 풀기/ })).toHaveCount(0);
 
   await page.getByRole("link", { name: "Day 1" }).click();
 
