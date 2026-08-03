@@ -107,6 +107,14 @@
 
 ## Active
 
+### 2026-08-03 — WCT Pop Quiz
+
+- Status: Active
+- Surface: Prenovice/Novice book detail, Pop Quiz route, progress persistence
+- Scope: 20 questions; translation 12/pattern 8; early 7/middle 7/late 6; max 2 per Day
+- Non-goals: Premium, AI generation, attempt history, timers, rankings
+- Design: `docs/superpowers/specs/2026-08-03-wct-pop-quiz-design.md`
+- Plan: `docs/superpowers/plans/2026-08-03-wct-pop-quiz.md`
 
 ## Backlog
 
