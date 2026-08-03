@@ -268,6 +268,7 @@ select 'RLS verification passed' as result;
 SQL
 
 cat scripts/verify-wct-quiz-rls.sql >> "$SQL_FILE"
+cat scripts/verify-rls.sql >> "$SQL_FILE"
 
 docker run -d --name "$CONTAINER" -e POSTGRES_PASSWORD=postgres "$IMAGE" >/dev/null
 until docker exec "$CONTAINER" pg_isready -U postgres >/dev/null 2>&1; do
