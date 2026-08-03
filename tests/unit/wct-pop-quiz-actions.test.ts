@@ -38,6 +38,45 @@ describe("WCT Pop Quiz actions", () => {
     expect(mocks.requireCurrentUser).not.toHaveBeenCalled();
   });
 
+  it("rejects an invalid start before authentication", async () => {
+    const { startWctPopQuizAction } = await import(
+      "@/app/lessons/books/[bookId]/pop-quiz/actions"
+    );
+
+    await expect(startWctPopQuizAction({ bookId, mode: "invalid" })).resolves.toEqual({
+      ok: false,
+      message: "Pop Quiz 요청을 확인해 주세요."
+    });
+    expect(mocks.requireCurrentUser).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("redirects after a successful start", async () => {
+    mocks.startWctPopQuiz.mockResolvedValue({ attemptId });
+    const { startWctPopQuizAction } = await import(
+      "@/app/lessons/books/[bookId]/pop-quiz/actions"
+    );
+
+    await expect(startWctPopQuizAction({ bookId, mode: "start" })).resolves.toBeUndefined();
+    expect(mocks.startWctPopQuiz).toHaveBeenCalledWith(expect.any(Object), {
+      bookId,
+      mode: "start"
+    });
+    expect(mocks.redirect).toHaveBeenCalledWith(`/lessons/books/${bookId}/pop-quiz`);
+  });
+
+  it("returns a Korean start failure without redirecting", async () => {
+    mocks.startWctPopQuiz.mockRejectedValue(new Error("unavailable"));
+    const { startWctPopQuizAction } = await import(
+      "@/app/lessons/books/[bookId]/pop-quiz/actions"
+    );
+
+    await expect(startWctPopQuizAction({ bookId, mode: "start" })).resolves.toEqual({
+      ok: false,
+      message: "Pop Quiz를 시작하지 못했어요. 다시 시도해 주세요."
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
   it("confirms a validated answer through the owner-scoped store", async () => {
     const confirmAnswer = vi.fn().mockResolvedValue({
       answer: { questionId: "question-1", choiceId: "choice-1", confirmedAt: "2026-08-03T00:00:00Z" },

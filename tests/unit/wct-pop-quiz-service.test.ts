@@ -130,6 +130,25 @@ describe("WCT Pop Quiz service", () => {
     }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
   });
 
+  it("preserves a completed attempt when start is requested", async () => {
+    const book = createBook();
+    const existing = attempt(book.id, "completed");
+    const listSetsByLessonKeys = vi.fn();
+    const startAttempt = vi.fn();
+    const selectQuestions = vi.fn();
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      wctStore: { getBook: vi.fn().mockResolvedValue(book) },
+      wctQuizStore: { listSetsByLessonKeys },
+      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(existing), startAttempt },
+      selectQuestions
+    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
+
+    expect(listSetsByLessonKeys).not.toHaveBeenCalled();
+    expect(selectQuestions).not.toHaveBeenCalled();
+    expect(startAttempt).not.toHaveBeenCalled();
+  });
   it("uses a fresh seed and prior signature when replacing a completed attempt", async () => {
     const book = createBook();
     const previous = {

@@ -100,7 +100,7 @@ export async function startWctPopQuiz(
 ): Promise<WctPopQuizAttempt> {
   const book = requireEligibleBook(await deps.wctStore.getBook(input.bookId));
   const existing = await deps.wctPopQuizStore.getAttempt(book.id);
-  if (input.mode === "start" && existing?.status === "in_progress") return existing;
+  if (input.mode === "start" && existing) return existing;
   if (input.mode === "retake" && existing?.status !== "completed") {
     throw new Error("Pop Quiz can only be restarted after completion");
   }
