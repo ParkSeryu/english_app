@@ -83,6 +83,9 @@ class FailOnceQuizStore implements WctQuizStore {
   getSummaryByLessonKey(lessonKey: string) {
     return this.delegate.getSummaryByLessonKey(lessonKey);
   }
+  listSetsByLessonKeys(lessonKeys: string[]) {
+    return this.delegate.listSetsByLessonKeys(lessonKeys);
+  }
 
   createSetIfMissing(input: WctQuizSetCreateInput) {
     this.attempts += 1;

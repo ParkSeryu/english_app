@@ -80,6 +80,28 @@ describe("MemoryWctQuizStore", () => {
       .resolves.toBeNull();
   });
 
+  it("lists only the owner's sets for the requested lesson keys", async () => {
+    const adminA = new MemoryWctQuizStore({ id: USER_A }, true);
+    const first = await adminA.createSetIfMissing(draft());
+    const second = await adminA.createSetIfMissing({
+      ...draft(),
+      lessonKey: "wct-book:wct-prenovice:day:2",
+      sourceId: "day-2"
+    });
+    await new MemoryWctQuizStore({ id: USER_B }, true).createSetIfMissing({
+      ...draft(),
+      sourceId: "other-owner"
+    });
+
+    await expect(new MemoryWctQuizStore({ id: USER_A }).listSetsByLessonKeys([
+      first.lessonKey,
+      "wct-book:wct-prenovice:day:missing"
+    ])).resolves.toEqual([first]);
+    await expect(new MemoryWctQuizStore({ id: USER_A }).listSetsByLessonKeys([
+      first.lessonKey,
+      second.lessonKey
+    ])).resolves.toEqual([first, second]);
+  });
   it("scores stored answers and replaces the latest progress", async () => {
     const admin = new MemoryWctQuizStore({ id: USER_A }, true);
     const set = await admin.createSetIfMissing(draft());

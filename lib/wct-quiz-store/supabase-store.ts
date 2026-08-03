@@ -54,6 +54,16 @@ export class SupabaseWctQuizStore implements WctQuizStore {
     return this.selectSetByLessonKey(lessonKey);
   }
 
+  async listSetsByLessonKeys(lessonKeys: string[]): Promise<WctQuizSet[]> {
+    if (lessonKeys.length === 0) return [];
+    const { data, error } = await (await this.client())
+      .from("wct_quiz_sets")
+      .select(QUIZ_SET_SELECT)
+      .eq("owner_id", this.user.id)
+      .in("lesson_key", lessonKeys);
+    if (error) throw new Error(`WCT quiz set query failed: ${error.message}`);
+    return (data ?? []).map(mapWctQuizSet);
+  }
   async getSummaryByLessonKey(
     lessonKey: string
   ): Promise<WctQuizSummary | null> {

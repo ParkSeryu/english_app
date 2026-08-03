@@ -67,6 +67,12 @@ export class MemoryWctQuizStore implements WctQuizStore {
     return set ? clone(set) : null;
   }
 
+  async listSetsByLessonKeys(lessonKeys: string[]): Promise<WctQuizSet[]> {
+    const requested = new Set(lessonKeys);
+    return [...getState().sets.values()]
+      .filter((set) => set.ownerId === this.user.id && requested.has(set.lessonKey))
+      .map(clone);
+  }
   async getSummaryByLessonKey(
     lessonKey: string
   ): Promise<WctQuizSummary | null> {
