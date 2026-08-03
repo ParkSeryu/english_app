@@ -5,12 +5,12 @@ import { wctPopQuizQuestionsSchema } from "@/lib/wct/pop-quiz/validation";
 import type { WctBook } from "@/lib/wct/types";
 import type { WctPopQuizCandidate } from "@/lib/wct/pop-quiz/types";
 
-function createBook(): WctBook {
+function createBook(levelLabel = "Prenovice"): WctBook {
   const id = "book-prenovice";
   return {
     id,
     title: "Prenovice",
-    levelLabel: "Prenovice",
+    levelLabel,
     dayCount: 16,
     sortOrder: 1,
     days: Array.from({ length: 16 }, (_, index) => ({
@@ -72,6 +72,25 @@ const input = {
 };
 
 describe("WCT Pop Quiz selector", () => {
+  it("allows a Novice book", () => {
+    const noviceBook = createBook("Novice");
+
+    expect(selectWctPopQuizQuestions({
+      ...input,
+      book: noviceBook,
+      candidates: createCandidates(noviceBook)
+    })).toHaveLength(20);
+  });
+
+  it("rejects a Premium book", () => {
+    const premiumBook = createBook("Premium");
+
+    expect(() => selectWctPopQuizQuestions({
+      ...input,
+      book: premiumBook,
+      candidates: createCandidates(premiumBook)
+    })).toThrow("Pop Quiz is only available for Prenovice and Novice");
+  });
   it("selects twenty questions with every fixed quota and no duplicate source question", () => {
     const selected = selectWctPopQuizQuestions(input);
 

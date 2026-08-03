@@ -103,6 +103,11 @@ function selectForSeed(input: WctPopQuizSelectionInput, seed: string) {
 }
 
 export function selectWctPopQuizQuestions(input: WctPopQuizSelectionInput): WctPopQuizQuestion[] {
+  const level = input.book.levelLabel?.replace(/\s/g, "").toLowerCase();
+  if (level !== "prenovice" && level !== "novice") {
+    throw new Error("Pop Quiz is only available for Prenovice and Novice");
+  }
+
   for (let retry = 0; retry <= 10; retry += 1) {
     const seed = retry === 0 ? input.seed : `${input.seed}:${retry}`;
     const selected = selectForSeed(input, seed);
