@@ -26,6 +26,8 @@ async function completeQuiz(page: Page, choiceIndex = 0) {
       .toBeVisible();
     await page.locator("main section").getByRole("button")
       .nth(choiceIndex).click();
+    await expect(page.getByText(/정답이에요|아쉬워요/)).not.toBeVisible();
+    await page.getByRole("button", { name: "정답 확인" }).click();
     await expect(page.getByText(/정답이에요|아쉬워요/)).toBeVisible();
     await expect(page.getByText("해설", { exact: true })).toBeVisible();
     if (questionNumber < 5) {

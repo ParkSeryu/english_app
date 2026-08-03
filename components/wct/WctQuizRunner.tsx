@@ -23,6 +23,7 @@ export function WctQuizRunner({
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
+  const [isAnswerConfirmed, setIsAnswerConfirmed] = useState(false);
   const [answers, setAnswers] = useState<WctQuizAnswer[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -42,20 +43,26 @@ export function WctQuizRunner({
   }).length;
 
   function selectChoice(choiceId: string) {
-    if (selectedChoiceId || saving || result) return;
+    if (isAnswerConfirmed || saving || result) return;
     setSelectedChoiceId(choiceId);
-    setAnswers([
-      ...answers,
-      { questionId: question.id, choiceId }
+  }
+
+  function confirmAnswer() {
+    if (!selectedChoiceId || isAnswerConfirmed || saving || result) return;
+    setAnswers((current) => [
+      ...current,
+      { questionId: question.id, choiceId: selectedChoiceId }
     ]);
+    setIsAnswerConfirmed(true);
   }
 
   function nextQuestion() {
-    if (!selectedChoiceId || questionIndex >= quizSet.questions.length - 1) {
+    if (!isAnswerConfirmed || questionIndex >= quizSet.questions.length - 1) {
       return;
     }
     setQuestionIndex((current) => current + 1);
     setSelectedChoiceId(null);
+    setIsAnswerConfirmed(false);
   }
 
   async function showAndSaveResult() {
@@ -81,6 +88,7 @@ export function WctQuizRunner({
   function restart() {
     setQuestionIndex(0);
     setSelectedChoiceId(null);
+    setIsAnswerConfirmed(false);
     setAnswers([]);
     setShowResult(false);
     setSaving(false);
@@ -172,14 +180,16 @@ export function WctQuizRunner({
               aria-label={choiceLabel(
                 choice,
                 selectedChoiceId,
-                question.correctChoiceId
+                question.correctChoiceId,
+                isAnswerConfirmed
               )}
               onClick={() => selectChoice(choice.id)}
-              disabled={selectedChoiceId !== null}
+              disabled={isAnswerConfirmed}
               className={choiceClassName(
                 choice.id,
                 selectedChoiceId,
-                question.correctChoiceId
+                question.correctChoiceId,
+                isAnswerConfirmed
               )}
             >
               {choice.text}
@@ -187,7 +197,7 @@ export function WctQuizRunner({
           ))}
         </div>
 
-        {selectedChoiceId ? (
+        {isAnswerConfirmed && selectedChoiceId ? (
           <div
             aria-live="polite"
             className={`mt-6 rounded-2xl p-4 ${
@@ -210,7 +220,7 @@ export function WctQuizRunner({
           </div>
         ) : null}
 
-        {selectedChoiceId ? (
+        {isAnswerConfirmed ? (
           <button
             type="button"
             onClick={
@@ -224,7 +234,16 @@ export function WctQuizRunner({
               ? "결과 보기"
               : "다음 문제"}
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            onClick={confirmAnswer}
+            disabled={!selectedChoiceId}
+            className="mt-6 w-full rounded-2xl bg-teal-700 px-5 py-3 font-black text-white disabled:opacity-50"
+          >
+            정답 확인
+          </button>
+        )}
       </div>
     </section>
   );
@@ -233,9 +252,10 @@ export function WctQuizRunner({
 function choiceLabel(
   choice: WctQuizChoice,
   selectedChoiceId: string | null,
-  correctChoiceId: string
+  correctChoiceId: string,
+  isAnswerConfirmed: boolean
 ) {
-  if (!selectedChoiceId) return choice.text;
+  if (!selectedChoiceId || !isAnswerConfirmed) return choice.text;
   if (choice.id === correctChoiceId) return `${choice.text}, 정답`;
   if (choice.id === selectedChoiceId) return `${choice.text}, 오답`;
   return choice.text;
@@ -244,11 +264,15 @@ function choiceLabel(
 function choiceClassName(
   choiceId: string,
   selectedChoiceId: string | null,
-  correctChoiceId: string
+  correctChoiceId: string,
+  isAnswerConfirmed: boolean
 ) {
   const base =
     "w-full rounded-2xl border px-4 py-4 text-left font-bold transition disabled:cursor-default";
-  if (!selectedChoiceId) {
+  if (!isAnswerConfirmed) {
+    if (choiceId === selectedChoiceId) {
+      return `${base} border-teal-500 bg-teal-50 text-teal-900`;
+    }
     return `${base} border-slate-200 bg-white text-ink hover:border-teal-300 hover:bg-teal-50`;
   }
   if (choiceId === correctChoiceId) {

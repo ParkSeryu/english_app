@@ -48,6 +48,7 @@ async function answerQuiz(
     await user.click(screen.getByRole("button", {
       name: choiceForQuestion(number)
     }));
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
     if (number < 5) {
       await user.click(screen.getByRole("button", { name: "다음 문제" }));
     }
@@ -59,20 +60,29 @@ describe("WctQuizRunner", () => {
     vi.clearAllMocks();
   });
 
-  it("locks a selection and reveals immediate correct and wrong feedback", async () => {
+  it("lets users change a selection before explicitly confirming feedback", async () => {
     const user = userEvent.setup();
-    const { rerender } = render(
-      <WctQuizRunner quizSet={quizSet} returnHref="/day/1" />
-    );
+    render(<WctQuizRunner quizSet={quizSet} returnHref="/day/1" />);
 
     expect(screen.getByText("1 / 5")).toBeVisible();
     expect(screen.queryByText("Explanation 1")).not.toBeInTheDocument();
+    const confirmButton = screen.getByRole("button", { name: "정답 확인" });
+    expect(confirmButton).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Wrong A 1" }));
 
+    expect(confirmButton).toBeEnabled();
+    expect(screen.queryByText("아쉬워요. 정답을 확인해 보세요."))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText("Explanation 1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Wrong A 1" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Wrong B 1" }));
+    await user.click(confirmButton);
+
     expect(screen.getByText("아쉬워요. 정답을 확인해 보세요.")).toBeVisible();
     expect(screen.getByText("Explanation 1")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Wrong A 1, 오답" }))
+    expect(screen.getByRole("button", { name: "Wrong B 1, 오답" }))
       .toBeDisabled();
     expect(screen.getByRole("button", { name: "Correct 1, 정답" }))
       .toBeDisabled();
@@ -85,9 +95,11 @@ describe("WctQuizRunner", () => {
     await user.click(screen.getByRole("button", { name: "다음 문제" }));
     expect(screen.getByText("2 / 5")).toBeVisible();
     expect(screen.queryByText("Explanation 2")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "정답 확인" })).toBeDisabled();
 
-    rerender(<WctQuizRunner quizSet={quizSet} returnHref="/day/1" />);
     await user.click(screen.getByRole("button", { name: "Correct 2" }));
+    expect(screen.queryByText("정답이에요")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
     expect(screen.getByText("정답이에요")).toBeVisible();
     expect(screen.getByRole("button", { name: "Correct 2, 정답" }))
       .toBeDisabled();
