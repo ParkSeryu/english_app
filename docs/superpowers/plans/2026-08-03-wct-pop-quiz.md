@@ -417,8 +417,8 @@ git commit -m "feat: add WCT Pop Quiz persistence"
 Cover eligible title/level matching, Premium/foreign/missing rejection, candidate assembly from every Day set, active-attempt resume, fresh retake seed, action validation, and Korean error messages.
 
 ```ts
-await expect(startWctPopQuiz(serviceDeps, { bookId, mode: "start" }))
-  .resolves.toMatchObject({ questions: expect.arrayContaining([]) });
+const started = await startWctPopQuiz(serviceDeps, { bookId, mode: "start" });
+expect(started.questions).toHaveLength(20);
 await expect(startWctPopQuiz(serviceDeps, { premiumBookId, mode: "start" }))
   .rejects.toThrow("Pop Quiz is available for Prenovice and Novice only");
 ```
