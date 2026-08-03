@@ -65,7 +65,7 @@ function confirmation(index: number, choiceId = `choice-${index + 1}-1`) {
 
 describe("WctPopQuizRunner", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mocks.confirmWctPopQuizAnswerAction.mockResolvedValue(confirmation(0));
     mocks.completeWctPopQuizAction.mockResolvedValue({
       ok: true,
@@ -145,6 +145,69 @@ describe("WctPopQuizRunner", () => {
     expect(screen.getByText("1 / 20")).toBeVisible();
   });
 
+  it("exposes the selected answer before confirmation without feedback", async () => {
+    const user = userEvent.setup();
+    render(<WctPopQuizRunner attempt={attempt} returnHref="/lessons/books/book-1" />);
+
+    await user.click(screen.getByRole("button", { name: "Wrong 1" }));
+
+    expect(screen.getByRole("button", { name: "Wrong 1" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Correct 1" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByText("아쉬워요. 정답을 확인해 보세요.")).not.toBeInTheDocument();
+  });
+
+  it("retries final completion after a failure instead of confirming the answer again", async () => {
+    const user = userEvent.setup();
+    mocks.confirmWctPopQuizAnswerAction.mockResolvedValue(confirmation(19));
+    mocks.completeWctPopQuizAction
+      .mockResolvedValueOnce({ ok: false, message: "결과를 저장하지 못했어요. 다시 시도해 주세요." })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: { score: 20, total: 20, incorrectDays: [], completedAt: "2026-08-03T00:00:00.000Z" }
+      });
+    render(
+      <WctPopQuizRunner
+        attempt={{ ...attempt, currentIndex: 19, answers: attempt.questions.slice(0, 19).map((item) => ({
+          questionId: item.question.id,
+          choiceId: item.question.correctChoiceId,
+          confirmedAt: "2026-08-03T00:00:00.000Z"
+        })) }}
+        returnHref="/lessons/books/book-1"
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Correct 20" }));
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
+    await user.click(await screen.findByRole("button", { name: "결과 보기" }));
+    expect(await screen.findByText("결과를 저장하지 못했어요. 다시 시도해 주세요.")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "저장 다시 시도" }));
+    await waitFor(() => expect(mocks.completeWctPopQuizAction).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("heading", { name: "20 / 20" })).toBeVisible();
+    expect(mocks.confirmWctPopQuizAnswerAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("recovers a persisted fully answered in-progress attempt by completing it", async () => {
+    const user = userEvent.setup();
+    mocks.completeWctPopQuizAction.mockResolvedValue({
+      ok: true,
+      data: { score: 17, total: 20, incorrectDays: [], completedAt: "2026-08-03T00:00:00.000Z" }
+    });
+    render(
+      <WctPopQuizRunner
+        attempt={{ ...attempt, currentIndex: 20, answers: attempt.questions.map((item) => ({
+          questionId: item.question.id,
+          choiceId: item.question.correctChoiceId,
+          confirmedAt: "2026-08-03T00:00:00.000Z"
+        })) }}
+        returnHref="/lessons/books/book-1"
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: "20 / 20" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "결과 보기" }));
+    expect(await screen.findByRole("heading", { name: "17 / 20" })).toBeVisible();
+  });
   it("shows the server result with deduplicated incorrect-Day review links and submits retake", async () => {
     const user = userEvent.setup();
     mocks.startWctPopQuizAction.mockResolvedValue(undefined);

@@ -30,6 +30,7 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
       : null
   );
   const question = attempt.questions[questionIndex]?.question;
+  const isFinalQuestion = questionIndex === attempt.questions.length - 1;
 
   function selectChoice(choiceId: string) {
     if (isAnswerConfirmed || saving) return;
@@ -73,7 +74,7 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
   }
 
   async function completeAttempt() {
-    if (!confirmation || saving) return;
+    if ((!confirmation && questionIndex !== attempt.questions.length) || saving) return;
     setSaving(true);
     setSaveError(null);
     const actionResult = await completeWctPopQuizAction({ bookId: attempt.bookId, attemptId: attempt.attemptId });
@@ -123,8 +124,27 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
     );
   }
 
-  if (!question) return null;
-  const isFinalQuestion = questionIndex === attempt.questions.length - 1;
+  if (!question) {
+    return (
+      <section className="mx-auto w-full max-w-xl">
+        <div className="mb-5 flex items-center justify-between">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-teal-700">WCT Pop Quiz</p>
+          <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">20 / 20</p>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-7">
+          <h1 className="text-3xl font-black text-ink">20 / 20</h1>
+          <p className="mt-3 text-sm font-medium text-slate-600">모든 답안을 저장했어요. 결과를 확인해 보세요.</p>
+          <button type="button" onClick={completeAttempt} disabled={saving} className="mt-6 w-full rounded-2xl bg-teal-700 px-5 py-3 font-black text-white disabled:opacity-50">결과 보기</button>
+          {saveError ? (
+            <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-left text-sm font-bold text-rose-700">
+              <p>{saveError}</p>
+              <button type="button" onClick={completeAttempt} disabled={saving} className="mt-3 rounded-full bg-rose-700 px-4 py-2 text-sm font-black text-white disabled:opacity-60">저장 다시 시도</button>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
   const canAdvance = Boolean(confirmation) && !saving;
   return (
     <section className="mx-auto w-full max-w-xl">
@@ -146,7 +166,7 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
       {isAnswerConfirmed && saveError ? (
         <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-700">
           <p>{saveError}</p>
-          <button type="button" onClick={saveAnswer} disabled={saving} className="mt-3 rounded-full bg-rose-700 px-4 py-2 text-sm font-black text-white disabled:opacity-60">저장 다시 시도</button>
+          <button type="button" onClick={isFinalQuestion ? completeAttempt : saveAnswer} disabled={saving} className="mt-3 rounded-full bg-rose-700 px-4 py-2 text-sm font-black text-white disabled:opacity-60">저장 다시 시도</button>
         </div>
       ) : null}
     </section>

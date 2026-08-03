@@ -33,6 +33,7 @@ export function WctQuizQuestionStep({
           <button
             key={choice.id}
             type="button"
+            aria-pressed={!isAnswerConfirmed && choice.id === selectedChoiceId}
             aria-label={choiceLabel(choice, selectedChoiceId, question.correctChoiceId, isAnswerConfirmed)}
             onClick={() => onSelectChoice(choice.id)}
             disabled={isAnswerConfirmed}
