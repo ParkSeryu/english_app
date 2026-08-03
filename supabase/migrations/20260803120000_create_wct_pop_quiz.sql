@@ -51,19 +51,37 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_attempt public.wct_pop_quiz_progress%rowtype;
+  v_book_level text;
   v_question_count integer;
+  v_translation_count integer;
+  v_pattern_count integer;
+  v_early_count integer;
+  v_middle_count integer;
+  v_late_count integer;
+  v_max_day_count integer;
+  v_requested_signature text;
+  v_existing_signature text;
 begin
   if v_user_id is null then
     raise exception 'Authentication required';
   end if;
 
-  if not exists (
-    select 1
-    from public.wct_books
-    where id = p_book_id
-      and owner_id = v_user_id
-  ) then
+  select regexp_replace(
+    lower(coalesce(level_label, '')),
+    '[[:space:]]+',
+    '',
+    'g'
+  )
+  into v_book_level
+  from public.wct_books
+  where id = p_book_id
+    and owner_id = v_user_id;
+
+  if not found then
     raise exception 'WCT book not found';
+  end if;
+  if v_book_level not in ('prenovice', 'novice') then
+    raise exception 'Pop Quiz is only available for Prenovice and Novice';
   end if;
 
   if p_seed is null or length(btrim(p_seed)) not between 1 and 240 then
@@ -77,12 +95,74 @@ begin
     raise exception 'Exactly 20 WCT Pop Quiz questions are required';
   end if;
 
-  select count(distinct item->'question'->>'id')
-  into v_question_count
+  select
+    count(distinct item->'question'->>'id'),
+    count(*) filter (where item->'question'->>'kind' = 'translation'),
+    count(*) filter (where item->'question'->>'kind' = 'pattern'),
+    count(*) filter (where item->>'band' = 'early'),
+    count(*) filter (where item->>'band' = 'middle'),
+    count(*) filter (where item->>'band' = 'late')
+  into
+    v_question_count,
+    v_translation_count,
+    v_pattern_count,
+    v_early_count,
+    v_middle_count,
+    v_late_count
   from jsonb_array_elements(p_questions) item;
 
   if v_question_count <> 20 then
     raise exception 'WCT Pop Quiz question IDs must be distinct';
+  end if;
+  if v_translation_count <> 12 or v_pattern_count <> 8 then
+    raise exception 'WCT Pop Quiz type quotas must match';
+  end if;
+  if v_early_count <> 7 or v_middle_count <> 7 or v_late_count <> 6 then
+    raise exception 'WCT Pop Quiz band quotas must match';
+  end if;
+
+  select coalesce(max(day_count), 0)
+  into v_max_day_count
+  from (
+    select count(*)::integer as day_count
+    from jsonb_array_elements(p_questions) item
+    group by item->>'dayId'
+  ) day_counts;
+
+  if v_max_day_count > 2 then
+    raise exception 'A WCT Day may contribute at most two questions';
+  end if;
+
+  if exists (
+    with ordered_days as (
+      select
+        id,
+        row_number() over (order by day_number) as day_position,
+        count(*) over () as day_count
+      from public.wct_days
+      where book_id = p_book_id
+    ),
+    banded_days as (
+      select
+        id,
+        case
+          when day_position <= ceiling(day_count::numeric / 3) then 'early'
+          when day_position <= (
+            ceiling(day_count::numeric / 3)
+            + ceiling(
+              (day_count - ceiling(day_count::numeric / 3))::numeric / 2
+            )
+          ) then 'middle'
+          else 'late'
+        end as expected_band
+      from ordered_days
+    )
+    select 1
+    from jsonb_array_elements(p_questions) item
+    join banded_days on banded_days.id::text = item->>'dayId'
+    where item->>'band' is distinct from expected_band
+  ) then
+    raise exception 'WCT Pop Quiz bands do not match ordered Days';
   end if;
 
   if exists (
@@ -109,6 +189,45 @@ begin
       )
   ) then
     raise exception 'Unknown WCT Pop Quiz source question';
+  end if;
+
+  select string_agg(signature, '|' order by signature)
+  into v_requested_signature
+  from (
+    select concat(
+      item->>'sourceQuizSetId',
+      ':',
+      item->'question'->>'id'
+    ) as signature
+    from jsonb_array_elements(p_questions) item
+  ) requested;
+
+  select *
+  into v_attempt
+  from public.wct_pop_quiz_progress
+  where owner_id = v_user_id
+    and book_id = p_book_id
+  for update;
+
+  if found then
+    if v_attempt.status = 'in_progress' then
+      return to_jsonb(v_attempt);
+    end if;
+
+    select string_agg(signature, '|' order by signature)
+    into v_existing_signature
+    from (
+      select concat(
+        item->>'sourceQuizSetId',
+        ':',
+        item->'question'->>'id'
+      ) as signature
+      from jsonb_array_elements(v_attempt.questions) item
+    ) existing;
+
+    if v_existing_signature = v_requested_signature then
+      raise exception 'WCT Pop Quiz retake must use different questions';
+    end if;
   end if;
 
   insert into public.wct_pop_quiz_progress (

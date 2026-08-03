@@ -27,6 +27,24 @@ describe("WCT Pop Quiz Supabase migration", () => {
     expect(sql).toMatch(/jsonb_array_length\((?:v_attempt\.)?answers\) <> 20/);
   });
 
+  it("enforces book eligibility, selector quotas, and contiguous Day bands", () => {
+    expect(sql).toContain("v_book_level not in ('prenovice', 'novice')");
+    expect(sql).toContain("v_translation_count <> 12");
+    expect(sql).toContain("v_pattern_count <> 8");
+    expect(sql).toContain("v_early_count <> 7");
+    expect(sql).toContain("v_middle_count <> 7");
+    expect(sql).toContain("v_late_count <> 6");
+    expect(sql).toContain("v_max_day_count > 2");
+    expect(sql).toContain("item->>'band' is distinct from expected_band");
+  });
+
+  it("rejects a completed retake with the same canonical source signature", () => {
+    expect(sql).toContain("v_requested_signature");
+    expect(sql).toContain("v_existing_signature");
+    expect(sql).toContain("v_existing_signature = v_requested_signature");
+    expect(sql).toContain("WCT Pop Quiz retake must use different questions");
+  });
+
   it("allows authenticated RPC execution without direct writes", () => {
     expect(sql).toContain("revoke insert, update, delete");
     expect(sql).toContain("on public.wct_pop_quiz_progress");

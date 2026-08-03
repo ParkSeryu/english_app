@@ -55,4 +55,30 @@ describe("wctPopQuizQuestionsSchema", () => {
 
     expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
   });
+
+  it("rejects a snapshot with a 13/7 type split", () => {
+    const snapshot = questions();
+    snapshot[12].question.kind = "translation";
+
+    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+  });
+
+  it("rejects a snapshot with a 6/8/6 band split", () => {
+    const snapshot = questions();
+    snapshot[0].band = "middle";
+
+    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+  });
+
+  it("rejects more than two questions from one Day", () => {
+    const snapshot = questions();
+    snapshot[2] = {
+      ...snapshot[2],
+      dayId: snapshot[0].dayId,
+      dayNumber: snapshot[0].dayNumber,
+      dayLabel: snapshot[0].dayLabel
+    };
+
+    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+  });
 });
