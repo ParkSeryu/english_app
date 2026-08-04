@@ -105,18 +105,6 @@
 - Notes / links:
 ```
 
-### 2026-08-03 — WCT Pop Quiz
-
-- Status: Complete
-- Surface: Prenovice/Novice book detail, Pop Quiz route, immutable attempt snapshots
-- Scope: Replaced fixed 20-question quotas with one eligible translation or pattern question per Day, dynamic attempt totals, and confirmed-only `Day N · topic` feedback while retaining legacy snapshot compatibility.
-- Artifacts:
-  - PRD: `docs/prd/complete/wct-pop-quiz/prd.md`
-  - Test spec: `docs/prd/complete/wct-pop-quiz/test-spec.md`
-  - Implementation plan: `docs/superpowers/plans/2026-08-04-wct-pop-quiz-day-coverage.md`
-- Verification: main/production `ccawzrrkxuirrwvaecvw` has migration `20260804120000_update_wct_pop_quiz_day_coverage.sql` applied (37 records, pending 0, mismatch 0); validation, RLS, hosted rollback-only 16/28 flow, post-build 2/2 Pop Quiz E2E, and live HTTP 200 checks passed.
-- Remaining risk: executable DB smoke has no explicit literal legacy 20-question fixture; legacy contract remains covered by application validation/mappers and migration constraints.
-
 ## Active
 
 ## Backlog
@@ -126,6 +114,30 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-08-03 — WCT Pop Quiz
+
+- Status: Complete
+- Surface: Prenovice/Novice book detail, Pop Quiz route, immutable attempt snapshots
+- Scope: Replaced fixed 20-question quotas with one eligible translation or pattern question per Day, dynamic attempt totals, and confirmed-only `Day N · topic` feedback while retaining legacy snapshot compatibility.
+- Artifacts:
+  - PRD: `docs/prd/complete/wct-pop-quiz/prd.md`
+  - Test spec: `docs/prd/complete/wct-pop-quiz/test-spec.md`
+  - Implementation plan: `docs/superpowers/plans/2026-08-04-wct-pop-quiz-day-coverage.md`
+- Verification commands passed:
+
+  ```bash
+  npm run lint
+  npm run typecheck
+  npm test -- tests/unit/wct-pop-quiz-selector.test.ts tests/unit/wct-pop-quiz-validation.test.ts tests/unit/wct-pop-quiz-service.test.ts tests/unit/wct-pop-quiz-actions.test.ts tests/unit/wct-pop-quiz-mappers.test.ts tests/integration/memory-wct-pop-quiz-store.test.ts tests/components/wct-pop-quiz-runner.test.tsx tests/components/wct-pop-quiz-cta.test.tsx tests/components/wct-quiz-runner.test.tsx tests/security/wct-pop-quiz-rls-policy.test.ts
+  npm test
+  npm run build
+  env PATH=/home/ubuntu/.nvm/versions/node/v22.22.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TMPDIR=/tmp TEMP=/tmp TMP=/tmp npm run test:e2e -- e2e/wct-pop-quiz.spec.ts --project=mobile-chromium
+  ```
+
+  Focused Vitest: 10 files/56 tests; full Vitest: 70 files/362 tests, 1 skipped; post-build E2E: 2/2. Main/production `ccawzrrkxuirrwvaecvw` has migration `20260804120000_update_wct_pop_quiz_day_coverage.sql` applied (37 records, pending 0, mismatch 0); validation, RLS, and the hosted rollback-only authenticated 16/28 flow passed.
+- Live routes: `http://127.0.0.1:3000/lessons/books/740b33b4-4338-4d43-8287-6edaa7bd0635/pop-quiz`, `http://127.0.0.1:3000/lessons/books/aa2233e4-6eca-4716-94d6-78e605eb1523/pop-quiz`, and reachable LAN `http://172.22.48.149:3000/lessons/books/740b33b4-4338-4d43-8287-6edaa7bd0635/pop-quiz` returned HTTP 200 using the memory-only seed server.
+- Remaining risk: executable DB smoke has no explicit literal legacy 20-question fixture; legacy contract remains covered by application validation/mappers and migration constraints.
 
 ### 2026-07-31 — Main-only infrastructure retirement
 
