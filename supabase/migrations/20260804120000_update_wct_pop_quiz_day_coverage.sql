@@ -291,6 +291,11 @@ begin
 
   v_total := jsonb_array_length(v_attempt.questions);
 
+  if v_attempt.current_index <> v_total
+    or jsonb_array_length(v_attempt.answers) <> v_total then
+    raise exception 'WCT Pop Quiz answers are incomplete';
+  end if;
+
   if v_attempt.status = 'completed' then
     return jsonb_build_object(
       'score', v_attempt.latest_score,
@@ -298,11 +303,6 @@ begin
       'incorrectDays', v_attempt.incorrect_days,
       'completedAt', v_attempt.completed_at
     );
-  end if;
-
-  if v_attempt.current_index <> v_total
-    or jsonb_array_length(v_attempt.answers) <> v_total then
-    raise exception 'WCT Pop Quiz answers are incomplete';
   end if;
 
   select count(*)

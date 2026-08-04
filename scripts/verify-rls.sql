@@ -337,6 +337,38 @@ begin
 end $$;
 reset role;
 
+set role service_role;
+update public.wct_pop_quiz_progress
+set answers = answers - (jsonb_array_length(answers) - 1),
+    current_index = current_index - 1
+where owner_id = '00000000-0000-4000-8000-0000000000aa'
+  and book_id = '60000000-0000-4000-8000-0000000000aa';
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
+do $$
+declare
+  v_attempt_id uuid;
+begin
+  select attempt_id
+  into v_attempt_id
+  from public.wct_pop_quiz_progress
+  where owner_id = '00000000-0000-4000-8000-0000000000aa'
+    and book_id = '60000000-0000-4000-8000-0000000000aa';
+
+  begin
+    perform public.complete_wct_pop_quiz(
+      '60000000-0000-4000-8000-0000000000aa',
+      v_attempt_id
+    );
+    raise exception 'malformed completed WCT Pop Quiz replay unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%WCT Pop Quiz answers are incomplete%' then raise; end if;
+  end;
+end $$;
+reset role;
+
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000bb';
 do $$
