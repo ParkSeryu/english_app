@@ -22,6 +22,53 @@
 
 ---
 
+### Task 0: Remove environment-dependent CLI help-output tests
+
+**Files:**
+- Modify: `tests/unit/main-only-environment.test.ts`
+
+**Interfaces:**
+- Consumes: the existing main-only environment test suite.
+- Produces: a stable two-test suite that keeps the in-process WCT backfill target and retired-option guards while removing four child-process stdout assertions that are unreliable in the Codex/Vitest worker environment.
+
+- [ ] **Step 1: Remove only the four child-process output tests**
+
+Delete the `spawnSync`, `path`, `root`, `runNode`, and `outputOf` code and these four cases:
+
+- `documents one guarded main migration target`
+- `rejects the retired migration environment option before database access`
+- `documents one guarded main private-expression target`
+- `rejects the retired private-expression environment option before hosted access`
+
+Keep both in-process `generate-wct-quiz-backfill.ts` tests unchanged.
+
+- [ ] **Step 2: Verify the focused suite**
+
+Run:
+
+```bash
+node node_modules/vitest/vitest.mjs run tests/unit/main-only-environment.test.ts
+```
+
+Expected: 2 tests pass with pristine output.
+
+- [ ] **Step 3: Verify the full Vitest baseline**
+
+Run:
+
+```bash
+node node_modules/vitest/vitest.mjs run
+```
+
+Expected: 362 tests pass and 1 is skipped, with no failures.
+
+- [ ] **Step 4: Commit Task 0**
+
+```bash
+git add tests/unit/main-only-environment.test.ts
+git commit -m "test: remove environment-dependent CLI output checks"
+```
+
 ### Task 1: Activate the tracked PRD and replace fixed selection with one-per-Day selection
 
 **Files:**
