@@ -17,5 +17,6 @@
 - Full Vitest suite: 364 passed, 1 skipped.
 - Combined WCT mobile Chromium: 10/10 passed. Fresh external-bind Pop Quiz run: 2/2 passed, covering both levels, refresh/resume, result links, different retake, Premium exclusion, and foreign-book isolation.
 - Main migration ledger: `20260803120000_create_wct_pop_quiz.sql` applied; pending 0 and checksum mismatch 0.
-- Hosted rollback-only RLS verification passed for owner read, cross-owner isolation, direct-write denial, anon denial, and authenticated RPC grants.
+- Hosted rollback-only execution passed: direct authenticated INSERT and anonymous SELECT were actually denied; start, persisted confirm/resume, 20 confirms, complete 20/20, and different-retake RPC calls all succeeded with valid production source questions.
+- A memory-disabled `0.0.0.0:3101` run against main Supabase completed start, refresh/resume at 2/20, all 20 confirms, 5/20 result, 11 incorrect-Day links, and a different 20-question retake. The verification row was removed and the pre-test count of 0 was restored.
 - Local Docker was unavailable, so `npm run verify:rls` exited before starting its local stack; this limitation is documented.

@@ -34,11 +34,11 @@ Novice using existing approved Day quiz questions.
 - Combined WCT Playwright gate: 10/10 passed; fresh `0.0.0.0:3101` Pop Quiz journey: 2/2 passed.
 - `npm run build` passed.
 - Main/production `ccawzrrkxuirrwvaecvw`: 36 migrations applied, pending 0, checksum mismatch 0; all 36 records validated.
-- Hosted rollback-only RLS check: own select allowed, cross-owner select empty, authenticated direct insert/update denied, anon select denied, and all three authenticated RPC grants present.
+- Hosted rollback-only execution check: authenticated direct INSERT and anonymous SELECT were actually attempted and denied; a valid production 20-question snapshot completed start, persisted confirm/resume, all 20 confirms, 20/20 completion, and a different retake through the three RPCs.
 - Production inventory: Prenovice 16 Days/16 quiz sets; Novice 28 Days/28 quiz sets.
 - Book and Pop Quiz routes returned HTTP 200 on both `127.0.0.1:3101` and `172.22.48.149:3101`; server logs contained no 500, internal server, missing module/chunk, schema, or failed-action error.
 
 ## Remaining risks
 
-- `npm run verify:rls` requires local Docker, which was unavailable. Hosted rollback-only policy checks and repository security tests supplied equivalent production evidence.
-- Live UI verification used the guarded E2E memory store; hosted schema/RLS and inventory were verified directly, but no real user's progress was retained.
+- `npm run verify:rls` requires local Docker, which was unavailable. The stronger hosted rollback-only RLS/RPC execution check and repository security tests supplied production evidence.
+- A fresh `0.0.0.0:3101` server with E2E memory flags disabled completed the real Supabase-backed UI flow for the existing Prenovice owner: 20-question start, persisted confirm, refresh/resume at 2/20, 5/20 result with 11 incorrect-Day links, and a different 20-question retake. The target had 0 progress rows before verification; the single resulting row was exactly deleted and verified back to 0.

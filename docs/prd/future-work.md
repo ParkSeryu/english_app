@@ -133,11 +133,11 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - [x] lint/typecheck passed; Vitest 364 passed, 1 skipped; build passed
   - [x] combined WCT Playwright 10/10 passed; fresh 3101 Pop Quiz journey 2/2 passed
   - [x] localhost and WSL/LAN book + Pop Quiz routes: 8/8 HTTP 200
-  - [x] hosted owner/cross-owner/direct-write/anon/RPC checks passed in a rolled-back transaction
+  - [x] hosted direct INSERT/anon SELECT denial and full start/confirm/complete/different-retake RPC execution passed in a rolled-back transaction
   - [x] production inventory: Prenovice 16 Days/16 sets, Novice 28 Days/28 sets
 - Remaining risks:
-  - Local Docker was unavailable for the `verify:rls` wrapper; equivalent hosted checks and security tests passed.
-  - No real user progress row was retained during verification.
+  - Local Docker was unavailable for the `verify:rls` wrapper; stronger hosted execution checks and security tests passed.
+  - A memory-disabled main-Supabase UI run passed and its single progress row was exactly removed, restoring the pre-test count of 0.
 - Design: `docs/superpowers/specs/2026-08-03-wct-pop-quiz-design.md`
 - Plan: `docs/superpowers/plans/2026-08-03-wct-pop-quiz.md`
 
