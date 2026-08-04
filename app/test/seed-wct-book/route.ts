@@ -40,17 +40,18 @@ export async function POST() {
   const user = { id: fakeUserId, email: "e2e@example.com" };
   const store = getAdminWctStore(user);
   const prenoviceTitle = "WCT Pattern book Prenovice";
+  const prenoviceDays = Array.from({ length: 16 }, (_, index) => {
+    const dayNumber = index + 1;
+    if (dayNumber === 1) return day(dayNumber, "수동태", passivePatterns());
+    if (dayNumber === 13) return day(dayNumber, "if 가능", conditionalPatterns());
+    if (dayNumber === 16) return day(dayNumber, "간접의문문", indirectQuestionPatterns());
+    return day(dayNumber, `Prenovice practice ${dayNumber}`, testOnlyPatterns("Prenovice", dayNumber));
+  });
   const result = await store.importApprovedBatch({
     idempotencyKey: "e2e-wct-prenovice-book-v2",
     payloadHash: "e2e-wct-prenovice-book-hash-v2",
     book: { title: prenoviceTitle, levelLabel: "Pre Novice" },
-    days: Array.from({ length: 16 }, (_, index) => {
-      const dayNumber = index + 1;
-      if (dayNumber === 1) return day(dayNumber, "수동태", passivePatterns());
-      if (dayNumber === 13) return day(dayNumber, "if 가능", conditionalPatterns());
-      if (dayNumber === 16) return day(dayNumber, "간접의문문", indirectQuestionPatterns());
-      return day(dayNumber, `Prenovice practice ${dayNumber}`, testOnlyPatterns("Prenovice", dayNumber));
-    })
+    days: prenoviceDays
   });
   await ensureImportedWctQuizzes(
     store,
@@ -59,13 +60,14 @@ export async function POST() {
   );
 
   const noviceTitle = "WCT Pattern book Novice";
+  const noviceDays = Array.from({ length: 28 }, (_, index) => (
+    day(index + 1, `Novice practice ${index + 1}`, testOnlyPatterns("Novice", index + 1))
+  ));
   const noviceResult = await store.importApprovedBatch({
     idempotencyKey: "e2e-wct-novice-book-v2",
     payloadHash: "e2e-wct-novice-book-hash-v2",
     book: { title: noviceTitle, levelLabel: "Novice" },
-    days: Array.from({ length: 28 }, (_, index) => (
-      day(index + 1, `Novice practice ${index + 1}`, testOnlyPatterns("Novice", index + 1))
-    ))
+    days: noviceDays
   });
   await ensureImportedWctQuizzes(
     store,
@@ -99,16 +101,18 @@ export async function POST() {
   }
 
   const questions = await seededQuestions(user, [
-    { title: prenoviceTitle, operations: result.operations },
-    { title: noviceTitle, operations: noviceResult.operations }
+    { title: prenoviceTitle, days: prenoviceDays, operations: result.operations },
+    { title: noviceTitle, days: noviceDays, operations: noviceResult.operations }
   ]);
 
   return NextResponse.json({
     bookId: result.bookId,
     day13Id,
     prenoviceBookId: result.bookId,
+    prenoviceDayCount: prenoviceDays.length,
     prenoviceDay13Id: day13Id,
     noviceBookId: noviceResult.bookId,
+    noviceDayCount: noviceDays.length,
     noviceDay13Id,
     questions,
     otherOwnerBookId: otherOwnerResult.bookId,
@@ -118,12 +122,17 @@ export async function POST() {
 
 async function seededQuestions(
   user: { id: string; email: string },
-  books: Array<{ title: string; operations: Array<{ dayId: string; dayNumber: number }> }>
+  books: Array<{
+    title: string;
+    days: WctImportDayInput[];
+    operations: Array<{ dayId: string; dayNumber: number }>;
+  }>
 ) {
   const quizStore = getAdminWctQuizStore(user);
-  const questions: Array<{ id: string; prompt: string; correctChoiceText: string; dayId: string }> = [];
-  for (const { title, operations } of books) {
+  const questions: Array<{ id: string; prompt: string; correctChoiceText: string; dayId: string; sourceText: string }> = [];
+  for (const { title, days, operations } of books) {
     const dayIdByNumber = new Map(operations.map((operation) => [operation.dayNumber, operation.dayId]));
+    const dayTopicByNumber = new Map(days.map((seedDay) => [seedDay.dayNumber, seedDay.shortLabel]));
     const sets = await quizStore.listSetsByLessonKeys(
       operations.map((operation) => standardWctLessonKey(title, operation.dayNumber))
     );
@@ -134,10 +143,18 @@ async function seededQuestions(
       if (!dayNumber) throw new Error("WCT E2E seed could not map a quiz set to its Day");
       const dayId = dayIdByNumber.get(dayNumber);
       if (!dayId) throw new Error("WCT E2E seed could not map a quiz set Day ID");
+      const dayTopic = dayTopicByNumber.get(dayNumber);
+      if (!dayTopic) throw new Error("WCT E2E seed could not map a quiz set Day topic");
       for (const question of set.questions) {
         const correctChoiceText = question.choices.find((choice) => choice.id === question.correctChoiceId)?.text;
         if (!correctChoiceText) throw new Error("WCT E2E seed could not find a correct quiz choice");
-        questions.push({ id: question.id, prompt: question.prompt, correctChoiceText, dayId });
+        questions.push({
+          id: question.id,
+          prompt: question.prompt,
+          correctChoiceText,
+          dayId,
+          sourceText: `Day ${dayNumber} · ${dayTopic}`
+        });
       }
     }
   }
