@@ -10,43 +10,33 @@ const OWNER_A = "00000000-0000-4000-8000-000000000001";
 const OWNER_B = "00000000-0000-4000-8000-000000000002";
 const BOOK_ID = "00000000-0000-4000-8000-000000000010";
 
-function questions(): WctPopQuizQuestion[] {
-  const groups = [
-    ["early", "translation", 4],
-    ["early", "pattern", 3],
-    ["middle", "translation", 4],
-    ["middle", "pattern", 3],
-    ["late", "translation", 4],
-    ["late", "pattern", 2]
-  ] as const;
-  let index = 0;
-
-  return groups.flatMap(([band, kind, count]) => Array.from(
-    { length: count },
-    () => {
-      index += 1;
-      const dayNumber = Math.ceil(index / 2);
-      const questionId = `question-${index}`;
-      return {
-        sourceQuizSetId: `set-${dayNumber}`,
-        dayId: `day-${dayNumber}`,
-        dayNumber,
-        dayLabel: `Day ${dayNumber}`,
-        band,
-        question: {
-          id: questionId,
-          kind,
-          prompt: `Prompt ${index}`,
-          choices: [0, 1, 2, 3].map((choiceIndex) => ({
-            id: `${questionId}-choice-${choiceIndex + 1}`,
-            text: `Choice ${choiceIndex + 1}`
-          })),
-          correctChoiceId: `${questionId}-choice-1`,
-          explanation: `Explanation ${index}`
-        }
-      };
-    }
-  ));
+function questions(dayCount: 16 | 28 = 16): WctPopQuizQuestion[] {
+  return Array.from({ length: dayCount }, (_, index) => {
+    const dayNumber = index + 1;
+    const questionId = `question-${dayNumber}`;
+    return {
+      sourceQuizSetId: `set-${dayNumber}`,
+      dayId: `day-${dayNumber}`,
+      dayNumber,
+      dayLabel: `Day ${dayNumber}`,
+      band: dayNumber <= Math.ceil(dayCount / 3)
+        ? "early"
+        : dayNumber <= Math.ceil((dayCount * 2) / 3)
+          ? "middle"
+          : "late",
+      question: {
+        id: questionId,
+        kind: dayNumber % 2 === 0 ? "pattern" : "translation",
+        prompt: `Prompt ${dayNumber}`,
+        choices: [0, 1, 2, 3].map((choiceIndex) => ({
+          id: `${questionId}-choice-${choiceIndex + 1}`,
+          text: `Choice ${choiceIndex + 1}`
+        })),
+        correctChoiceId: `${questionId}-choice-1`,
+        explanation: `Explanation ${dayNumber}`
+      }
+    };
+  });
 }
 
 describe("MemoryWctPopQuizStore", () => {
@@ -71,7 +61,8 @@ describe("MemoryWctPopQuizStore", () => {
       status: "in_progress",
       currentIndex: 0,
       latestScore: null,
-      completedAt: null
+      completedAt: null,
+      total: 16
     });
     await expect(new MemoryWctPopQuizStore({ id: OWNER_B }).getAttempt(BOOK_ID))
       .resolves.toBeNull();
@@ -105,7 +96,7 @@ describe("MemoryWctPopQuizStore", () => {
     });
   });
 
-  it("completes with one incorrect Day entry per day and replaces it on retake", async () => {
+  it("completes a 16-question attempt with its dynamic total and replaces it on retake", async () => {
     const ownerA = new MemoryWctPopQuizStore({ id: OWNER_A });
     const quizQuestions = questions();
     const first = await ownerA.startAttempt({
@@ -119,15 +110,15 @@ describe("MemoryWctPopQuizStore", () => {
         bookId: BOOK_ID,
         attemptId: first.attemptId,
         questionId: item.question.id,
-        choiceId: item.question.choices[index < 2 ? 1 : 0].id
+        choiceId: item.question.choices[index === 0 ? 1 : 0].id
       });
     }
     await expect(ownerA.completeAttempt({
       bookId: BOOK_ID,
       attemptId: first.attemptId
     })).resolves.toMatchObject({
-      score: 18,
-      total: 20,
+      score: 15,
+      total: 16,
       incorrectDays: [{ dayId: "day-1", dayNumber: 1, dayLabel: "Day 1" }],
       completedAt: expect.any(String)
     });
@@ -147,5 +138,29 @@ describe("MemoryWctPopQuizStore", () => {
       completedAt: null
     });
     expect(retake.attemptId).not.toBe(first.attemptId);
+  });
+
+  it("confirms every question in a 28-question attempt", async () => {
+    const ownerA = new MemoryWctPopQuizStore({ id: OWNER_A });
+    const quizQuestions = questions(28);
+    const started = await ownerA.startAttempt({
+      bookId: BOOK_ID,
+      seed: "seed-a",
+      questions: quizQuestions
+    });
+
+    for (const item of quizQuestions) {
+      await ownerA.confirmAnswer({
+        bookId: BOOK_ID,
+        attemptId: started.attemptId,
+        questionId: item.question.id,
+        choiceId: item.question.choices[0].id
+      });
+    }
+
+    await expect(ownerA.getAttempt(BOOK_ID)).resolves.toMatchObject({
+      currentIndex: 28,
+      status: "in_progress"
+    });
   });
 });

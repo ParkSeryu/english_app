@@ -37,7 +37,7 @@ export class SupabaseWctPopQuizStore implements WctPopQuizStore {
   async getSummary(bookId: string): Promise<WctPopQuizSummary | null> {
     const { data, error } = await (await this.client())
       .from("wct_pop_quiz_progress")
-      .select("attempt_id,status,current_index,latest_score,completed_at")
+      .select("attempt_id,status,current_index,latest_score,completed_at,questions")
       .eq("owner_id", this.user.id)
       .eq("book_id", bookId)
       .maybeSingle();

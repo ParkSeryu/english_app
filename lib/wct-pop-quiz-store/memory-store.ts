@@ -58,7 +58,7 @@ function completedResult(attempt: WctPopQuizAttempt): WctPopQuizResult {
   }
   return {
     score: attempt.latestScore,
-    total: 20,
+    total: attempt.questions.length,
     incorrectDays: clone(attempt.incorrectDays),
     completedAt: attempt.completedAt
   };
@@ -79,7 +79,8 @@ export class MemoryWctPopQuizStore implements WctPopQuizStore {
       status: attempt.status,
       currentIndex: attempt.currentIndex,
       latestScore: attempt.latestScore,
-      completedAt: attempt.completedAt
+      completedAt: attempt.completedAt,
+      total: attempt.questions.length
     });
   }
 

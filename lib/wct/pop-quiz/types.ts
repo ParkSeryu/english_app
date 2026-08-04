@@ -52,7 +52,7 @@ export type WctPopQuizAttempt = {
 export type WctPopQuizSummary = Pick<
   WctPopQuizAttempt,
   "attemptId" | "status" | "currentIndex" | "latestScore" | "completedAt"
->;
+> & { total: number };
 
 export type WctPopQuizStartInput = {
   bookId: string;

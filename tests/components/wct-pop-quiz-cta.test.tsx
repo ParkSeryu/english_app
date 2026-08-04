@@ -39,7 +39,8 @@ describe("WctPopQuizCta", () => {
           status: "in_progress",
           currentIndex: 7,
           latestScore: null,
-          completedAt: null
+          completedAt: null,
+          total: 20
         }}
       />
     );
@@ -53,7 +54,8 @@ describe("WctPopQuizCta", () => {
           status: "completed",
           currentIndex: 20,
           latestScore: 18,
-          completedAt: "2026-08-03T00:00:00.000Z"
+          completedAt: "2026-08-03T00:00:00.000Z",
+          total: 20
         }}
       />
     );
