@@ -114,7 +114,8 @@ test("completes and retakes mobile Pop Quiz journeys for Prenovice and Novice", 
     const retakeSignature = await collectRetakeSignature(page, total);
     expect(retakeSignature).toHaveLength(total);
     expect(new Set(retakeSignature.map((question) => question.dayId))).toEqual(new Set(wrongDayIds));
-    expect(retakeSignature.some((question, index) => question.id !== firstSignature[index]?.id)).toBe(true);
+    const firstQuestionIdByDay = new Map(firstSignature.map((question) => [question.dayId, question.id]));
+    expect(retakeSignature.some((question) => firstQuestionIdByDay.get(question.dayId) !== question.id)).toBe(true);
   }
 });
 
