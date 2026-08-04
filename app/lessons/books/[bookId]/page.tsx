@@ -29,7 +29,7 @@ export default async function WctBookPage({ params }: { params: Promise<{ bookId
           {[book.levelLabel, `Day ${book.dayCount}개`].filter(Boolean).join(" · ")}
         </p>
       </header>
-      <WctPopQuizCta bookId={book.id} summary={popQuizSummary} isEligible={isPopQuizEligible} />
+      <WctPopQuizCta bookId={book.id} summary={popQuizSummary} totalQuestions={book.days.length} isEligible={isPopQuizEligible} />
       <div className="space-y-3">
         {book.days.map((day) => <WctDayCard key={day.id} bookId={book.id} day={day} />)}
       </div>

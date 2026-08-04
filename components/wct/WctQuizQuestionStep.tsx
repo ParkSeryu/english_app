@@ -9,7 +9,8 @@ export function WctQuizQuestionStep({
   confirmDisabled,
   nextLabel,
   onNext,
-  nextDisabled = false
+  nextDisabled = false,
+  feedbackContext
 }: {
   question: WctQuizQuestion;
   selectedChoiceId: string | null;
@@ -20,6 +21,7 @@ export function WctQuizQuestionStep({
   nextLabel: string;
   onNext: () => void;
   nextDisabled?: boolean;
+  feedbackContext?: string;
 }) {
   const selectedIsCorrect = selectedChoiceId === question.correctChoiceId;
 
@@ -49,6 +51,7 @@ export function WctQuizQuestionStep({
           className={`mt-6 rounded-2xl p-4 ${selectedIsCorrect ? "bg-teal-50 text-teal-800" : "bg-amber-50 text-amber-900"}`}
         >
           <p className="font-black">{selectedIsCorrect ? "정답이에요" : "아쉬워요. 정답을 확인해 보세요."}</p>
+          {feedbackContext ? <p className="mt-2 text-sm font-black">{feedbackContext}</p> : null}
           <p className="mt-3 text-xs font-black uppercase tracking-[0.16em]">해설</p>
           <p className="mt-2 text-sm font-medium leading-6">{question.explanation}</p>
         </div>

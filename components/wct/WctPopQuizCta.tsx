@@ -8,22 +8,25 @@ import type { WctPopQuizSummary } from "@/lib/wct/pop-quiz/types";
 export function WctPopQuizCta({
   bookId,
   summary,
+  totalQuestions,
   isEligible = true
 }: {
   bookId: string;
   summary: WctPopQuizSummary | null;
+  totalQuestions: number;
   isEligible?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!isEligible) return null;
 
+  const total = summary?.total ?? totalQuestions;
   const mode = summary?.status === "completed" ? "retake" : "start";
   const label = summary?.status === "in_progress"
-    ? `이어 풀기 · ${summary.currentIndex}/20`
+    ? `이어 풀기 · ${summary.currentIndex}/${total}`
     : summary?.latestScore != null
-      ? `다시 풀기 · 최근 ${summary.latestScore}/20`
-      : "Pop Quiz · 20문제";
+      ? `다시 풀기 · 최근 ${summary.latestScore}/${total}`
+      : `Pop Quiz · ${total}문제`;
 
   async function startQuiz() {
     if (pending) return;
@@ -37,7 +40,7 @@ export function WctPopQuizCta({
   return (
     <section className="rounded-3xl border border-teal-100 bg-teal-50 p-5 shadow-sm">
       <p className="text-sm font-black uppercase tracking-[0.18em] text-teal-700">WCT Pop Quiz</p>
-      <p className="mt-2 text-sm font-medium text-slate-700">책 전체를 20문제로 복습해 보세요.</p>
+      <p className="mt-2 text-sm font-medium text-slate-700">책 전체 Day를 {total}문제로 복습해 보세요.</p>
       <button
         type="button"
         onClick={startQuiz}

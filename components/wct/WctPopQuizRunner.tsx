@@ -17,6 +17,7 @@ import type {
 } from "@/lib/wct/pop-quiz/types";
 
 export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizAttempt; returnHref: string }) {
+  const total = attempt.questions.length;
   const [questionIndex, setQuestionIndex] = useState(attempt.currentIndex);
   const [answers, setAnswers] = useState<WctPopQuizAnswer[]>(attempt.answers);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
@@ -26,11 +27,12 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
   const [saveError, setSaveError] = useState<string | null>(null);
   const [result, setResult] = useState<WctPopQuizResult | null>(
     attempt.status === "completed" && attempt.latestScore !== null && attempt.completedAt
-      ? { score: attempt.latestScore, total: 20, incorrectDays: attempt.incorrectDays, completedAt: attempt.completedAt }
+      ? { score: attempt.latestScore, total, incorrectDays: attempt.incorrectDays, completedAt: attempt.completedAt }
       : null
   );
-  const question = attempt.questions[questionIndex]?.question;
-  const isFinalQuestion = questionIndex === attempt.questions.length - 1;
+  const questionEntry = attempt.questions[questionIndex];
+  const question = questionEntry?.question;
+  const isFinalQuestion = questionIndex === total - 1;
 
   function selectChoice(choiceId: string) {
     if (isAnswerConfirmed || saving) return;
@@ -74,7 +76,7 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
   }
 
   async function completeAttempt() {
-    if ((!confirmation && questionIndex !== attempt.questions.length) || saving) return;
+    if ((!confirmation && questionIndex !== total) || saving) return;
     setSaving(true);
     setSaveError(null);
     const actionResult = await completeWctPopQuizAction({ bookId: attempt.bookId, attemptId: attempt.attemptId });
@@ -124,15 +126,15 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
     );
   }
 
-  if (!question) {
+  if (!questionEntry) {
     return (
       <section className="mx-auto w-full max-w-xl">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-teal-700">WCT Pop Quiz</p>
-          <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">20 / 20</p>
+          <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">{total} / {total}</p>
         </div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-7">
-          <h1 className="text-3xl font-black text-ink">20 / 20</h1>
+          <h1 className="text-3xl font-black text-ink">{total} / {total}</h1>
           <p className="mt-3 text-sm font-medium text-slate-600">모든 답안을 저장했어요. 결과를 확인해 보세요.</p>
           <button type="button" onClick={completeAttempt} disabled={saving} className="mt-6 w-full rounded-2xl bg-teal-700 px-5 py-3 font-black text-white disabled:opacity-50">결과 보기</button>
           {saveError ? (
@@ -150,10 +152,10 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
     <section className="mx-auto w-full max-w-xl">
       <div className="mb-5 flex items-center justify-between">
         <p className="text-sm font-black uppercase tracking-[0.18em] text-teal-700">WCT Pop Quiz</p>
-        <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">{questionIndex + 1} / 20</p>
+        <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">{questionIndex + 1} / {total}</p>
       </div>
       <WctQuizQuestionStep
-        question={question}
+        question={questionEntry.question}
         selectedChoiceId={selectedChoiceId}
         isAnswerConfirmed={isAnswerConfirmed}
         onSelectChoice={selectChoice}
@@ -162,6 +164,9 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
         nextLabel={isFinalQuestion ? "결과 보기" : "다음 문제"}
         onNext={isFinalQuestion ? completeAttempt : nextQuestion}
         nextDisabled={!canAdvance}
+        feedbackContext={questionEntry.dayTopic
+          ? `Day ${questionEntry.dayNumber} · ${questionEntry.dayTopic}`
+          : questionEntry.dayLabel}
       />
       {isAnswerConfirmed && saveError ? (
         <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-700">

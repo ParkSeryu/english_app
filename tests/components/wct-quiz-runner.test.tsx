@@ -82,6 +82,7 @@ describe("WctQuizRunner", () => {
 
     expect(screen.getByText("아쉬워요. 정답을 확인해 보세요.")).toBeVisible();
     expect(screen.getByText("Explanation 1")).toBeVisible();
+    expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wrong B 1, 오답" }))
       .toBeDisabled();
     expect(screen.getByRole("button", { name: "Correct 1, 정답" }))
