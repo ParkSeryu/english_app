@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
 import type { WctQuizSet } from "@/lib/wct/quiz/types";
+import type { WctPopQuizQuestion } from "@/lib/wct/pop-quiz/types";
 import type { WctBook } from "@/lib/wct/types";
 
 function createBook(overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabel">> = {}): WctBook {
@@ -73,7 +74,7 @@ async function service() {
 }
 
 describe("WCT Pop Quiz service", () => {
-  it("starts an eligible book from every matching Day quiz set", async () => {
+  it("starts an eligible book with one Day-topic question from every matching Day quiz set", async () => {
     const book = createBook();
     const listSetsByLessonKeys = vi.fn().mockResolvedValue(createSets(book));
     const startAttempt = vi.fn(async (input) => ({ ...attempt(book.id), ...input }));
@@ -89,7 +90,12 @@ describe("WCT Pop Quiz service", () => {
     expect(listSetsByLessonKeys).toHaveBeenCalledWith(
       book.days.map((day) => standardWctLessonKey(book.title, day.dayNumber))
     );
-    expect(started.questions).toHaveLength(20);
+    const storedQuestions = startAttempt.mock.calls[0][0].questions as WctPopQuizQuestion[];
+    expect(storedQuestions).toHaveLength(16);
+    expect(storedQuestions.map((question) => question.dayTopic)).toEqual(
+      book.days.map((day) => day.shortLabel)
+    );
+    expect(started.questions).toEqual(storedQuestions);
     expect(startAttempt).toHaveBeenCalledWith(expect.objectContaining({
       bookId: book.id,
       seed: "fresh-seed",

@@ -42,7 +42,7 @@ export async function startWctPopQuizAction(input: unknown): Promise<PopQuizActi
       wctPopQuizStore: getWctPopQuizStore(user)
     }, parsed.data);
   } catch (error) {
-    if (error instanceof Error && error.message === "Pop Quiz needs 20 eligible questions") {
+    if (error instanceof Error && error.message === "Pop Quiz needs one eligible question per Day") {
       return { ok: false, message: "Pop Quiz 문제를 준비하지 못했습니다" };
     }
     return { ok: false, message: "Pop Quiz를 시작하지 못했어요. 다시 시도해 주세요." };

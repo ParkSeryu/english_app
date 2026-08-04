@@ -8,6 +8,7 @@ export type WctPopQuizCandidate = {
   dayId: string;
   dayNumber: number;
   dayLabel: string;
+  dayTopic?: string;
   question: WctQuizQuestion;
 };
 
@@ -22,9 +23,6 @@ export type WctPopQuizSelectionInput = {
   previousSignature: string | null;
 };
 
-export const WCT_POP_QUIZ_TOTAL = 20 as const;
-export const WCT_POP_QUIZ_TYPE_QUOTA = { translation: 12, pattern: 8 } as const;
-export const WCT_POP_QUIZ_BAND_QUOTA = { early: 7, middle: 7, late: 6 } as const;
 export type WctPopQuizAnswer = {
   questionId: string;
   choiceId: string;
@@ -83,7 +81,7 @@ export type WctPopQuizCompleteInput = {
 
 export type WctPopQuizResult = {
   score: number;
-  total: 20;
+  total: number;
   incorrectDays: WctPopQuizIncorrectDay[];
   completedAt: string;
 };

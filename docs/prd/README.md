@@ -26,6 +26,7 @@ If code implementation has started or an implementation PR is open, the feature 
 | Kakao social login | T-006 | `complete/` | `complete/kakao-social-login/prd.md` | `complete/kakao-social-login/test-spec.md` | `complete/kakao-social-login/implementation-plan.md` | Completed first social login code slice using Supabase Kakao OAuth; external Kakao/Supabase provider setup remains required for real sign-in. |
 | Public topic PWA push notifications | T-009 | `complete/` | `complete/public-topic-pwa-push-notifications/prd.md` | `complete/public-topic-pwa-push-notifications/test-spec.md` | Not created. | Completed MVP for explicit admin-triggered Web Push when a shared topic is ready; VAPID/device setup remains environment-dependent. |
 | WCT private course library | T-007 | `complete/` | `complete/wct-course-library/prd.md` | `complete/wct-course-library/test-spec.md` | `complete/wct-course-library/implementation-plan.md` | Completed private read-only textbook/Day reference library with approval-gated imports. |
+| WCT Pop Quiz Day coverage | Active | `active/` | `active/wct-pop-quiz/prd.md` | `active/wct-pop-quiz/test-spec.md` | `active/wct-pop-quiz/implementation-plan.md` | Active enhancement: one eligible question per Day, with legacy attempt snapshots retained. |
 | LLM-assisted lesson ingestion predecessor | Historical | `complete/` | `complete/english-review-app-llm-ingestion-superseded/prd.md` | `complete/english-review-app-llm-ingestion-superseded/test-spec.md` | `complete/english-review-app-llm-ingestion-superseded/implementation-plan.md` | Superseded historical planning context. |
 
 ## Folder Structure
@@ -36,6 +37,10 @@ docs/prd/
   future-work.md
   active/
     README.md
+    wct-pop-quiz/
+      prd.md
+      test-spec.md
+      implementation-plan.md
   backlog/
   complete/
     daily-expression-memorization/

@@ -3,19 +3,20 @@ import { describe, expect, it } from "vitest";
 import type { WctPopQuizQuestion } from "@/lib/wct/pop-quiz/types";
 import { wctPopQuizQuestionsSchema } from "@/lib/wct/pop-quiz/validation";
 
-function questions(): WctPopQuizQuestion[] {
-  return Array.from({ length: 20 }, (_, index) => {
+function questions(count: number, includeDayTopic: boolean): WctPopQuizQuestion[] {
+  return Array.from({ length: count }, (_, index) => {
     const number = index + 1;
     const questionId = `question-${number}`;
     return {
-      sourceQuizSetId: `set-${Math.ceil(number / 2)}`,
-      dayId: `day-${Math.ceil(number / 2)}`,
-      dayNumber: Math.ceil(number / 2),
-      dayLabel: `Day ${Math.ceil(number / 2)}`,
-      band: index < 7 ? "early" : index < 14 ? "middle" : "late",
+      sourceQuizSetId: `set-${number}`,
+      dayId: `day-${number}`,
+      dayNumber: number,
+      dayLabel: `Day ${number}`,
+      ...(includeDayTopic ? { dayTopic: `Topic ${number}` } : {}),
+      band: number <= Math.ceil(count / 3) ? "early" : number <= Math.ceil((count * 2) / 3) ? "middle" : "late",
       question: {
         id: questionId,
-        kind: index < 12 ? "translation" : "pattern",
+        kind: number % 2 === 0 ? "pattern" : "translation",
         prompt: `Prompt ${number}`,
         choices: [1, 2, 3, 4].map((choice) => ({
           id: `${questionId}-choice-${choice}`,
@@ -29,56 +30,36 @@ function questions(): WctPopQuizQuestion[] {
 }
 
 describe("wctPopQuizQuestionsSchema", () => {
-  it("accepts exactly 20 valid questions", () => {
-    expect(wctPopQuizQuestionsSchema.safeParse(questions()).success).toBe(true);
+  it("accepts a 16-question new snapshot with Day topics", () => {
+    expect(wctPopQuizQuestionsSchema.safeParse(questions(16, true)).success).toBe(true);
   });
 
-  it.each([19, 21])("rejects a %i-question snapshot", (count) => {
-    const snapshot = questions();
-    if (count === 19) snapshot.pop();
-    if (count === 21) snapshot.push({
-      ...snapshot[19],
-      sourceQuizSetId: "set-11",
-      dayId: "day-11",
-      dayNumber: 11,
-      dayLabel: "Day 11",
-      question: {
-        ...snapshot[19].question,
-        id: "question-21",
-        choices: snapshot[19].question.choices.map((choice, index) => ({
-          ...choice,
-          id: `question-21-choice-${index + 1}`
-        })),
-        correctChoiceId: "question-21-choice-1"
-      }
-    });
-
-    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+  it("accepts a legacy 20-question snapshot without Day topics", () => {
+    expect(wctPopQuizQuestionsSchema.safeParse(questions(20, false)).success).toBe(true);
   });
 
-  it("rejects a snapshot with a 13/7 type split", () => {
-    const snapshot = questions();
-    snapshot[12].question.kind = "translation";
+  it("rejects duplicate question IDs", () => {
+    const snapshot = questions(16, true);
+    snapshot[1].question.id = snapshot[0].question.id;
 
-    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+    expect(() => wctPopQuizQuestionsSchema.parse(snapshot)).toThrow("Question IDs must be distinct");
   });
 
-  it("rejects a snapshot with a 6/8/6 band split", () => {
-    const snapshot = questions();
-    snapshot[0].band = "middle";
+  it("rejects duplicate choice IDs", () => {
+    const snapshot = questions(16, true);
+    snapshot[0].question.choices[1].id = snapshot[0].question.choices[0].id;
 
-    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+    expect(() => wctPopQuizQuestionsSchema.parse(snapshot)).toThrow("Choice IDs must be distinct");
   });
 
-  it("rejects more than two questions from one Day", () => {
-    const snapshot = questions();
-    snapshot[2] = {
-      ...snapshot[2],
-      dayId: snapshot[0].dayId,
-      dayNumber: snapshot[0].dayNumber,
-      dayLabel: snapshot[0].dayLabel
-    };
+  it("rejects a correct choice ID that is not present", () => {
+    const snapshot = questions(16, true);
+    snapshot[0].question.correctChoiceId = "missing-choice";
 
-    expect(wctPopQuizQuestionsSchema.safeParse(snapshot).success).toBe(false);
+    expect(() => wctPopQuizQuestionsSchema.parse(snapshot)).toThrow("Correct choice must exist");
+  });
+
+  it.each([0, 101])("rejects a %i-question snapshot", (count) => {
+    expect(wctPopQuizQuestionsSchema.safeParse(questions(count, true)).success).toBe(false);
   });
 });

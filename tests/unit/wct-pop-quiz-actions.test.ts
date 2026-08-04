@@ -66,7 +66,7 @@ describe("WCT Pop Quiz actions", () => {
   });
 
   it("returns the exact preparation message for an insufficient selector pool", async () => {
-    mocks.startWctPopQuiz.mockRejectedValue(new Error("Pop Quiz needs 20 eligible questions"));
+    mocks.startWctPopQuiz.mockRejectedValue(new Error("Pop Quiz needs one eligible question per Day"));
     const { startWctPopQuizAction } = await import(
       "@/app/lessons/books/[bookId]/pop-quiz/actions"
     );

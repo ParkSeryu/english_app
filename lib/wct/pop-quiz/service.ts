@@ -75,6 +75,7 @@ async function candidatesForBook(
       dayId: day.id,
       dayNumber: day.dayNumber,
       dayLabel: day.displayLabel,
+      dayTopic: day.shortLabel,
       question
     }));
   });
