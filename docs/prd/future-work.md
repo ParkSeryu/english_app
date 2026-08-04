@@ -105,18 +105,19 @@
 - Notes / links:
 ```
 
-## Active
-
 ### 2026-08-03 — WCT Pop Quiz
 
-- Status: Active
+- Status: Complete
 - Surface: Prenovice/Novice book detail, Pop Quiz route, immutable attempt snapshots
-- Scope: Replace the fixed 20-question quota selection with one eligible translation or pattern question per Day, preserving deterministic retakes and legacy snapshot parsing.
+- Scope: Replaced fixed 20-question quotas with one eligible translation or pattern question per Day, dynamic attempt totals, and confirmed-only `Day N · topic` feedback while retaining legacy snapshot compatibility.
 - Artifacts:
-  - PRD: `docs/prd/active/wct-pop-quiz/prd.md`
-  - Test spec: `docs/prd/active/wct-pop-quiz/test-spec.md`
-  - Implementation plan: `docs/prd/active/wct-pop-quiz/implementation-plan.md`
-- Current slice: Domain selection selects exactly one non-concept question from every book Day and includes each Day topic in new snapshots.
+  - PRD: `docs/prd/complete/wct-pop-quiz/prd.md`
+  - Test spec: `docs/prd/complete/wct-pop-quiz/test-spec.md`
+  - Implementation plan: `docs/superpowers/plans/2026-08-04-wct-pop-quiz-day-coverage.md`
+- Verification: main/production `ccawzrrkxuirrwvaecvw` has migration `20260804120000_update_wct_pop_quiz_day_coverage.sql` applied (37 records, pending 0, mismatch 0); validation, RLS, hosted rollback-only 16/28 flow, post-build 2/2 Pop Quiz E2E, and live HTTP 200 checks passed.
+- Remaining risk: executable DB smoke has no explicit literal legacy 20-question fixture; legacy contract remains covered by application validation/mappers and migration constraints.
+
+## Active
 
 ## Backlog
 
