@@ -97,6 +97,7 @@ declare
   v_position integer := 0;
   v_row_count integer;
   v_invalid jsonb;
+  v_duplicate_day_question jsonb;
   v_reordered jsonb;
 begin
   select jsonb_agg(
@@ -105,6 +106,7 @@ begin
       'dayId', day.id,
       'dayNumber', day.day_number,
       'dayLabel', format('Day %s (%s)', day.day_number, btrim(day.short_label)),
+      'dayTopic', day.short_label,
       'band', case
         when day.day_number <= 4 then 'early'
         when day.day_number <= 8 then 'middle'
@@ -121,11 +123,26 @@ begin
     with ordinality question(source_question, position)
   where quiz.owner_id = '00000000-0000-4000-8000-0000000000aa'
     and day.book_id = '60000000-0000-4000-8000-0000000000aa'
-    and position <= case
-      when day.day_number in (4, 8) then 1
-      when day.day_number = 12 then 0
-      else 2
-    end;
+    and position = 1;
+
+  select jsonb_build_object(
+    'sourceQuizSetId', quiz.id,
+    'dayId', day.id,
+    'dayNumber', day.day_number,
+    'dayLabel', format('Day %s (%s)', day.day_number, btrim(day.short_label)),
+    'dayTopic', day.short_label,
+    'band', 'early',
+    'question', source_question
+  )
+  into v_duplicate_day_question
+  from public.wct_quiz_sets quiz
+  join public.wct_days day on day.id::text = quiz.source_id
+  cross join lateral jsonb_array_elements(quiz.questions)
+    with ordinality question(source_question, position)
+  where quiz.owner_id = '00000000-0000-4000-8000-0000000000aa'
+    and day.book_id = '60000000-0000-4000-8000-0000000000aa'
+    and day.day_number = 1
+    and position = 2;
 
   begin
     perform public.start_wct_pop_quiz(
@@ -143,76 +160,40 @@ begin
   begin
     perform public.start_wct_pop_quiz(
       '60000000-0000-4000-8000-0000000000aa',
-      'short',
-      v_questions - 19
+      'missing-day',
+      v_questions - 11
     );
-    raise exception '19-question WCT Pop Quiz unexpectedly started';
+    raise exception 'missing-Day WCT Pop Quiz unexpectedly started';
   exception when others then
-    if sqlerrm not like '%Exactly 20 WCT Pop Quiz questions are required%' then
+    if sqlerrm not like '%One WCT Pop Quiz question per Day is required%' then
       raise;
     end if;
   end;
 
-  v_invalid := jsonb_set(v_questions, '{12,question,kind}', '"translation"'::jsonb);
+  v_invalid := jsonb_set(v_questions, '{11}', v_duplicate_day_question);
   begin
     perform public.start_wct_pop_quiz(
       '60000000-0000-4000-8000-0000000000aa',
-      'invalid-type-quota',
+      'duplicated-day',
       v_invalid
     );
-    raise exception 'invalid-type-quota WCT Pop Quiz unexpectedly started';
+    raise exception 'duplicated-Day WCT Pop Quiz unexpectedly started';
   exception when others then
-    if sqlerrm not like '%type quotas must match%' then raise; end if;
+    if sqlerrm not like '%One WCT Pop Quiz question per Day is required%' then
+      raise;
+    end if;
   end;
 
   v_invalid := jsonb_set(v_questions, '{0,band}', '"middle"'::jsonb);
   begin
     perform public.start_wct_pop_quiz(
       '60000000-0000-4000-8000-0000000000aa',
-      'invalid-band-quota',
-      v_invalid
-    );
-    raise exception 'invalid-band-quota WCT Pop Quiz unexpectedly started';
-  exception when others then
-    if sqlerrm not like '%band quotas must match%' then raise; end if;
-  end;
-
-  v_invalid := jsonb_set(
-    jsonb_set(v_questions, '{0,band}', '"middle"'::jsonb),
-    '{7,band}',
-    '"early"'::jsonb
-  );
-  begin
-    perform public.start_wct_pop_quiz(
-      '60000000-0000-4000-8000-0000000000aa',
-      'forged-bands',
+      'forged-band',
       v_invalid
     );
     raise exception 'forged-band WCT Pop Quiz unexpectedly started';
   exception when others then
     if sqlerrm not like '%bands do not match ordered Days%' then raise; end if;
-  end;
-
-  v_invalid := jsonb_set(
-    v_questions,
-    '{2,dayId}',
-    to_jsonb('61000000-0000-4000-8000-000000000001'::text)
-  );
-  v_invalid := jsonb_set(v_invalid, '{2,dayNumber}', '1'::jsonb);
-  v_invalid := jsonb_set(
-    v_invalid,
-    '{2,dayLabel}',
-    to_jsonb('Day 1 (Pop 1)'::text)
-  );
-  begin
-    perform public.start_wct_pop_quiz(
-      '60000000-0000-4000-8000-0000000000aa',
-      'invalid-day-quota',
-      v_invalid
-    );
-    raise exception 'invalid-day-quota WCT Pop Quiz unexpectedly started';
-  exception when others then
-    if sqlerrm not like '%at most two questions%' then raise; end if;
   end;
 
   begin
@@ -302,8 +283,9 @@ begin
     '60000000-0000-4000-8000-0000000000aa',
     v_attempt_id
   );
-  if (v_result->>'score')::integer <> 18
-    or jsonb_array_length(v_result->'incorrectDays') <> 1
+  if (v_result->>'score')::integer <> jsonb_array_length(v_questions) - 2
+    or (v_result->>'total')::integer <> jsonb_array_length(v_questions)
+    or jsonb_array_length(v_result->'incorrectDays') <> 2
     or v_result->'incorrectDays'->0->>'dayId' <> '61000000-0000-4000-8000-000000000001' then
     raise exception 'WCT Pop Quiz completion was not server-derived';
   end if;
@@ -312,7 +294,8 @@ begin
     '60000000-0000-4000-8000-0000000000aa',
     v_attempt_id
   );
-  if (v_result->>'score')::integer <> 18 then
+  if (v_result->>'score')::integer <> jsonb_array_length(v_questions) - 2
+    or (v_result->>'total')::integer <> jsonb_array_length(v_questions) then
     raise exception 'WCT Pop Quiz completion replay changed the score';
   end if;
 
