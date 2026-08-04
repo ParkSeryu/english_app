@@ -124,6 +124,8 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   - PRD: `docs/prd/complete/wct-pop-quiz/prd.md`
   - Test spec: `docs/prd/complete/wct-pop-quiz/test-spec.md`
   - Implementation plan: `docs/superpowers/plans/2026-08-04-wct-pop-quiz-day-coverage.md`
+- Changed files: the exact 32-path inventory for feature range `954badd..HEAD`
+  is maintained in [the completed README's Changed files section](complete/wct-pop-quiz/README.md#changed-files).
 - Verification commands passed:
 
   ```bash
