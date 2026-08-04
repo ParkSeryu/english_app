@@ -107,15 +107,6 @@
 
 ## Active
 
-### 2026-08-03 — WCT Pop Quiz
-
-- Status: Active
-- Surface: Prenovice/Novice book detail, Pop Quiz route, progress persistence
-- Scope: 20 questions; translation 12/pattern 8; early 7/middle 7/late 6; max 2 per Day
-- Non-goals: Premium, AI generation, attempt history, timers, rankings
-- Design: `docs/superpowers/specs/2026-08-03-wct-pop-quiz-design.md`
-- Plan: `docs/superpowers/plans/2026-08-03-wct-pop-quiz.md`
-
 ## Backlog
 
 ## Blocked
@@ -123,6 +114,32 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-08-03 — WCT Pop Quiz
+
+- Status: Complete
+- Surface: Prenovice/Novice book detail, Pop Quiz route, progress persistence
+- Result:
+  - [x] Existing Day questions produce 20-question attempts with translation/pattern 12/8, early/middle/late 7/7/6, and max 2 per Day.
+  - [x] Active attempts resume; confirmation precedes feedback; results link deduplicated incorrect Days; consecutive retakes differ.
+  - [x] Premium has no entry point and foreign/missing books remain inaccessible.
+  - [x] Main/production migration is applied with pending 0 and mismatch 0.
+- Changed files:
+  - `app/lessons/books/[bookId]/**`, `components/wct/WctPopQuiz*.tsx`
+  - `lib/wct/pop-quiz/**`, `lib/wct-pop-quiz-store*`, related WCT stores
+  - `supabase/migrations/20260803120000_create_wct_pop_quiz.sql`
+  - `scripts/verify-rls*`, tests, E2E specs, and `docs/prd/complete/wct-pop-quiz/*`
+- Verification:
+  - [x] lint/typecheck passed; Vitest 364 passed, 1 skipped; build passed
+  - [x] combined WCT Playwright 10/10 passed; fresh 3101 Pop Quiz journey 2/2 passed
+  - [x] localhost and WSL/LAN book + Pop Quiz routes: 8/8 HTTP 200
+  - [x] hosted owner/cross-owner/direct-write/anon/RPC checks passed in a rolled-back transaction
+  - [x] production inventory: Prenovice 16 Days/16 sets, Novice 28 Days/28 sets
+- Remaining risks:
+  - Local Docker was unavailable for the `verify:rls` wrapper; equivalent hosted checks and security tests passed.
+  - No real user progress row was retained during verification.
+- Design: `docs/superpowers/specs/2026-08-03-wct-pop-quiz-design.md`
+- Plan: `docs/superpowers/plans/2026-08-03-wct-pop-quiz.md`
 
 ### 2026-07-31 — Main-only infrastructure retirement
 
