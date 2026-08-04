@@ -166,7 +166,7 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
       {isAnswerConfirmed && saveError ? (
         <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-700">
           <p>{saveError}</p>
-          <button type="button" onClick={isFinalQuestion ? completeAttempt : saveAnswer} disabled={saving} className="mt-3 rounded-full bg-rose-700 px-4 py-2 text-sm font-black text-white disabled:opacity-60">저장 다시 시도</button>
+          <button type="button" onClick={confirmation ? completeAttempt : saveAnswer} disabled={saving} className="mt-3 rounded-full bg-rose-700 px-4 py-2 text-sm font-black text-white disabled:opacity-60">저장 다시 시도</button>
         </div>
       ) : null}
     </section>

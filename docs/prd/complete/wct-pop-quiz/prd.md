@@ -2,7 +2,7 @@
 
 ## Status
 
-Active
+Complete
 
 ## Goal
 
@@ -30,8 +30,8 @@ material across the book in one 20-question, resumable session.
 
 ## Acceptance
 
-- [ ] Every new attempt exactly satisfies total, type, band, uniqueness, and per-Day constraints.
-- [ ] Refresh resumes the in-progress selection and confirmed answers.
-- [ ] Retake creates a different source-question set.
-- [ ] Server-owned persistence and scoring remain owner-isolated.
-- [ ] Relevant test, build, RLS, and live-route checks pass before completion.
+- [x] Every new attempt exactly satisfies total, type, band, uniqueness, and per-Day constraints.
+- [x] Refresh resumes the in-progress selection and confirmed answers.
+- [x] Retake creates a different source-question set.
+- [x] Server-owned persistence and scoring remain owner-isolated.
+- [x] Relevant test, build, RLS, and live-route checks pass before completion.

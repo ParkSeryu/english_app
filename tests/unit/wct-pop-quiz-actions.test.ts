@@ -65,6 +65,19 @@ describe("WCT Pop Quiz actions", () => {
     expect(mocks.redirect).toHaveBeenCalledWith(`/lessons/books/${bookId}/pop-quiz`);
   });
 
+  it("returns the exact preparation message for an insufficient selector pool", async () => {
+    mocks.startWctPopQuiz.mockRejectedValue(new Error("Pop Quiz needs 20 eligible questions"));
+    const { startWctPopQuizAction } = await import(
+      "@/app/lessons/books/[bookId]/pop-quiz/actions"
+    );
+
+    await expect(startWctPopQuizAction({ bookId, mode: "start" })).resolves.toEqual({
+      ok: false,
+      message: "Pop Quiz 문제를 준비하지 못했습니다"
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("returns a Korean start failure without redirecting", async () => {
     mocks.startWctPopQuiz.mockRejectedValue(new Error("unavailable"));
     const { startWctPopQuizAction } = await import(
