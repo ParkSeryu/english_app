@@ -40,6 +40,20 @@ const quizSet: WctQuizSet = {
   })
 };
 
+const structuredQuizSet: WctQuizSet = {
+  ...quizSet,
+  generatorVersion: "wct-review-v2",
+  questions: quizSet.questions.map((question) => ({
+    ...question,
+    format: "multiple_choice",
+    feedback: {
+      correctSentence: `Correct sentence ${question.id}`,
+      pattern: `Pattern ${question.id}`,
+      reason: `Reason ${question.id}`
+    }
+  }))
+};
+
 async function answerQuiz(
   user: ReturnType<typeof userEvent.setup>,
   choiceForQuestion: (questionNumber: number) => string
@@ -104,6 +118,39 @@ describe("WctQuizRunner", () => {
     expect(screen.getByText("정답이에요")).toBeVisible();
     expect(screen.getByRole("button", { name: "Correct 2, 정답" }))
       .toBeDisabled();
+  });
+
+  it("shows standard Day context and structured feedback only after confirmation", async () => {
+    const user = userEvent.setup();
+    render(
+      <WctQuizRunner
+        quizSet={structuredQuizSet}
+        returnHref="/day/13"
+        feedbackContext="Day 13 · if 가능"
+        sourceContext={{ bookId: "book-13", dayId: "day-13" }}
+      />
+    );
+
+    expect(screen.queryByText("Day 13 · if 가능")).not.toBeInTheDocument();
+    expect(screen.queryByText("정답 문장 · Correct sentence question-1"))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText("원래 패턴 · Pattern question-1"))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText("Reason question-1")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Correct 1" }));
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
+
+    const feedbackPanel = screen.getByText("정답이에요").parentElement;
+    expect(feedbackPanel).not.toBeNull();
+    expect(within(feedbackPanel!).getByText("Day 13 · if 가능")).toBeVisible();
+    expect(within(feedbackPanel!).getByText(
+      "정답 문장 · Correct sentence question-1"
+    )).toBeVisible();
+    expect(within(feedbackPanel!).getByText(
+      "원래 패턴 · Pattern question-1"
+    )).toBeVisible();
+    expect(within(feedbackPanel!).getByText("Reason question-1")).toBeVisible();
   });
 
   it("submits five answers, trusts the saved score, and retakes the same set", async () => {

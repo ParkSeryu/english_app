@@ -29,10 +29,18 @@ const attempt: WctPopQuizAttempt = {
       question: {
         id: `question-${number}`,
         kind: number <= 12 ? "translation" as const : "pattern" as const,
+        ...(number === 1 ? {
+          format: "true_false" as const,
+          feedback: {
+            correctSentence: "Correct sentence 1",
+            pattern: "Pattern 1",
+            reason: "Reason 1"
+          }
+        } : {}),
         prompt: `Question ${number}`,
         choices: [
-          { id: `choice-${number}-1`, text: `Correct ${number}` },
-          { id: `choice-${number}-2`, text: `Wrong ${number}` }
+          { id: `choice-${number}-1`, text: number === 1 ? "O" : `Correct ${number}` },
+          { id: `choice-${number}-2`, text: number === 1 ? "X" : `Wrong ${number}` }
         ],
         correctChoiceId: `choice-${number}-1`,
         explanation: `Explanation ${number}`
@@ -112,8 +120,10 @@ describe("WctPopQuizRunner", () => {
     render(<WctPopQuizRunner attempt={attempt} returnHref="/lessons/books/book-1" />);
 
     expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Wrong 1" }));
-    await user.click(screen.getByRole("button", { name: "Correct 1" }));
+    expect(screen.getByText("O/X")).toBeVisible();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "X" }));
+    await user.click(screen.getByRole("button", { name: "O" }));
     await user.click(screen.getByRole("button", { name: "정답 확인" }));
 
     expect(screen.getByText("정답이에요")).toBeVisible();
@@ -121,8 +131,17 @@ describe("WctPopQuizRunner", () => {
     expect(feedbackPanel).not.toBeNull();
     expect(feedbackPanel).toHaveAttribute("aria-live", "polite");
     expect(within(feedbackPanel!).getByText("Day 1 · Topic 1")).toBeVisible();
-    expect(screen.getByText("Explanation 1")).toBeVisible();
+    expect(screen.getByText("정답 문장 · Correct sentence 1")).toBeVisible();
+    expect(screen.getByText("원래 패턴 · Pattern 1")).toBeVisible();
+    expect(screen.getByText("Reason 1")).toBeVisible();
     expect(screen.getByRole("button", { name: "다음 문제" })).toBeDisabled();
+
+    expect(mocks.confirmWctPopQuizAnswerAction).toHaveBeenCalledWith({
+      bookId: attempt.bookId,
+      attemptId: attempt.attemptId,
+      questionId: "question-1",
+      choiceId: "choice-1-1"
+    });
 
     resolveConfirmation!(confirmation(0));
     await screen.findByRole("button", { name: "다음 문제" });
@@ -153,7 +172,7 @@ describe("WctPopQuizRunner", () => {
       .mockResolvedValueOnce(confirmation(0));
     render(<WctPopQuizRunner attempt={attempt} returnHref="/lessons/books/book-1" />);
 
-    await user.click(screen.getByRole("button", { name: "Wrong 1" }));
+    await user.click(screen.getByRole("button", { name: "X" }));
     await user.click(screen.getByRole("button", { name: "정답 확인" }));
 
     expect(await screen.findByText("아쉬워요. 정답을 확인해 보세요.")).toBeVisible();
@@ -170,10 +189,10 @@ describe("WctPopQuizRunner", () => {
     const user = userEvent.setup();
     render(<WctPopQuizRunner attempt={attempt} returnHref="/lessons/books/book-1" />);
 
-    await user.click(screen.getByRole("button", { name: "Wrong 1" }));
+    await user.click(screen.getByRole("button", { name: "X" }));
 
-    expect(screen.getByRole("button", { name: "Wrong 1" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Correct 1" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "X" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "O" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByText("아쉬워요. 정답을 확인해 보세요.")).not.toBeInTheDocument();
   });
 

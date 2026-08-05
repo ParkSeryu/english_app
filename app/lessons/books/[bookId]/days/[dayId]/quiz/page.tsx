@@ -44,6 +44,7 @@ export default async function WctDayQuizPage({
       <WctQuizRunner
         quizSet={quizSet}
         returnHref={`/lessons/books/${book.id}/days/${day.id}`}
+        feedbackContext={`Day ${day.dayNumber} · ${day.shortLabel}`}
         sourceContext={{ bookId: book.id, dayId: day.id }}
       />
     </main>

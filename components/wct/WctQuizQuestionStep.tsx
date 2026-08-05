@@ -1,4 +1,8 @@
-import type { WctQuizChoice, WctQuizQuestion } from "@/lib/wct/quiz/types";
+import {
+  getWctQuizQuestionFormat,
+  type WctQuizChoice,
+  type WctQuizQuestion
+} from "@/lib/wct/quiz/types";
 
 export function WctQuizQuestionStep({
   question,
@@ -24,13 +28,24 @@ export function WctQuizQuestionStep({
   feedbackContext?: string;
 }) {
   const selectedIsCorrect = selectedChoiceId === question.correctChoiceId;
+  const format = getWctQuizQuestionFormat(question);
+  const formatLabel = question.format ? {
+    multiple_choice: "문장 선택",
+    fill_blank: "빈칸",
+    true_false: "O/X"
+  }[question.format] : null;
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      {formatLabel ? (
+        <p className="mb-3 inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">
+          {formatLabel}
+        </p>
+      ) : null}
       <h1 className="text-2xl font-black leading-9 tracking-[-0.03em] text-ink">
         {question.prompt}
       </h1>
-      <div className="mt-6 grid gap-3">
+      <div className={`mt-6 grid gap-3 ${format === "true_false" ? "grid-cols-2" : ""}`}>
         {question.choices.map((choice) => (
           <button
             key={choice.id}
@@ -39,7 +54,13 @@ export function WctQuizQuestionStep({
             aria-label={choiceLabel(choice, selectedChoiceId, question.correctChoiceId, isAnswerConfirmed)}
             onClick={() => onSelectChoice(choice.id)}
             disabled={isAnswerConfirmed}
-            className={choiceClassName(choice.id, selectedChoiceId, question.correctChoiceId, isAnswerConfirmed)}
+            className={choiceClassName(
+              choice.id,
+              selectedChoiceId,
+              question.correctChoiceId,
+              isAnswerConfirmed,
+              format === "true_false"
+            )}
           >
             {choice.text}
           </button>
@@ -52,8 +73,18 @@ export function WctQuizQuestionStep({
         >
           <p className="font-black">{selectedIsCorrect ? "정답이에요" : "아쉬워요. 정답을 확인해 보세요."}</p>
           {feedbackContext ? <p className="mt-2 text-sm font-black">{feedbackContext}</p> : null}
-          <p className="mt-3 text-xs font-black uppercase tracking-[0.16em]">해설</p>
-          <p className="mt-2 text-sm font-medium leading-6">{question.explanation}</p>
+          {question.feedback ? (
+            <div className="mt-3 space-y-2 text-sm font-medium leading-6">
+              <p className="font-bold">정답 문장 · {question.feedback.correctSentence}</p>
+              <p className="font-bold">원래 패턴 · {question.feedback.pattern}</p>
+              <p>{question.feedback.reason}</p>
+            </div>
+          ) : (
+            <>
+              <p className="mt-3 text-xs font-black uppercase tracking-[0.16em]">해설</p>
+              <p className="mt-2 text-sm font-medium leading-6">{question.explanation}</p>
+            </>
+          )}
         </div>
       ) : null}
       {isAnswerConfirmed ? (
@@ -86,8 +117,14 @@ function choiceLabel(choice: WctQuizChoice, selectedChoiceId: string | null, cor
   return choice.text;
 }
 
-function choiceClassName(choiceId: string, selectedChoiceId: string | null, correctChoiceId: string, isAnswerConfirmed: boolean) {
-  const base = "w-full rounded-2xl border px-4 py-4 text-left font-bold transition disabled:cursor-default";
+function choiceClassName(
+  choiceId: string,
+  selectedChoiceId: string | null,
+  correctChoiceId: string,
+  isAnswerConfirmed: boolean,
+  isTrueFalse: boolean
+) {
+  const base = `w-full rounded-2xl border px-4 font-bold transition disabled:cursor-default ${isTrueFalse ? "py-6 text-center text-xl" : "py-4 text-left"}`;
   if (!isAnswerConfirmed) {
     if (choiceId === selectedChoiceId) return `${base} border-teal-500 bg-teal-50 text-teal-900`;
     return `${base} border-slate-200 bg-white text-ink hover:border-teal-300 hover:bg-teal-50`;

@@ -17,10 +17,12 @@ const saveFailureMessage = "결과를 저장하지 못했어요. 다시 시도�
 export function WctQuizRunner({
   quizSet,
   returnHref,
+  feedbackContext,
   sourceContext
 }: {
   quizSet: WctQuizSet;
   returnHref: string;
+  feedbackContext?: string;
   sourceContext?: WctQuizSourceContext;
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -121,6 +123,7 @@ export function WctQuizRunner({
         confirmDisabled={!selectedChoiceId}
         nextLabel={questionIndex === quizSet.questions.length - 1 ? "결과 보기" : "다음 문제"}
         onNext={questionIndex === quizSet.questions.length - 1 ? showAndSaveResult : nextQuestion}
+        feedbackContext={feedbackContext}
       />
     </section>
   );
