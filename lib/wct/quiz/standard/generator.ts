@@ -144,7 +144,8 @@ function rankedCandidates(
         right.provenance.exampleId
       );
       return leftRank.localeCompare(rightRank)
-        || candidateKey(left).localeCompare(candidateKey(right));
+        || candidateKey(left).localeCompare(candidateKey(right))
+        || stableStringify(left).localeCompare(stableStringify(right));
     });
 }
 
@@ -314,19 +315,18 @@ function indexOverrides(
   return indexed;
 }
 
-function initialTruthStates(dayCount: number) {
+function truthStatesForPhases(
+  dayCount: number,
+  phases: readonly TruthState[]
+) {
   const states = Array<TruthState>(dayCount);
-  let oddGroupIndex = 0;
   for (let residue = 0; residue < 3; residue += 1) {
     const positions = Array.from({ length: dayCount }, (_item, index) => index)
       .filter((index) => index % 3 === residue);
-    const startsWith: TruthState = positions.length % 2 === 0
-      ? "O"
-      : oddGroupIndex++ % 2 === 0 ? "O" : "X";
     for (const [index, position] of positions.entries()) {
       states[position] = index % 2 === 0
-        ? startsWith
-        : startsWith === "O" ? "X" : "O";
+        ? phases[residue]
+        : phases[residue] === "O" ? "X" : "O";
     }
   }
   return states;
@@ -336,41 +336,38 @@ function allocateTruthStates(
   sources: readonly WctStandardQuizSource[],
   overrides: ReadonlyMap<string, readonly WctStandardQuestionCandidate[]>
 ) {
-  const states = initialTruthStates(sources.length);
+  const supportCache = new Map<string, boolean>();
   const supports = (index: number, state: TruthState) => {
+    const cacheKey = `${index}:${state}`;
+    const cached = supportCache.get(cacheKey);
+    if (cached !== undefined) return cached;
     const source = sources[index];
     const fixed = overrides.get(`${source.level}:${source.dayNumber}`);
-    return fixed
+    const supported = fixed
       ? truthState(fixed.find((candidate) => candidate.question.format === "true_false")!) === state
       : composeAutomaticDay(source, state) !== null;
+    supportCache.set(cacheKey, supported);
+    return supported;
   };
-  for (let residue = 0; residue < 3; residue += 1) {
-    const positions = states.map((_state, index) => index)
-      .filter((index) => index % 3 === residue);
-    for (const index of positions) {
-      if (states[index] !== "X" || supports(index, "X")) continue;
-      const swap = positions.find((other) => (
-        states[other] === "O"
-        && supports(index, "O")
-        && supports(other, "X")
-      ));
-      if (swap === undefined) {
-        throw new Error(
-          `WCT v2 Day ${sources[index].dayNumber} cannot safely compose X true/false question`
-        );
-      }
-      states[index] = "O";
-      states[swap] = "X";
+  const preferredPhases = ["O", "O", "X"] as const;
+  for (let mask = 0; mask < 8; mask += 1) {
+    const phases = preferredPhases.map((preferred, residue): TruthState => (
+      mask & (1 << residue) ? preferred === "O" ? "X" : "O" : preferred
+    ));
+    const states = truthStatesForPhases(sources.length, phases);
+    const trueCount = states.filter((state) => state === "O").length;
+    const validTotals = trueCount === sources.length / 2;
+    if (validTotals && states.every((state, index) => supports(index, state))) {
+      return states;
     }
   }
-  for (const [index, state] of states.entries()) {
-    if (!supports(index, state)) {
-      throw new Error(
-        `WCT v2 Day ${sources[index].dayNumber} cannot safely compose ${state} true/false question`
-      );
-    }
-  }
-  return states;
+  const unsafeIndex = sources.findIndex((_source, index) => (
+    !supports(index, "X") || overrides.has(`${sources[index].level}:${sources[index].dayNumber}`)
+  ));
+  const failed = unsafeIndex === -1 ? 0 : unsafeIndex;
+  throw new Error(
+    `WCT v2 Day ${sources[failed].dayNumber} cannot satisfy alternating O/X allocation`
+  );
 }
 
 function inferredLevel(book: WctBook): WctStandardLevel {
@@ -417,6 +414,14 @@ export function generateStandardWctQuizBook(
     .map((day) => buildStandardWctQuizSource(book, day));
   if (sources.some((source) => source.level !== level)) {
     throw new Error("WCT v2 source level mismatch");
+  }
+  for (const source of sources) {
+    const identities = source.entries.map((entry) => (
+      `${entry.patternId}\0${entry.exampleId}`
+    ));
+    if (new Set(identities).size !== identities.length) {
+      throw new Error(`WCT v2 Day ${source.dayNumber} has duplicate source identities`);
+    }
   }
   const indexedOverrides = indexOverrides(sources, overrides);
   const states = allocateTruthStates(sources, indexedOverrides);

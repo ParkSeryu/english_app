@@ -5,6 +5,7 @@ import {
   stableStringify
 } from "../../normalization.ts";
 import type { WctQuizQuestion } from "../types.ts";
+import { wctStandardQuizSetCreateSchema } from "../validation.ts";
 import type {
   WctGeneratedStandardQuizBook,
   WctMutationEvidence,
@@ -43,6 +44,18 @@ export type WctStandardAuditRow = {
   mutationEvidence: WctMutationEvidence[];
   blankEvidence: WctQuestionProvenance["blankSpan"] | null;
   reason: string;
+  question: WctQuizQuestion;
+  feedback: WctQuizQuestion["feedback"] | null;
+  provenance: WctQuestionProvenance | null;
+  sourceReference: {
+    lessonKey: string;
+    sourceId: string;
+    sourceHash: string;
+    patternId: string;
+    exampleId: string;
+    sourceSentence: string;
+    patternText: string;
+  };
 };
 
 type SourceInventoryRow = {
@@ -124,6 +137,7 @@ function canonicalSourceInventory(
       || left.dayNumber - right.dayNumber
       || left.patternId.localeCompare(right.patternId)
       || left.exampleId.localeCompare(right.exampleId)
+      || stableStringify(left).localeCompare(stableStringify(right))
   ));
 }
 
@@ -250,6 +264,14 @@ function auditQuestion(
   }
 
   if (question.format === "multiple_choice") {
+    const expectedPrompt = question.kind === "translation"
+      ? entry.meaningKo === null
+        ? null
+        : `"${entry.meaningKo}"에 맞는 영어 문장을 고르세요.`
+      : `"${entry.patternText}" 패턴에 맞는 영어 문장을 고르세요.`;
+    if (question.prompt !== expectedPrompt) {
+      fail("prompt_provenance", "MC prompt is not the exact target-source prompt.");
+    }
     if (answer !== entry.englishText) {
       fail("source_declared_answer_uniqueness", "The correct answer is not the source sentence.");
     }
@@ -275,6 +297,11 @@ function auditQuestion(
       || question.prompt !== `${entry.englishText.slice(0, blank.start)}____${entry.englishText.slice(blank.end)}`) {
       fail("blank_evidence", "The blank span is not an exact target-source span.");
     }
+    if (!blank
+      || question.prompt
+        !== `${entry.englishText.slice(0, blank.start)}____${entry.englishText.slice(blank.end)}`) {
+      fail("prompt_provenance", "Blank prompt is not the exact evidenced source replacement.");
+    }
     for (const [index, evidence] of provenance.choiceEvidence.entries()) {
       if (evidence.role !== "distractor") continue;
       if (!evidence.mutation
@@ -291,13 +318,19 @@ function auditQuestion(
       fail("true_false_choices", "O/X must display exactly O then X with one correct state.");
     }
     if (answer === "O") {
-      if (provenance.statementMutation || !question.prompt.includes(entry.englishText)) {
+      const expectedPrompt = `"${entry.englishText}" 이 문장이 패턴에 맞으면 O, 아니면 X를 고르세요.`;
+      if (provenance.statementMutation || question.prompt !== expectedPrompt) {
         fail("true_false_statement", "An O statement must display the verbatim source sentence.");
+      }
+      if (question.prompt !== expectedPrompt) {
+        fail("prompt_provenance", "O prompt is not the exact verbatim-source prompt.");
       }
     } else if (!provenance.statementMutation
       || !exactMutation(entry.englishText, provenance.statementMutation)
-      || !question.prompt.includes(provenance.statementMutation.text)) {
+      || question.prompt
+        !== `"${provenance.statementMutation.text}" 이 문장이 패턴에 맞으면 O, 아니면 X를 고르세요.`) {
       fail("mutation_evidence", "An X statement lacks one-span source mutation evidence.");
+      fail("prompt_provenance", "X prompt is not the exact evidenced-mutation prompt.");
     }
   }
 }
@@ -309,7 +342,9 @@ export function auditStandardWctQuizInventory(
   const failureKeys = new Set<string>();
   const rows: WctStandardAuditRow[] = [];
   const orderedBooks = [...generated].sort((left, right) => (
-    levelOrder(left.level) - levelOrder(right.level) || left.bookId.localeCompare(right.bookId)
+    levelOrder(left.level) - levelOrder(right.level)
+      || left.bookId.localeCompare(right.bookId)
+      || stableStringify(left).localeCompare(stableStringify(right))
   ));
   const seenLevels = new Set<WctStandardLevel>();
   for (const book of orderedBooks) {
@@ -327,6 +362,7 @@ export function auditStandardWctQuizInventory(
     seenLevels.add(book.level);
     const sets = [...book.sets].sort((left, right) => (
       left.source.dayNumber - right.source.dayNumber
+        || stableStringify(left).localeCompare(stableStringify(right))
     ));
     const actualDays = sets.map((set) => set.source.dayNumber);
     if (sets.length !== expectedDayCount
@@ -365,6 +401,16 @@ export function auditStandardWctQuizInventory(
       if (canonicalSourceHash(source) !== source.sourceHash) {
         addFailure(setQuestionId, "source_hash", "Stored source hash is not canonical source content.");
       }
+      const sourceIdentities = source.entries.map((entry) => (
+        `${entry.patternId}\0${entry.exampleId}`
+      ));
+      if (new Set(sourceIdentities).size !== sourceIdentities.length) {
+        addFailure(
+          setQuestionId,
+          "source_identity_uniqueness",
+          "Target source contains duplicate pattern/example identities."
+        );
+      }
       if ([source.topic, ...source.entries.flatMap((entry) => [
         entry.patternText,
         entry.patternMeaningKo ?? "",
@@ -376,6 +422,43 @@ export function auditStandardWctQuizInventory(
       }
       if (draft.questions.length !== 5) {
         addFailure(setQuestionId, "question_count", "A standard Day must contain five questions.");
+      }
+      const schemaResult = wctStandardQuizSetCreateSchema.safeParse(draft);
+      if (!schemaResult.success) {
+        for (const issue of schemaResult.error.issues) {
+          const questionIndex = issue.path[0] === "questions"
+            && typeof issue.path[1] === "number"
+            ? issue.path[1]
+            : null;
+          addFailure(
+            questionIndex === null
+              ? setQuestionId
+              : draft.questions[questionIndex]?.id ?? setQuestionId,
+            "schema_validation",
+            issue.message
+          );
+        }
+      }
+      const duplicatePrompts = draft.questions.filter((question, index, questions) => (
+        questions.some((other, otherIndex) => otherIndex !== index
+          && normalizeWctIdentity(other.prompt) === normalizeWctIdentity(question.prompt))
+      ));
+      for (const question of duplicatePrompts) {
+        addFailure(
+          question.id,
+          "prompt_uniqueness",
+          "Normalized question prompts must be unique within a Day."
+        );
+      }
+      const duplicateQuestionIds = draft.questions.filter((question, index, questions) => (
+        questions.some((other, otherIndex) => otherIndex !== index && other.id === question.id)
+      ));
+      for (const question of duplicateQuestionIds) {
+        addFailure(
+          question.id,
+          "question_id_uniqueness",
+          "Question IDs must be unique within a Day."
+        );
       }
       if (stableStringify(formatCounts(draft.questions)) !== stableStringify({
         multiple_choice: 2,
@@ -423,7 +506,19 @@ export function auditStandardWctQuizInventory(
           pattern: entry?.patternText ?? question.feedback?.pattern ?? "",
           mutationEvidence: provenance ? mutationEvidence(provenance) : [],
           blankEvidence: provenance?.blankSpan ?? null,
-          reason: question.feedback?.reason ?? question.explanation
+          reason: question.feedback?.reason ?? question.explanation,
+          question: structuredClone(question),
+          feedback: question.feedback ? structuredClone(question.feedback) : null,
+          provenance: provenance ? structuredClone(provenance) : null,
+          sourceReference: {
+            lessonKey: source.lessonKey,
+            sourceId: source.sourceId,
+            sourceHash: source.sourceHash,
+            patternId: provenance?.patternId ?? "",
+            exampleId: provenance?.exampleId ?? "",
+            sourceSentence: provenance?.sourceSentence ?? "",
+            patternText: entry?.patternText ?? ""
+          }
         });
       }
     }
@@ -439,6 +534,14 @@ export function auditStandardWctQuizInventory(
         - group.filter((row) => row.correctAnswer === "X").length
       ) <= 1;
     });
+    const alternatingResidues = [0, 1, 2].filter((residue) => {
+      const group = trueFalseRows
+        .filter((row) => (row.dayNumber - 1) % 3 === residue)
+        .sort((left, right) => left.dayNumber - right.dayNumber);
+      return group.some((row, index) => (
+        index > 0 && row.correctAnswer === group[index - 1].correctAnswer
+      ));
+    });
     if (!hasExactTotal || !hasBalancedResidues) {
       for (const row of trueFalseRows) {
         const key = `${row.level}:${row.dayNumber}:${row.questionId}:true_false_balance`;
@@ -450,6 +553,22 @@ export function auditStandardWctQuizInventory(
           questionId: row.questionId,
           rule: "true_false_balance",
           reason: "The book does not have exact total and residue-balanced O/X allocation."
+        });
+      }
+    }
+    for (const residue of alternatingResidues) {
+      for (const row of trueFalseRows.filter((item) => (
+        (item.dayNumber - 1) % 3 === residue
+      ))) {
+        const key = `${row.level}:${row.dayNumber}:${row.questionId}:true_false_alternation`;
+        if (failureKeys.has(key)) continue;
+        failureKeys.add(key);
+        failures.push({
+          level: row.level,
+          dayNumber: row.dayNumber,
+          questionId: row.questionId,
+          rule: "true_false_alternation",
+          reason: "The zero-based residue sequence does not strictly alternate O/X."
         });
       }
     }
@@ -469,12 +588,14 @@ export function auditStandardWctQuizInventory(
       || left.dayNumber - right.dayNumber
       || left.slotIndex - right.slotIndex
       || left.questionId.localeCompare(right.questionId)
+      || stableStringify(left).localeCompare(stableStringify(right))
   ));
   failures.sort((left, right) => (
     levelOrder(left.level) - levelOrder(right.level)
       || left.dayNumber - right.dayNumber
       || left.questionId.localeCompare(right.questionId)
       || left.rule.localeCompare(right.rule)
+      || left.reason.localeCompare(right.reason)
   ));
   const sourceInventory = canonicalSourceInventory(orderedBooks);
   const stateCounts = (level: WctStandardLevel, state: "O" | "X") => rows.filter((row) => (

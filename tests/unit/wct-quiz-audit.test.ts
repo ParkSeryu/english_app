@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { auditStandardWctQuizInventory } from "@/lib/wct/quiz/standard/audit";
+import { buildTrueFalseCandidate } from "@/lib/wct/quiz/standard/candidates";
 import { generateStandardWctQuizBook } from "@/lib/wct/quiz/standard/generator";
 import type { WctGeneratedStandardQuizBook } from "@/lib/wct/quiz/standard/types";
 import type { WctBook, WctDay, WctPattern } from "@/lib/wct/types";
@@ -89,6 +90,49 @@ function expectFailure(
   }));
 }
 
+function replaceTrueFalseState(
+  generated: WctGeneratedStandardQuizBook[],
+  dayNumber: number,
+  state: "O" | "X"
+) {
+  const set = generated[0].sets[dayNumber - 1];
+  const question = set.draft.questions.find((item) => item.format === "true_false")!;
+  const candidate = set.candidates.find((item) => item.question.id === question.id)!;
+  const entry = set.source.entries.find((item) => (
+    item.patternId === candidate.provenance.patternId
+    && item.exampleId === candidate.provenance.exampleId
+  ))!;
+  const replacement = buildTrueFalseCandidate(
+    entry,
+    state,
+    question.kind as "translation" | "pattern"
+  )!;
+  const correctText = replacement.question.choices.find((choice) => (
+    choice.id === replacement.question.correctChoiceId
+  ))!.text;
+  question.prompt = replacement.question.prompt;
+  question.explanation = replacement.question.explanation;
+  question.feedback = replacement.question.feedback;
+  question.correctChoiceId = question.choices.find((choice) => choice.text === correctText)!.id;
+  candidate.provenance = replacement.provenance;
+}
+
+function residueTruthRows(
+  generated: WctGeneratedStandardQuizBook[],
+  residue: number
+) {
+  return generated[0].sets
+    .filter((_set, index) => index % 3 === residue)
+    .map((set) => {
+      const question = set.draft.questions.find((item) => item.format === "true_false")!;
+      return {
+        dayNumber: set.source.dayNumber,
+        state: question.choices.find((choice) => choice.id === question.correctChoiceId)!
+          .text as "O" | "X"
+      };
+    });
+}
+
 describe("standard WCT release audit", () => {
   it("emits the complete canonical 44-Day/220-question inventory and stable hashes", () => {
     const generated = inventory();
@@ -149,6 +193,77 @@ describe("standard WCT release audit", () => {
     expectFailure(generated, "prenovice", 2, question.id, "forbidden_text");
   });
 
+  it("independently reports duplicate normalized prompts and question IDs", () => {
+    const generated = cloneInventory(inventory());
+    const set = generated[0].sets[0];
+    const multipleChoice = set.draft.questions.filter((question) => (
+      question.format === "multiple_choice"
+    ));
+    multipleChoice[1].prompt = ` ${multipleChoice[0].prompt.toUpperCase()} `;
+    multipleChoice[1].id = multipleChoice[0].id;
+    const audit = auditStandardWctQuizInventory(generated);
+
+    expect(audit.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      dayNumber: 1,
+      questionId: multipleChoice[0].id,
+      rule: "prompt_uniqueness"
+    }));
+    expect(audit.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      dayNumber: 1,
+      questionId: multipleChoice[0].id,
+      rule: "question_id_uniqueness"
+    }));
+  });
+
+  it("translates complete schema issues into audit failures", () => {
+    const generated = cloneInventory(inventory());
+    const question = generated[0].sets[0].draft.questions[0];
+    question.choices = question.choices.slice(0, 2);
+
+    expectFailure(generated, "prenovice", 1, question.id, "schema_validation");
+  });
+
+  it("requires exact MC and O/X prompt derivation without foreign affixes", () => {
+    const generated = cloneInventory(inventory());
+    const set = generated[0].sets[0];
+    const multipleChoice = set.draft.questions.find((question) => (
+      question.format === "multiple_choice"
+    ))!;
+    const trueFalseOSet = generated[0].sets.find((item) => item.draft.questions.some(
+      (question) => question.format === "true_false"
+        && question.choices.find((choice) => choice.id === question.correctChoiceId)?.text === "O"
+    ))!;
+    const trueFalseXSet = generated[0].sets.find((item) => item.draft.questions.some(
+      (question) => question.format === "true_false"
+        && question.choices.find((choice) => choice.id === question.correctChoiceId)?.text === "X"
+    ))!;
+    const trueFalseO = trueFalseOSet.draft.questions.find((question) => (
+      question.format === "true_false"
+    ))!;
+    const trueFalseX = trueFalseXSet.draft.questions.find((question) => (
+      question.format === "true_false"
+    ))!;
+    multipleChoice.prompt = `Foreign ${multipleChoice.prompt}`;
+    trueFalseO.prompt = `Foreign ${trueFalseO.prompt}`;
+    trueFalseX.prompt = `${trueFalseX.prompt} suffix`;
+    const audit = auditStandardWctQuizInventory(generated);
+
+    for (const [targetSet, question] of [
+      [set, multipleChoice],
+      [trueFalseOSet, trueFalseO],
+      [trueFalseXSet, trueFalseX]
+    ] as const) {
+      expect(audit.failures).toContainEqual(expect.objectContaining({
+        level: "prenovice",
+        dayNumber: targetSet.source.dayNumber,
+        questionId: question.id,
+        rule: "prompt_provenance"
+      }));
+    }
+  });
+
   it("reports duplicate normalized displayed choices", () => {
     const generated = cloneInventory(inventory());
     const set = generated[0].sets[0];
@@ -195,6 +310,68 @@ describe("standard WCT release audit", () => {
     );
   });
 
+  it("hashes complete displayed questions, feedback, and provenance", () => {
+    const good = inventory();
+    const baseline = auditStandardWctQuizInventory(good).questionArtifactHash;
+    const explanationOnly = cloneInventory(good);
+    explanationOnly[0].sets[0].draft.questions[0].explanation += " Extra explanation.";
+    const feedbackOnly = cloneInventory(good);
+    feedbackOnly[0].sets[0].draft.questions[0].feedback!.correctSentence += " altered";
+    const provenanceOnly = cloneInventory(good);
+    const provenanceCandidate = provenanceOnly[0].sets[0].candidates.find((candidate) => (
+      candidate.provenance.choiceEvidence.some((evidence) => evidence.role === "distractor")
+    ))!;
+    provenanceCandidate.provenance.choiceEvidence.find((evidence) => (
+      evidence.role === "distractor"
+    ))!.role = "correct";
+
+    expect(auditStandardWctQuizInventory(explanationOnly).questionArtifactHash).not.toBe(baseline);
+    expect(auditStandardWctQuizInventory(feedbackOnly).questionArtifactHash).not.toBe(baseline);
+    expect(auditStandardWctQuizInventory(provenanceOnly).questionArtifactHash).not.toBe(baseline);
+  });
+
+  it("rejects a missing complete provenance candidate", () => {
+    const generated = cloneInventory(inventory());
+    const set = generated[0].sets[0];
+    const question = set.draft.questions[0];
+    set.candidates = set.candidates.filter((candidate) => (
+      candidate.question.id !== question.id
+    ));
+
+    expectFailure(generated, "prenovice", 1, question.id, "provenance_presence");
+  });
+
+  it("totally orders duplicate source keys and rejects them independent of input order", () => {
+    const forward = cloneInventory(inventory());
+    const source = forward[0].sets[0].source;
+    const original = source.entries[0];
+    const duplicate = {
+      ...original,
+      englishText: original.englishText.replace("today", "outside")
+    };
+    source.entries = [original, duplicate, ...source.entries.slice(1)];
+    const reverse = cloneInventory(forward);
+    reverse[0].sets[0].source.entries = [
+      duplicate,
+      original,
+      ...source.entries.slice(2)
+    ];
+    const first = auditStandardWctQuizInventory(forward);
+    const second = auditStandardWctQuizInventory(reverse);
+
+    expect(first.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      dayNumber: 1,
+      rule: "source_identity_uniqueness"
+    }));
+    expect(second.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      dayNumber: 1,
+      rule: "source_identity_uniqueness"
+    }));
+    expect(second.sourceInventoryHash).toBe(first.sourceInventoryHash);
+  });
+
   it("release-blocks a corrupted whole-book O/X allocation", () => {
     const generated = cloneInventory(inventory());
     const set = generated[0].sets.find((item) => {
@@ -216,5 +393,22 @@ describe("standard WCT release audit", () => {
       question.id,
       "true_false_balance"
     );
+  });
+
+  it("release-blocks count-preserving corruption of residue alternation", () => {
+    const generated = cloneInventory(inventory());
+    const group = residueTruthRows(generated, 0);
+    const left = group[0];
+    const right = group[1];
+    replaceTrueFalseState(generated, left.dayNumber, right.state);
+    replaceTrueFalseState(generated, right.dayNumber, left.state);
+    const audit = auditStandardWctQuizInventory(generated);
+
+    expect(audit.summary.prenoviceTrue).toBe(8);
+    expect(audit.summary.prenoviceFalse).toBe(8);
+    expect(audit.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      rule: "true_false_alternation"
+    }));
   });
 });

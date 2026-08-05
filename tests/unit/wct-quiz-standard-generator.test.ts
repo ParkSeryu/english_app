@@ -113,6 +113,21 @@ function trueFalseState(candidate: WctStandardQuestionCandidate) {
   return correct?.text;
 }
 
+function residueStates(
+  generated: ReturnType<typeof generateStandardWctQuizBook>,
+  residue: number
+) {
+  return generated.sets
+    .filter((_set, index) => index % 3 === residue)
+    .map((set) => trueFalseState(set.candidates.find((candidate) => (
+      candidate.question.format === "true_false"
+    ))!));
+}
+
+function alternates(states: readonly (string | undefined)[]) {
+  return states.every((state, index) => index === 0 || state !== states[index - 1]);
+}
+
 function manualOOverride(source: WctStandardQuizSource) {
   const candidates = [
     buildMultipleChoiceCandidate(source.entries[0], "translation"),
@@ -208,6 +223,24 @@ describe("standard WCT quiz book generation", () => {
     expect(changed.sets.slice(2)).toEqual(first.sets.slice(2));
   });
 
+  it("changes every Day question ID when only the source hash changes", () => {
+    const { book, days } = fixture("prenovice");
+    const original = generateStandardWctQuizBook(book, days);
+    const topicOnly = days.map((day) => day.dayNumber === 2
+      ? { ...day, shortLabel: `${day.shortLabel} 새 주제` }
+      : day);
+    const changed = generateStandardWctQuizBook(book, topicOnly);
+
+    expect(changed.sets[1].source.sourceHash).not.toBe(original.sets[1].source.sourceHash);
+    expect(changed.sets[1].source.entries).toEqual(original.sets[1].source.entries);
+    expect(changed.sets[1].draft.questions.map((question) => question.id))
+      .not.toEqual(original.sets[1].draft.questions.map((question) => question.id));
+    expect(new Set([
+      ...changed.sets[1].draft.questions.map((question) => question.id),
+      ...original.sets[1].draft.questions.map((question) => question.id)
+    ]).size).toBe(10);
+  });
+
   it.each(["prenovice", "novice"] as const)(
     "allocates exact and residue-balanced alternating O/X states for %s",
     (level) => {
@@ -257,6 +290,8 @@ describe("standard WCT quiz book generation", () => {
 
     expect(trueFalseState(day3TrueFalse)).toBe("O");
     expect(trueFalseState(day6TrueFalse)).toBe("X");
+    expect(residueStates(generated, 2)).toEqual(["O", "X", "O", "X", "O"]);
+    expect(alternates(residueStates(generated, 2))).toBe(true);
     expect(repeatedSource).toHaveLength(2);
     expect(new Set(repeatedSource.map((candidate) => candidate.question.id)).size).toBe(2);
     expect(new Set(day3.draft.questions.flatMap((question) => (
@@ -265,6 +300,45 @@ describe("standard WCT quiz book generation", () => {
       (total, question) => total + question.choices.length,
       0
     ));
+  });
+
+  it("chooses compatible alternating phases for multiple fixed O Days", () => {
+    const { book, days } = fixture("prenovice");
+    const overrides = [3, 9].map((dayNumber): WctStandardDayOverride => {
+      const source = buildStandardWctQuizSource(book, days[dayNumber - 1]);
+      return {
+        level: "prenovice",
+        dayNumber,
+        expectedSourceHash: source.sourceHash,
+        questions: manualOOverride(source)
+      };
+    });
+    const generated = generateStandardWctQuizBook(book, days, overrides);
+    const allStates = generated.sets.map((set) => trueFalseState(set.candidates.find(
+      (candidate) => candidate.question.format === "true_false"
+    )!));
+
+    expect(residueStates(generated, 2)).toEqual(["O", "X", "O", "X", "O"]);
+    expect([0, 1, 2].every((residue) => alternates(residueStates(generated, residue))))
+      .toBe(true);
+    expect(allStates.filter((state) => state === "O")).toHaveLength(8);
+    expect(allStates.filter((state) => state === "X")).toHaveLength(8);
+  });
+
+  it("fails closed on incompatible fixed truth states in one residue", () => {
+    const { book, days } = fixture("prenovice");
+    const overrides = [3, 6].map((dayNumber): WctStandardDayOverride => {
+      const source = buildStandardWctQuizSource(book, days[dayNumber - 1]);
+      return {
+        level: "prenovice",
+        dayNumber,
+        expectedSourceHash: source.sourceHash,
+        questions: manualOOverride(source)
+      };
+    });
+
+    expect(() => generateStandardWctQuizBook(book, days, overrides))
+      .toThrow(/WCT v2 Day (3|6) cannot satisfy alternating O\/X allocation/u);
   });
 
   it("keeps overrides empty by default and rejects stale or foreign full-Day overrides", () => {
@@ -315,5 +389,33 @@ describe("standard WCT quiz book generation", () => {
       expectedSourceHash: source.sourceHash,
       questions: foreignAnswer
     }])).toThrow("WCT v2 override target source mismatch");
+
+    expect(() => generateStandardWctQuizBook(book, days, [{
+      level: "prenovice",
+      dayNumber: 7,
+      expectedSourceHash: source.sourceHash,
+      questions: questions.slice(0, 4)
+    }])).toThrow("WCT v2 override target source mismatch");
+  });
+
+  it("deterministically rejects duplicate source identities in either input order", () => {
+    const { book, days } = fixture("prenovice");
+    const target = days[0];
+    const duplicate = {
+      ...target.patterns[0],
+      examples: target.patterns[0].examples.map((example) => ({
+        ...example,
+        englishText: example.englishText.replace("today", "outside")
+      }))
+    };
+    const forward = [target.patterns[0], duplicate, ...target.patterns.slice(1)];
+    const reverse = [duplicate, target.patterns[0], ...target.patterns.slice(1)];
+
+    for (const patterns of [forward, reverse]) {
+      expect(() => generateStandardWctQuizBook(book, [
+        { ...target, patterns },
+        ...days.slice(1)
+      ])).toThrow("WCT v2 Day 1 has duplicate source identities");
+    }
   });
 });
