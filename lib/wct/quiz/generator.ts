@@ -104,5 +104,3 @@ export function generatePremiumWctQuizSetDraft(
   }
   return generateLegacyWctQuizSetDraft(source);
 }
-
-export const generateWctQuizSetDraft = generateLegacyWctQuizSetDraft;

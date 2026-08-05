@@ -1,7 +1,13 @@
 import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
 import type { WctStore } from "@/lib/wct-store/contract";
-import { buildPremiumWctQuizSource, buildStandardWctQuizSource } from "@/lib/wct/quiz/adapters";
-import { generateWctQuizSetDraft } from "@/lib/wct/quiz/generator";
+import {
+  buildLegacyStandardWctQuizSource,
+  buildPremiumWctQuizSource
+} from "@/lib/wct/quiz/adapters";
+import {
+  generateLegacyWctQuizSetDraft,
+  generatePremiumWctQuizSetDraft
+} from "@/lib/wct/quiz/generator";
 import type { WctPremiumLesson } from "@/lib/wct/premium-lessons";
 import type { WctDay, WctImportResult } from "@/lib/wct/types";
 
@@ -28,8 +34,10 @@ export async function ensureImportedWctQuizzes(
       );
     }
     try {
-      const source = buildStandardWctQuizSource(book, day, allDays);
-      await quizStore.createSetIfMissing(generateWctQuizSetDraft(source));
+      const source = buildLegacyStandardWctQuizSource(book, day, allDays);
+      await quizStore.createSetIfMissing(
+        generateLegacyWctQuizSetDraft(source)
+      );
     } catch (error) {
       throw new Error(
         `WCT quiz generation failed for ${day.displayLabel}`,
@@ -44,5 +52,5 @@ export async function ensurePremiumWctQuiz(
   lesson: WctPremiumLesson
 ) {
   const source = buildPremiumWctQuizSource(lesson);
-  return quizStore.createSetIfMissing(generateWctQuizSetDraft(source));
+  return quizStore.createSetIfMissing(generatePremiumWctQuizSetDraft(source));
 }

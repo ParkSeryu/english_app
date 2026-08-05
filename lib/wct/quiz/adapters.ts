@@ -189,8 +189,6 @@ export function buildLegacyStandardWctQuizSource(
   };
 }
 
-export const buildStandardWctQuizSource = buildLegacyStandardWctQuizSource;
-
 function firstFact(blocks: readonly WctPremiumContentBlock[]) {
   for (const block of blocks) {
     if (block.kind === "paragraph" || block.kind === "subheading") {

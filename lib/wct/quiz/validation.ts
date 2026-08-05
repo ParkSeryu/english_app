@@ -174,24 +174,37 @@ function validateStandardQuizSet(
     }
 }
 
+function validateQuizSetVersion(
+  set: z.infer<typeof quizSetCreateBaseSchema>,
+  context: z.RefinementCtx
+) {
+  if (set.generatorVersion === "wct-review-v2") {
+    validateStandardQuizSet(set, context);
+    return;
+  }
+  for (const [index, question] of set.questions.entries()) {
+    if (question.format !== undefined || question.feedback !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["questions", index],
+        message: "Legacy v1 questions cannot include format or feedback"
+      });
+    }
+  }
+}
+
 export const wctStandardQuizSetCreateSchema = quizSetCreateBaseSchema
   .superRefine(validateStandardQuizSet);
 
 export const wctQuizSetCreateSchema = quizSetCreateBaseSchema
-  .superRefine((set, context) => {
-    if (set.generatorVersion !== "wct-review-v2") return;
-    validateStandardQuizSet(set, context);
-  });
+  .superRefine(validateQuizSetVersion);
 
 export const wctQuizSetSchema = z.object({
   id: z.string().uuid(),
   ownerId: z.string().uuid(),
   ...quizSetFields,
   createdAt: z.string().datetime({ offset: true })
-}).strict().superRefine((set, context) => {
-  if (set.generatorVersion !== "wct-review-v2") return;
-  validateStandardQuizSet(set, context);
-});
+}).strict().superRefine(validateQuizSetVersion);
 
 export const wctQuizSubmissionSchema = z.object({
   quizSetId: z.string().uuid(),

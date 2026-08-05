@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import * as quizAdapters from "@/lib/wct/quiz/adapters";
+import * as quizGenerator from "@/lib/wct/quiz/generator";
 import {
   buildPremiumWctQuizSource,
   buildLegacyStandardWctQuizSource
@@ -124,6 +126,11 @@ function approvedPremiumChoiceText(lesson: WctPremiumLesson) {
 }
 
 describe("WCT quiz generator", () => {
+  it("exposes only explicit legacy and Premium generation entry points", () => {
+    expect(quizAdapters).not.toHaveProperty("buildStandardWctQuizSource");
+    expect(quizGenerator).not.toHaveProperty("generateWctQuizSetDraft");
+  });
+
   it("creates the fixed standard 3 translation and 2 pattern mix", () => {
     const source = buildLegacyStandardWctQuizSource(book, dayOne, [dayOne, dayTwo]);
     const draft = generateLegacyWctQuizSetDraft(source);

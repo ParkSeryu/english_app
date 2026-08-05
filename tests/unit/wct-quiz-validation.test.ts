@@ -65,7 +65,9 @@ function v2Question(
   };
 }
 
-function v2Draft(firstQuestion?: Partial<WctQuizQuestion>) {
+function v2Draft(
+  firstQuestion?: Partial<WctQuizQuestion>
+): WctQuizSetCreateInput {
   const firstFormat = firstQuestion?.format ?? "multiple_choice";
   const formats = firstFormat === "true_false"
     ? ["true_false", "multiple_choice", "fill_blank", "multiple_choice", "fill_blank"] as const
@@ -87,6 +89,15 @@ function legacyStoredSet() {
     id: "00000000-0000-4000-8000-000000000010",
     ownerId: "00000000-0000-4000-8000-000000000001",
     ...validDraft(),
+    createdAt: "2026-08-05T01:00:00.000Z"
+  };
+}
+
+function storedV2Draft() {
+  return {
+    id: "00000000-0000-4000-8000-000000000011",
+    ownerId: "00000000-0000-4000-8000-000000000001",
+    ...v2Draft(),
     createdAt: "2026-08-05T01:00:00.000Z"
   };
 }
@@ -198,6 +209,90 @@ describe("WCT quiz validation", () => {
     draft.questions[2].kind = "pattern";
 
     expect(() => wctStandardQuizSetCreateSchema.parse(draft)).toThrow();
+  });
+
+  it.each([
+    {
+      name: "Premium source",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.sourceKind = "wct_premium";
+      },
+      message: "Standard v2 quiz requires a WCT Day source"
+    },
+    {
+      name: "legacy version with v2 fields",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.generatorVersion = "wct-review-v1";
+      },
+      message: "Legacy v1 questions cannot include format or feedback"
+    },
+    {
+      name: "missing format",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        delete draft.questions[0].format;
+      },
+      message: "Standard v2 question requires an explicit format"
+    },
+    {
+      name: "missing feedback",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        delete draft.questions[0].feedback;
+      },
+      message: "Standard v2 question requires complete feedback"
+    },
+    {
+      name: "concept question",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.questions[0].kind = "concept";
+      },
+      message: "Standard v2 quiz does not allow concept questions"
+    },
+    {
+      name: "adjacent formats",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.questions[1].format = "multiple_choice";
+        draft.questions[2].format = "fill_blank";
+      },
+      message: "Standard v2 quiz cannot repeat adjacent formats"
+    },
+    {
+      name: "wrong format mix",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.questions[3] = v2Question(3, "multiple_choice");
+      },
+      message: "Standard v2 quiz requires a 2/2/1 format mix"
+    },
+    {
+      name: "wrong question-kind mix",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.questions[2].kind = "pattern";
+      },
+      message: "Standard v2 quiz requires three translation and two pattern questions"
+    },
+    {
+      name: "wrong true/false choice count",
+      mutate: (draft: ReturnType<typeof v2Draft>) => {
+        draft.questions[3].choices = [
+          choice("wrong-1", "Wrong 1"),
+          choice("wrong-2", "Wrong 2"),
+          choice("wrong-3", "Wrong 3"),
+          choice("wrong-4", "Wrong 4")
+        ];
+        draft.questions[3].correctChoiceId = "wrong-1";
+      },
+      message: "true_false needs exactly 2 choices"
+    }
+  ])("rejects $name through create and stored parser paths", ({
+    mutate,
+    message
+  }) => {
+    const createDraft = v2Draft();
+    mutate(createDraft);
+    const storedDraft = storedV2Draft();
+    mutate(storedDraft);
+
+    expect(() => wctQuizSetCreateSchema.parse(createDraft)).toThrow(message);
+    expect(() => wctQuizSetSchema.parse(storedDraft)).toThrow(message);
   });
 
   it("rejects normalized duplicate choice text", () => {
