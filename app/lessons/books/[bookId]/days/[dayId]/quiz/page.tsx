@@ -4,7 +4,9 @@ import { WctQuizRunner } from "@/components/wct/WctQuizRunner";
 import { requireCurrentUser } from "@/lib/auth";
 import { getWctQuizStore } from "@/lib/wct-quiz-store";
 import { getWctStore } from "@/lib/wct-store";
+import { isCurrentStandardWctQuizSet } from "@/lib/wct/quiz/current-set";
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
+import type { WctDay } from "@/lib/wct/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +24,17 @@ export default async function WctDayQuizPage({
   ]);
   if (!book || !day || day.bookId !== book.id) notFound();
 
-  const quizSet = await getWctQuizStore(user).getSetByLessonKey(
-    standardWctLessonKey(book.title, day.dayNumber)
-  );
+  const [quizSet, loadedDays] = await Promise.all([
+    getWctQuizStore(user).getSetByLessonKey(
+      standardWctLessonKey(book.title, day.dayNumber)
+    ),
+    Promise.all(book.days.map((item) => wctStore.getDay(item.id)))
+  ]);
+  const allDays = loadedDays.filter((item): item is WctDay => item !== null);
   if (
     !quizSet
-    || quizSet.sourceKind !== "wct_day"
-    || quizSet.sourceId !== day.id
+    || allDays.length !== book.days.length
+    || !isCurrentStandardWctQuizSet({ book, day, allDays, quizSet })
   ) {
     notFound();
   }
@@ -38,6 +44,7 @@ export default async function WctDayQuizPage({
       <WctQuizRunner
         quizSet={quizSet}
         returnHref={`/lessons/books/${book.id}/days/${day.id}`}
+        sourceContext={{ bookId: book.id, dayId: day.id }}
       />
     </main>
   );

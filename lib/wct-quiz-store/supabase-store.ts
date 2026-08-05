@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { UserIdentity } from "@/lib/types";
 import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
 import {
@@ -8,10 +10,13 @@ import type {
   WctQuizAttemptResult,
   WctQuizSet,
   WctQuizSetCreateInput,
+  WctStandardQuizBookSync,
+  WctStandardQuizSyncResult,
   WctQuizSubmission,
   WctQuizSummary
 } from "@/lib/wct/quiz/types";
 import {
+  wctStandardQuizSetCreateSchema,
   wctQuizSetCreateSchema,
   wctQuizSubmissionSchema
 } from "@/lib/wct/quiz/validation";
@@ -24,6 +29,14 @@ type SupabaseLike =
 
 const QUIZ_SET_SELECT =
   "id,owner_id,lesson_key,source_kind,source_id,generator_version,source_hash,questions,created_at";
+
+const standardSyncResultSchema = z.object({
+  createdCount: z.number().int().nonnegative(),
+  updatedCount: z.number().int().nonnegative(),
+  unchangedCount: z.number().int().nonnegative(),
+  resetQuizProgressCount: z.number().int().nonnegative(),
+  resetPopProgressCount: z.number().int().nonnegative()
+}).strict();
 
 export class SupabaseWctQuizStore implements WctQuizStore {
   constructor(
@@ -112,6 +125,52 @@ export class SupabaseWctQuizStore implements WctQuizStore {
     const stored = await this.selectSetByLessonKey(parsed.lessonKey);
     if (!stored) throw new Error("WCT quiz creation did not return a set");
     return stored;
+  }
+
+  async syncStandardSets(
+    books: WctStandardQuizBookSync[]
+  ): Promise<WctStandardQuizSyncResult> {
+    if (!this.admin) {
+      throw new Error("WCT standard quiz synchronization requires an admin store");
+    }
+    if (books.length === 0 || books.length > 100) {
+      throw new Error("WCT standard quiz synchronization requires 1 to 100 books");
+    }
+    const seenBooks = new Set<string>();
+    const seenLessonKeys = new Set<string>();
+    const parsedBooks = books.map((book) => {
+      const bookId = book.bookId.trim();
+      if (!bookId || bookId.length > 240 || seenBooks.has(bookId)) {
+        throw new Error("WCT standard quiz synchronization has an invalid book");
+      }
+      seenBooks.add(bookId);
+      if (book.sets.length === 0) {
+        throw new Error("WCT standard quiz synchronization requires complete book sets");
+      }
+      const sets = book.sets.map((set) => {
+        const parsed = wctStandardQuizSetCreateSchema.parse(set);
+        if (seenLessonKeys.has(parsed.lessonKey)) {
+          throw new Error("WCT standard quiz synchronization has duplicate lesson keys");
+        }
+        seenLessonKeys.add(parsed.lessonKey);
+        return parsed;
+      });
+      return { bookId, sets };
+    });
+    const { data, error } = await (await this.client()).rpc(
+      "sync_wct_standard_quiz_sets",
+      { p_owner_id: this.user.id, p_books: parsedBooks }
+    );
+    if (error) {
+      throw new Error(`WCT standard quiz synchronization failed: ${error.message}`);
+    }
+    const result = standardSyncResultSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error("Invalid WCT standard quiz synchronization result", {
+        cause: result.error
+      });
+    }
+    return result.data;
   }
 
   async submitAttempt(

@@ -2,14 +2,23 @@ import { randomUUID } from "node:crypto";
 
 import type { UserIdentity } from "@/lib/types";
 import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
+import {
+  cloneMemoryWctPopQuizAttempts,
+  commitMemoryWctPopQuizAttempts,
+  invalidateMemoryWctPopQuizAttempt
+} from "@/lib/wct-pop-quiz-store/memory-store";
+import { stableStringify } from "@/lib/wct/normalization";
 import type {
   WctQuizAttemptResult,
   WctQuizSet,
   WctQuizSetCreateInput,
+  WctStandardQuizBookSync,
+  WctStandardQuizSyncResult,
   WctQuizSubmission,
   WctQuizSummary
 } from "@/lib/wct/quiz/types";
 import {
+  wctStandardQuizSetCreateSchema,
   wctQuizSetCreateSchema,
   wctQuizSubmissionSchema
 } from "@/lib/wct/quiz/validation";
@@ -106,6 +115,118 @@ export class MemoryWctQuizStore implements WctQuizStore {
     };
     getState().sets.set(key, created);
     return clone(created);
+  }
+
+  async syncStandardSets(
+    books: WctStandardQuizBookSync[]
+  ): Promise<WctStandardQuizSyncResult> {
+    if (!this.admin) {
+      throw new Error("WCT standard quiz synchronization requires an admin store");
+    }
+    if (books.length === 0 || books.length > 100) {
+      throw new Error("WCT standard quiz synchronization requires 1 to 100 books");
+    }
+
+    const seenBooks = new Set<string>();
+    const seenLessonKeys = new Set<string>();
+    const parsedBooks = books.map((book) => {
+      const bookId = book.bookId.trim();
+      if (!bookId || bookId.length > 240 || seenBooks.has(bookId)) {
+        throw new Error("WCT standard quiz synchronization has an invalid book");
+      }
+      seenBooks.add(bookId);
+      if (book.sets.length === 0) {
+        throw new Error("WCT standard quiz synchronization requires complete book sets");
+      }
+      const sets = book.sets.map((set) => {
+        const parsed = wctStandardQuizSetCreateSchema.parse(set);
+        if (seenLessonKeys.has(parsed.lessonKey)) {
+          throw new Error("WCT standard quiz synchronization has duplicate lesson keys");
+        }
+        seenLessonKeys.add(parsed.lessonKey);
+        return parsed;
+      });
+      return { bookId, sets };
+    });
+
+    const state = getState();
+    for (const book of parsedBooks) {
+      for (const set of book.sets) {
+        const existing = state.sets.get(setKey(this.user.id, set.lessonKey));
+        if (
+          existing
+          && existing.generatorVersion === set.generatorVersion
+          && existing.sourceHash === set.sourceHash
+          && stableStringify(existing.questions) !== stableStringify(set.questions)
+        ) {
+          throw new Error(
+            `WCT quiz generator/version integrity collision for ${set.lessonKey}`
+          );
+        }
+      }
+    }
+
+    const sets = clone(state.sets);
+    const progress = clone(state.progress);
+    const popAttempts = cloneMemoryWctPopQuizAttempts();
+    const result: WctStandardQuizSyncResult = {
+      createdCount: 0,
+      updatedCount: 0,
+      unchangedCount: 0,
+      resetQuizProgressCount: 0,
+      resetPopProgressCount: 0
+    };
+
+    for (const book of parsedBooks) {
+      let bookChanged = false;
+      for (const set of book.sets) {
+        const key = setKey(this.user.id, set.lessonKey);
+        const existing = sets.get(key);
+        if (!existing) {
+          sets.set(key, {
+            ...clone(set),
+            id: randomUUID(),
+            ownerId: this.user.id,
+            createdAt: new Date().toISOString()
+          });
+          result.createdCount += 1;
+          bookChanged = true;
+          continue;
+        }
+        if (
+          existing.generatorVersion === set.generatorVersion
+          && existing.sourceHash === set.sourceHash
+        ) {
+          result.unchangedCount += 1;
+          continue;
+        }
+
+        sets.set(key, { ...existing, ...clone(set) });
+        result.updatedCount += 1;
+        bookChanged = true;
+        for (const [key, storedProgress] of progress) {
+          if (storedProgress.quizSetId === existing.id) {
+            progress.delete(key);
+            result.resetQuizProgressCount += 1;
+          }
+        }
+      }
+      if (
+        bookChanged
+        && invalidateMemoryWctPopQuizAttempt(
+          popAttempts,
+          this.user.id,
+          book.bookId
+        )
+      ) {
+        result.resetPopProgressCount += 1;
+      }
+    }
+
+    state.sets = sets;
+    state.progress = progress;
+    commitMemoryWctPopQuizAttempts(popAttempts);
+    return result;
   }
 
   async submitAttempt(

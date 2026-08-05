@@ -4,6 +4,10 @@ import {
   MemoryWctQuizStore,
   resetMemoryWctQuizStoreForTests
 } from "@/lib/wct-quiz-store/memory-store";
+import {
+  MemoryWctPopQuizStore,
+  resetMemoryWctPopQuizStoreForTests
+} from "@/lib/wct-pop-quiz-store/memory-store";
 import type {
   WctQuizSet,
   WctQuizSetCreateInput,
@@ -47,8 +51,173 @@ function answersFor(
   };
 }
 
+function v2Draft(dayNumber: number): WctQuizSetCreateInput {
+  const base = draft();
+  return {
+    ...base,
+    lessonKey: `wct-book:wct-prenovice:day:${dayNumber}`,
+    sourceId: `day-${dayNumber}`,
+    generatorVersion: "wct-review-v2",
+    sourceHash: String(dayNumber).repeat(64).slice(0, 64),
+    questions: base.questions.map((question, index) => {
+      const format = [
+        "multiple_choice",
+        "fill_blank",
+        "multiple_choice",
+        "fill_blank",
+        "true_false"
+      ][index] as "multiple_choice" | "fill_blank" | "true_false";
+      const choices = format === "true_false"
+        ? question.choices.slice(0, 2)
+        : question.choices;
+      return {
+        ...question,
+        id: `day-${dayNumber}-${question.id}`,
+        prompt: `Day ${dayNumber} ${question.prompt}`,
+        format,
+        choices: choices.map((choice) => ({
+          ...choice,
+          id: `day-${dayNumber}-${choice.id}`
+        })),
+        correctChoiceId: `day-${dayNumber}-${question.correctChoiceId}`,
+        feedback: {
+          correctSentence: `Correct sentence ${dayNumber}-${index + 1}`,
+          pattern: `Pattern ${dayNumber}-${index + 1}`,
+          reason: `Reason ${dayNumber}-${index + 1}`
+        }
+      };
+    })
+  };
+}
+
+function popQuestions(sets: readonly WctQuizSetCreateInput[]) {
+  return sets.map((set, index) => ({
+    sourceQuizSetId: `set-${index + 1}`,
+    dayId: set.sourceId,
+    dayNumber: index + 1,
+    dayLabel: `Day ${index + 1}`,
+    band: "early" as const,
+    question: set.questions[0]
+  }));
+}
+
 describe("MemoryWctQuizStore", () => {
-  beforeEach(() => resetMemoryWctQuizStoreForTests());
+  beforeEach(() => {
+    resetMemoryWctQuizStoreForTests();
+    resetMemoryWctPopQuizStoreForTests();
+  });
+
+  it("atomically creates, replays, and updates standard sets in place", async () => {
+    const bookId = "book-prenovice";
+    const sets = [v2Draft(1), v2Draft(2)];
+    const keys = sets.map((set) => set.lessonKey);
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+    const learner = new MemoryWctQuizStore({ id: USER_A });
+    const popStore = new MemoryWctPopQuizStore({ id: USER_A });
+
+    await expect(admin.syncStandardSets([{ bookId, sets }])).resolves.toEqual({
+      createdCount: 2,
+      updatedCount: 0,
+      unchangedCount: 0,
+      resetQuizProgressCount: 0,
+      resetPopProgressCount: 0
+    });
+    const firstStored = await admin.listSetsByLessonKeys(keys);
+    const idsBefore = firstStored.map((set) => set.id);
+    await learner.submitAttempt(answersFor(firstStored[0], 0));
+    await popStore.startAttempt({
+      bookId,
+      seed: "sync-reset-fixture",
+      questions: popQuestions(sets)
+    });
+
+    await expect(admin.syncStandardSets([{ bookId, sets }])).resolves.toEqual({
+      createdCount: 0,
+      updatedCount: 0,
+      unchangedCount: 2,
+      resetQuizProgressCount: 0,
+      resetPopProgressCount: 0
+    });
+    await expect(learner.getSummaryByLessonKey(keys[0]))
+      .resolves.toMatchObject({ latestScore: 5 });
+    await expect(popStore.getAttempt(bookId)).resolves.not.toBeNull();
+
+    const changedSets = [{
+      ...sets[0],
+      sourceHash: "f".repeat(64),
+      questions: sets[0].questions.map((question, index) => (
+        index === 0 ? { ...question, prompt: `${question.prompt} changed` } : question
+      ))
+    }, sets[1]];
+    await expect(admin.syncStandardSets([{ bookId, sets: changedSets }]))
+      .resolves.toEqual({
+        createdCount: 0,
+        updatedCount: 1,
+        unchangedCount: 1,
+        resetQuizProgressCount: 1,
+        resetPopProgressCount: 1
+      });
+    expect((await admin.listSetsByLessonKeys(keys)).map((set) => set.id))
+      .toEqual(idsBefore);
+    await expect(learner.getSummaryByLessonKey(keys[0]))
+      .resolves.toMatchObject({ latestScore: null });
+    await expect(popStore.getAttempt(bookId)).resolves.toBeNull();
+  });
+
+  it("rolls back the full batch and both progress stores when any set is invalid", async () => {
+    const firstBookId = "book-prenovice-a";
+    const secondBookId = "book-prenovice-b";
+    const sets = [v2Draft(1), v2Draft(2)];
+    const keys = sets.map((set) => set.lessonKey);
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+    const learner = new MemoryWctQuizStore({ id: USER_A });
+    const popStore = new MemoryWctPopQuizStore({ id: USER_A });
+    await admin.syncStandardSets([
+      { bookId: firstBookId, sets: [sets[0]] },
+      { bookId: secondBookId, sets: [sets[1]] }
+    ]);
+    const before = await admin.listSetsByLessonKeys(keys);
+    await learner.submitAttempt(answersFor(before[0], 0));
+    const popAttempt = await popStore.startAttempt({
+      bookId: firstBookId,
+      seed: "rollback-fixture",
+      questions: popQuestions(sets)
+    });
+
+    await expect(admin.syncStandardSets([{
+      bookId: firstBookId,
+      sets: [{ ...sets[0], sourceHash: "e".repeat(64) }]
+    }, {
+      bookId: secondBookId,
+      sets: [{ ...sets[1], sourceKind: "wct_premium" }]
+    }])).rejects.toThrow("Standard v2 quiz requires a WCT Day source");
+
+    await expect(admin.listSetsByLessonKeys(keys)).resolves.toEqual(before);
+    await expect(learner.getSummaryByLessonKey(keys[0]))
+      .resolves.toMatchObject({ latestScore: 5 });
+    await expect(popStore.getAttempt(firstBookId)).resolves.toEqual(popAttempt);
+  });
+
+  it("rejects non-admin, Premium, and same-hash question collisions without mutation", async () => {
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+    const learner = new MemoryWctQuizStore({ id: USER_A });
+    const set = v2Draft(1);
+
+    await expect(learner.syncStandardSets([{ bookId: "book", sets: [set] }]))
+      .rejects.toThrow("requires an admin store");
+    await expect(admin.syncStandardSets([{ bookId: "book", sets: [draft()] }]))
+      .rejects.toThrow("generator wct-review-v2");
+    await admin.syncStandardSets([{ bookId: "book", sets: [set] }]);
+    const stored = await admin.getSetByLessonKey(set.lessonKey);
+
+    await expect(admin.syncStandardSets([{ bookId: "book", sets: [{
+      ...set,
+      questions: set.questions.map((question, index) => (
+        index === 0 ? { ...question, prompt: `${question.prompt} collision` } : question
+      ))
+    }] }])).rejects.toThrow("integrity collision");
+    await expect(admin.getSetByLessonKey(set.lessonKey)).resolves.toEqual(stored);
+  });
 
   it("creates once and returns the immutable existing set on replay", async () => {
     const admin = new MemoryWctQuizStore({ id: USER_A }, true);

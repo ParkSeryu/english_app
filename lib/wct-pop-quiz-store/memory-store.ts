@@ -19,6 +19,8 @@ type MemoryWctPopQuizState = {
   attempts: Map<string, WctPopQuizAttempt>;
 };
 
+export type MemoryWctPopQuizAttempts = Map<string, WctPopQuizAttempt>;
+
 const memoryWctPopQuizStateKey = Symbol.for("english-app.memory-wct-pop-quiz-store");
 
 function getState(): MemoryWctPopQuizState {
@@ -36,6 +38,24 @@ function attemptKey(ownerId: string, bookId: string) {
 
 function clone<T>(value: T): T {
   return structuredClone(value);
+}
+
+export function cloneMemoryWctPopQuizAttempts(): MemoryWctPopQuizAttempts {
+  return clone(getState().attempts);
+}
+
+export function invalidateMemoryWctPopQuizAttempt(
+  attempts: MemoryWctPopQuizAttempts,
+  ownerId: string,
+  bookId: string
+) {
+  return attempts.delete(attemptKey(ownerId, bookId));
+}
+
+export function commitMemoryWctPopQuizAttempts(
+  attempts: MemoryWctPopQuizAttempts
+) {
+  getState().attempts = attempts;
 }
 
 function resultFor(

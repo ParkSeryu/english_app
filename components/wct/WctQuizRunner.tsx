@@ -5,11 +5,24 @@ import { useState } from "react";
 
 import { submitWctQuizAttemptAction } from "@/app/lessons/quiz-actions";
 import { WctQuizQuestionStep } from "@/components/wct/WctQuizQuestionStep";
-import type { WctQuizActionResult, WctQuizAnswer, WctQuizSet } from "@/lib/wct/quiz/types";
+import type {
+  WctQuizActionResult,
+  WctQuizAnswer,
+  WctQuizSet,
+  WctQuizSourceContext
+} from "@/lib/wct/quiz/types";
 
 const saveFailureMessage = "결과를 저장하지 못했어요. 다시 시도해 주세요.";
 
-export function WctQuizRunner({ quizSet, returnHref }: { quizSet: WctQuizSet; returnHref: string }) {
+export function WctQuizRunner({
+  quizSet,
+  returnHref,
+  sourceContext
+}: {
+  quizSet: WctQuizSet;
+  returnHref: string;
+  sourceContext?: WctQuizSourceContext;
+}) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [isAnswerConfirmed, setIsAnswerConfirmed] = useState(false);
@@ -45,7 +58,11 @@ export function WctQuizRunner({ quizSet, returnHref }: { quizSet: WctQuizSet; re
     setShowResult(true);
     setSaving(true);
     setSaveError(null);
-    const actionResult = await submitWctQuizAttemptAction({ quizSetId: quizSet.id, answers });
+    const actionResult = await submitWctQuizAttemptAction({
+      quizSetId: quizSet.id,
+      answers,
+      ...(sourceContext ? { sourceContext } : {})
+    });
     setSaving(false);
     if (actionResult.ok) {
       setResult(actionResult);

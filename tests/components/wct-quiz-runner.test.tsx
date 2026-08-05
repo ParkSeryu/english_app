@@ -114,7 +114,13 @@ describe("WctQuizRunner", () => {
       total: 5,
       completedAt: "2026-07-28T00:00:00Z"
     });
-    render(<WctQuizRunner quizSet={quizSet} returnHref="/day/1" />);
+    render(
+      <WctQuizRunner
+        quizSet={quizSet}
+        returnHref="/day/1"
+        sourceContext={{ bookId: "book-1", dayId: "day-1" }}
+      />
+    );
 
     await answerQuiz(user, (number) => (
       number === 1 ? "Wrong A 1" : `Correct ${number}`
@@ -133,7 +139,8 @@ describe("WctQuizRunner", () => {
           { questionId: "question-3", choiceId: "choice-3-1" },
           { questionId: "question-4", choiceId: "choice-4-1" },
           { questionId: "question-5", choiceId: "choice-5-1" }
-        ]
+        ],
+        sourceContext: { bookId: "book-1", dayId: "day-1" }
       });
     });
 

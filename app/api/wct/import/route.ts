@@ -30,6 +30,7 @@ export async function POST(request: Request) {
 
   const payload = { book: parsed.data.book, days: parsed.data.days };
   const payloadHash = createHash("sha256").update(stableStringify(payload)).digest("hex");
+  let sourceImportCommitted = false;
   try {
     const wctStore = getAdminWctStore(ownerOrResponse);
     const result = await wctStore.importApprovedBatch({
@@ -37,15 +38,26 @@ export async function POST(request: Request) {
       payloadHash,
       ...payload
     });
-    await ensureImportedWctQuizzes(
+    sourceImportCommitted = true;
+    const quizSync = await ensureImportedWctQuizzes(
       wctStore,
       getAdminWctQuizStore(ownerOrResponse),
       result
     );
-    return NextResponse.json(result, { status: result.replayed ? 200 : 201 });
+    return NextResponse.json(
+      { ...result, quizSync },
+      { status: result.replayed ? 200 : 201 }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "WCT import failed";
     const status = message.includes("Idempotency key") || message.includes("already exists") ? 409 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({
+      error: message,
+      ...(sourceImportCommitted ? {
+        sourceImportCommitted: true,
+        quizSyncRollbackSafe: true,
+        retryable: true
+      } : {})
+    }, { status });
   }
 }

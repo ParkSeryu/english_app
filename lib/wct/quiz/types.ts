@@ -90,6 +90,24 @@ export type WctQuizSubmission = {
   answers: WctQuizAnswer[];
 };
 
+export type WctQuizSourceContext = {
+  bookId: string;
+  dayId: string;
+};
+
+export type WctStandardQuizBookSync = {
+  bookId: string;
+  sets: WctQuizSetCreateInput[];
+};
+
+export type WctStandardQuizSyncResult = {
+  createdCount: number;
+  updatedCount: number;
+  unchangedCount: number;
+  resetQuizProgressCount: number;
+  resetPopProgressCount: number;
+};
+
 export type WctQuizAttemptResult = {
   score: number;
   total: 5;
