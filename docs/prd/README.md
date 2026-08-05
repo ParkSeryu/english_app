@@ -20,6 +20,7 @@ If code implementation has started or an implementation PR is open, the feature 
 
 | Area | Tracker | Folder | PRD | Test spec | Implementation plan | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
+| WCT Quiz Quality and Variety | T-011 | `active/` | `active/wct-quiz-quality-variety/prd.md` | `active/wct-quiz-quality-variety/test-spec.md` | `active/wct-quiz-quality-variety/implementation-plan.md` | Active through checkpoint A compatibility deployment, checkpoint B 44-set replacement/readback, and authenticated production route verification. |
 | Daily expression memorization MVP | Foundation | `complete/` | `complete/daily-expression-memorization/prd.md` | `complete/daily-expression-memorization/test-spec.md` | `complete/daily-expression-memorization/implementation-plan.md` | Current product baseline. Preserve unless a tracker item explicitly changes it. |
 | New-member learning load | T-002 | `complete/` | `complete/new-member-learning-load/prd.md` | `complete/new-member-learning-load/test-spec.md` | `complete/new-member-learning-load/implementation-plan.md` | Completed signup-date based onboarding load reduction. |
 | Ebbinghaus/SRS interval policy | T-003 | `complete/` | `complete/spaced-repetition-interval-policy/prd.md` | Focused scheduling, memory-store, and memorize-card tests in PR #5 | PR #5 | Completed 3-button SRS policy: `다시` keeps interval, `어려움` steps down, `쉬움` stretches to 365 days. |
@@ -37,6 +38,11 @@ docs/prd/
   future-work.md
   active/
     README.md
+    wct-quiz-quality-variety/
+      README.md
+      prd.md
+      test-spec.md
+      implementation-plan.md
   backlog/
   complete/
     wct-pop-quiz/
