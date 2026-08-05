@@ -13,6 +13,7 @@ import {
   type WctPopQuizStartInput,
   type WctPopQuizSummary
 } from "@/lib/wct/pop-quiz/types";
+import { WctPopQuizRestartRequiredError } from "@/lib/wct/pop-quiz/types";
 import { wctPopQuizQuestionsSchema } from "@/lib/wct/pop-quiz/validation";
 
 type MemoryWctPopQuizState = {
@@ -137,7 +138,7 @@ export class MemoryWctPopQuizStore implements WctPopQuizStore {
     const key = attemptKey(this.user.id, input.bookId);
     const attempt = getState().attempts.get(key);
     if (!attempt || attempt.attemptId !== input.attemptId) {
-      throw new Error("WCT Pop Quiz attempt not found");
+      throw new WctPopQuizRestartRequiredError();
     }
 
     const existingAnswer = attempt.answers.find((answer) => answer.questionId === input.questionId);
@@ -172,7 +173,7 @@ export class MemoryWctPopQuizStore implements WctPopQuizStore {
   async completeAttempt(input: WctPopQuizCompleteInput): Promise<WctPopQuizResult> {
     const attempt = getState().attempts.get(attemptKey(this.user.id, input.bookId));
     if (!attempt || attempt.attemptId !== input.attemptId) {
-      throw new Error("WCT Pop Quiz attempt not found");
+      throw new WctPopQuizRestartRequiredError();
     }
     if (attempt.status === "completed") return completedResult(attempt);
     if (attempt.currentIndex !== attempt.questions.length) {

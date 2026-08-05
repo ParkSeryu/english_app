@@ -37,12 +37,17 @@ function questions(count: number) {
 }
 
 function row(questionCount: number) {
+  const snapshot = questions(questionCount);
   return {
     attempt_id: ATTEMPT_ID,
     book_id: BOOK_ID,
     seed: "seed-a",
-    questions: questions(questionCount),
-    answers: [],
+    questions: snapshot,
+    answers: snapshot.slice(0, 3).map((item) => ({
+      questionId: item.question.id,
+      choiceId: item.question.correctChoiceId,
+      confirmedAt: STARTED_AT
+    })),
     current_index: 3,
     status: "in_progress",
     latest_score: null,
@@ -61,7 +66,10 @@ describe("WCT Pop Quiz storage mappers", () => {
   });
 
   it("accepts legacy 20-question snapshots without Day topics", () => {
-    expect(mapWctPopQuizAttempt(row(20)).questions).toHaveLength(20);
+    const mapped = mapWctPopQuizAttempt(row(20));
+
+    expect(mapped.questions).toHaveLength(20);
+    expect("format" in mapped.questions[0].question).toBe(false);
   });
 
   it("preserves a dynamic completion total", () => {
@@ -85,6 +93,30 @@ describe("WCT Pop Quiz storage mappers", () => {
     })) }]
   ])("rejects an attempt whose %s exceeds the question count", (_label, changes) => {
     expect(() => mapWctPopQuizAttempt({ ...row(16), ...changes })).toThrow(
+      "Invalid stored WCT Pop Quiz attempt"
+    );
+  });
+
+  it("rejects an attempt whose answer count does not match its current index", () => {
+    expect(() => mapWctPopQuizAttempt({ ...row(16), current_index: 4 })).toThrow(
+      "Invalid stored WCT Pop Quiz attempt"
+    );
+  });
+
+  it("rejects an answer that is not part of its immutable question snapshot", () => {
+    const stored = row(16);
+    stored.answers[0] = {
+      ...stored.answers[0],
+      choiceId: "missing-choice"
+    };
+
+    expect(() => mapWctPopQuizAttempt(stored)).toThrow(
+      "Invalid stored WCT Pop Quiz attempt"
+    );
+  });
+
+  it("rejects completed status without completed score fields", () => {
+    expect(() => mapWctPopQuizAttempt({ ...row(16), status: "completed" })).toThrow(
       "Invalid stored WCT Pop Quiz attempt"
     );
   });

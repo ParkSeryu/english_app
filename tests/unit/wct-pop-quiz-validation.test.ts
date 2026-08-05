@@ -34,6 +34,10 @@ describe("wctPopQuizQuestionsSchema", () => {
     expect(wctPopQuizQuestionsSchema.safeParse(questions(16, true)).success).toBe(true);
   });
 
+  it("accepts a 28-question new snapshot with Day topics", () => {
+    expect(wctPopQuizQuestionsSchema.safeParse(questions(28, true)).success).toBe(true);
+  });
+
   it("accepts a legacy 20-question snapshot without Day topics", () => {
     const rawSnapshot = questions(20, false);
     const parsed = wctPopQuizQuestionsSchema.parse(rawSnapshot);
@@ -43,7 +47,7 @@ describe("wctPopQuizQuestionsSchema", () => {
   });
 
   it("accepts a shared v2 two-choice true/false question", () => {
-    const snapshot = questions(1, true);
+    const snapshot = questions(16, true);
     snapshot[0].question = {
       ...snapshot[0].question,
       format: "true_false",
@@ -81,6 +85,13 @@ describe("wctPopQuizQuestionsSchema", () => {
     snapshot[0].question.correctChoiceId = "missing-choice";
 
     expect(() => wctPopQuizQuestionsSchema.parse(snapshot)).toThrow("Correct choice must exist");
+  });
+
+  it("preserves an absent format when parsing a legacy snapshot", () => {
+    const snapshot = questions(16, true);
+    const parsed = wctPopQuizQuestionsSchema.parse(snapshot);
+
+    expect("format" in parsed[0].question).toBe(false);
   });
 
   it.each([0, 101])("rejects a %i-question snapshot", (count) => {

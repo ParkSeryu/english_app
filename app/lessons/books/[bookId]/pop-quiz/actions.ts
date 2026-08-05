@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireCurrentUser } from "@/lib/auth";
 import { getWctPopQuizStore } from "@/lib/wct-pop-quiz-store";
 import { startWctPopQuiz } from "@/lib/wct/pop-quiz/service";
+import { WctPopQuizRestartRequiredError } from "@/lib/wct/pop-quiz/types";
 import { getWctQuizStore } from "@/lib/wct-quiz-store";
 import { getWctStore } from "@/lib/wct-store";
 
@@ -30,6 +31,8 @@ const completeSchema = z.object({
   attemptId: z.uuid()
 }).strict();
 
+const restartRequiredMessage = "Pop Quiz가 변경됐어요. 새로 시작해 주세요.";
+
 export async function startWctPopQuizAction(input: unknown): Promise<PopQuizActionResult<never>> {
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Pop Quiz 요청을 확인해 주세요." };
@@ -42,6 +45,9 @@ export async function startWctPopQuizAction(input: unknown): Promise<PopQuizActi
       wctPopQuizStore: getWctPopQuizStore(user)
     }, parsed.data);
   } catch (error) {
+    if (error instanceof WctPopQuizRestartRequiredError) {
+      return { ok: false, message: restartRequiredMessage };
+    }
     if (error instanceof Error && error.message === "Pop Quiz needs one eligible question per Day") {
       return { ok: false, message: "Pop Quiz 문제를 준비하지 못했습니다" };
     }
@@ -61,7 +67,10 @@ export async function confirmWctPopQuizAnswerAction(
     const user = await requireCurrentUser();
     const data = await getWctPopQuizStore(user).confirmAnswer(parsed.data);
     return { ok: true, data };
-  } catch {
+  } catch (error) {
+    if (error instanceof WctPopQuizRestartRequiredError) {
+      return { ok: false, message: restartRequiredMessage };
+    }
     return { ok: false, message: "답안을 저장하지 못했어요. 다시 시도해 주세요." };
   }
 }
@@ -76,7 +85,10 @@ export async function completeWctPopQuizAction(
     const user = await requireCurrentUser();
     const data = await getWctPopQuizStore(user).completeAttempt(parsed.data);
     return { ok: true, data };
-  } catch {
+  } catch (error) {
+    if (error instanceof WctPopQuizRestartRequiredError) {
+      return { ok: false, message: restartRequiredMessage };
+    }
     return { ok: false, message: "결과를 저장하지 못했어요. 다시 시도해 주세요." };
   }
 }

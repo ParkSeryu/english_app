@@ -45,6 +45,30 @@ const progressSchema = z.object({
       message: "Latest score cannot exceed the question count"
     });
   }
+  if (
+    progress.status === "completed"
+    && (
+      progress.currentIndex !== total
+      || progress.latestScore === null
+      || progress.completedAt === null
+    )
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["status"],
+      message: "Completed attempts require complete progress and score fields"
+    });
+  }
+  if (
+    progress.status === "in_progress"
+    && (progress.latestScore !== null || progress.completedAt !== null)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["status"],
+      message: "In-progress attempts cannot include completion fields"
+    });
+  }
 });
 
 const attemptSchema = progressSchema.extend({
@@ -61,6 +85,27 @@ const attemptSchema = progressSchema.extend({
       message: "Answer count cannot exceed the question count"
     });
   }
+  if (attempt.answers.length !== attempt.currentIndex) {
+    context.addIssue({
+      code: "custom",
+      path: ["answers"],
+      message: "Answer count must match the current index"
+    });
+  }
+  attempt.answers.forEach((answer, index) => {
+    const question = attempt.questions[index]?.question;
+    if (
+      !question
+      || question.id !== answer.questionId
+      || !question.choices.some((choice) => choice.id === answer.choiceId)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["answers", index],
+        message: "Answers must match the stored question snapshot"
+      });
+    }
+  });
 });
 
 const confirmResultSchema = z.object({

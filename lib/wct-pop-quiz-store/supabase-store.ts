@@ -16,12 +16,24 @@ import type {
   WctPopQuizStartInput,
   WctPopQuizSummary
 } from "@/lib/wct/pop-quiz/types";
+import { WctPopQuizRestartRequiredError } from "@/lib/wct/pop-quiz/types";
 import { wctPopQuizQuestionsSchema } from "@/lib/wct/pop-quiz/validation";
 
 type SupabaseLike = Awaited<ReturnType<typeof createServerSupabaseClient>>;
 
 const ATTEMPT_SELECT =
   "attempt_id,book_id,seed,questions,answers,current_index,status,latest_score,incorrect_days,started_at,completed_at";
+
+function throwRpcError(prefix: string, error: { code?: string; message: string }): never {
+  if (
+    error.code === "P0002"
+    || error.message.includes("WCT_POP_QUIZ_RESTART_REQUIRED")
+    || error.message.includes("WCT Pop Quiz attempt not found")
+  ) {
+    throw new WctPopQuizRestartRequiredError();
+  }
+  throw new Error(`${prefix}: ${error.message}`);
+}
 
 export class SupabaseWctPopQuizStore implements WctPopQuizStore {
   constructor(
@@ -66,7 +78,7 @@ export class SupabaseWctPopQuizStore implements WctPopQuizStore {
         p_questions: questions
       }
     );
-    if (error) throw new Error(`WCT Pop Quiz start failed: ${error.message}`);
+    if (error) throwRpcError("WCT Pop Quiz start failed", error);
     return mapWctPopQuizAttempt(data);
   }
 
@@ -82,9 +94,7 @@ export class SupabaseWctPopQuizStore implements WctPopQuizStore {
         p_choice_id: input.choiceId
       }
     );
-    if (error) {
-      throw new Error(`WCT Pop Quiz answer confirmation failed: ${error.message}`);
-    }
+    if (error) throwRpcError("WCT Pop Quiz answer confirmation failed", error);
     return mapWctPopQuizConfirmResult(data);
   }
 
@@ -96,7 +106,7 @@ export class SupabaseWctPopQuizStore implements WctPopQuizStore {
         p_attempt_id: input.attemptId
       }
     );
-    if (error) throw new Error(`WCT Pop Quiz completion failed: ${error.message}`);
+    if (error) throwRpcError("WCT Pop Quiz completion failed", error);
     return mapWctPopQuizResult(data);
   }
 }

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { WctDaySummary } from "@/lib/wct/types";
+import type { WctQuizQuestionFormat } from "@/lib/wct/quiz/types";
 
 import {
   type WctPopQuizBand,
@@ -35,15 +36,73 @@ function signature(questions: WctPopQuizQuestion[]) {
     .join("|");
 }
 
-function selectForSeed(input: WctPopQuizSelectionInput, seed: string) {
+function orderedDays(input: WctPopQuizSelectionInput) {
+  const days = [...input.book.days].sort((left, right) => left.dayNumber - right.dayNumber);
+  if (days.some((day, index) => day.dayNumber !== index + 1)) {
+    throw new Error("Pop Quiz needs one complete quiz version");
+  }
+  return days;
+}
+
+function selectLegacyForSeed(input: WctPopQuizSelectionInput, seed: string) {
   const bandByDayId = buildBandByDayId(input.book.days);
-  const orderedDays = [...input.book.days].sort((left, right) => left.dayNumber - right.dayNumber);
-  return orderedDays.map((day) => {
+  return orderedDays(input).map((day) => {
     const eligible = input.candidates
       .filter((candidate) => candidate.dayId === day.id && candidate.question.kind !== "concept")
       .sort((left, right) => rank(seed, left).localeCompare(rank(seed, right)));
     const candidate = eligible[0];
     if (!candidate) throw new Error("Pop Quiz needs one eligible question per Day");
+    return { ...candidate, band: bandByDayId.get(day.id)! };
+  });
+}
+
+const formatSchedule: WctQuizQuestionFormat[] = [
+  "multiple_choice",
+  "fill_blank",
+  "true_false"
+];
+
+export function nextWctQuizFormat(
+  format: WctQuizQuestionFormat
+): WctQuizQuestionFormat {
+  if (format === "multiple_choice") return "fill_blank";
+  if (format === "fill_blank") return "true_false";
+  return "multiple_choice";
+}
+
+function seedOffset(seed: string) {
+  return createHash("sha256").update(seed).digest()[0] % formatSchedule.length;
+}
+
+function selectV2(input: WctPopQuizSelectionInput) {
+  const days = orderedDays(input);
+  const bandByDayId = buildBandByDayId(days);
+  const previousByDayId = new Map(
+    input.previousQuestions?.map((item) => [item.dayId, item]) ?? []
+  );
+  if (input.previousQuestions && previousByDayId.size !== days.length) {
+    throw new Error("Pop Quiz needs one complete quiz version");
+  }
+  const offset = seedOffset(input.seed);
+
+  return days.map((day, index) => {
+    const previous = previousByDayId.get(day.id);
+    if (input.previousQuestions && !previous?.question.format) {
+      throw new Error("Pop Quiz needs one complete quiz version");
+    }
+    const targetFormat = previous?.question.format
+      ? nextWctQuizFormat(previous.question.format)
+      : formatSchedule[(index + offset) % formatSchedule.length];
+    const candidate = input.candidates
+      .filter((item) => (
+        item.dayId === day.id
+        && item.question.format === targetFormat
+        && item.question.id !== previous?.question.id
+      ))
+      .sort((left, right) => rank(input.seed, left).localeCompare(rank(input.seed, right)))[0];
+    if (!candidate) {
+      throw new Error(`Pop Quiz needs ${targetFormat} question for Day ${day.dayNumber}`);
+    }
     return { ...candidate, band: bandByDayId.get(day.id)! };
   });
 }
@@ -54,10 +113,24 @@ export function selectWctPopQuizQuestions(input: WctPopQuizSelectionInput): WctP
     throw new Error("Pop Quiz is only available for Prenovice and Novice");
   }
 
+  const isV2 = input.sourceVersion === "wct-review-v2";
+  if (input.candidates.some((candidate) => (
+    isV2 ? candidate.question.format === undefined : candidate.question.format !== undefined
+  ))) {
+    throw new Error("Pop Quiz needs one complete quiz version");
+  }
+  if (isV2) {
+    return wctPopQuizQuestionsSchema.parse(selectV2(input));
+  }
+
+  const previousSignature = input.previousQuestions
+    ? signature(input.previousQuestions)
+    : null;
+
   for (let retry = 0; retry <= 10; retry += 1) {
     const seed = retry === 0 ? input.seed : `${input.seed}:${retry}`;
-    const selected = selectForSeed(input, seed);
-    if (signature(selected) !== input.previousSignature) {
+    const selected = selectLegacyForSeed(input, seed);
+    if (signature(selected) !== previousSignature) {
       return wctPopQuizQuestionsSchema.parse(selected);
     }
   }

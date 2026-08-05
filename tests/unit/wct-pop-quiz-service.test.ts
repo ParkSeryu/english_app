@@ -1,11 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { buildLegacyStandardWctQuizSource } from "@/lib/wct/quiz/adapters";
+import { generateLegacyWctQuizSetDraft } from "@/lib/wct/quiz/generator";
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
-import type { WctQuizSet } from "@/lib/wct/quiz/types";
-import type { WctPopQuizQuestion } from "@/lib/wct/pop-quiz/types";
-import type { WctBook } from "@/lib/wct/types";
+import { buildStandardWctQuizSource } from "@/lib/wct/quiz/standard/source";
+import type { WctQuizQuestionFormat, WctQuizSet } from "@/lib/wct/quiz/types";
+import {
+  WctPopQuizRestartRequiredError,
+  type WctPopQuizAttempt,
+  type WctPopQuizQuestion
+} from "@/lib/wct/pop-quiz/types";
+import type { WctBook, WctDay } from "@/lib/wct/types";
 
-function createBook(overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabel">> = {}): WctBook {
+const OWNER_ID = "22222222-2222-4222-8222-222222222222";
+
+function createBook(
+  overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabel">> = {}
+): WctBook {
   const id = overrides.id ?? "11111111-1111-4111-8111-111111111111";
   return {
     id,
@@ -17,7 +28,7 @@ function createBook(overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabe
       id: `day-${index + 1}`,
       bookId: id,
       dayNumber: index + 1,
-      shortLabel: `Day ${index + 1}`,
+      shortLabel: `Topic ${index + 1}`,
       displayLabel: `Day ${index + 1}`,
       sourcePageStart: null,
       sourcePageEnd: null,
@@ -26,46 +37,137 @@ function createBook(overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabe
   };
 }
 
-function createSets(book: WctBook): WctQuizSet[] {
-  return book.days.map((day) => ({
+function createFullDays(book: WctBook): WctDay[] {
+  return book.days.map((summary) => ({
+    ...summary,
+    learningSummary: null,
+    concepts: [],
+    importantNotes: [],
+    practicePrompts: [],
+    patterns: [{
+      id: `pattern-${summary.dayNumber}`,
+      patternText: `I can item ${summary.dayNumber}`,
+      meaningKo: `의미 ${summary.dayNumber}`,
+      usageNote: null,
+      usageSource: "book",
+      sourcePage: null,
+      sourceNeedsReview: false,
+      sortOrder: 1,
+      examples: [{
+        id: `example-${summary.dayNumber}`,
+        englishText: `I can item ${summary.dayNumber}.`,
+        meaningKo: `나는 항목 ${summary.dayNumber}을 할 수 있다.`,
+        sourcePage: null,
+        sourceNeedsReview: false,
+        sortOrder: 1
+      }]
+    }]
+  }));
+}
+
+function choices(questionId: string, format?: WctQuizQuestionFormat) {
+  return Array.from({ length: format === "true_false" ? 2 : 4 }, (_, index) => ({
+    id: `${questionId}-choice-${index + 1}`,
+    text: `Choice ${questionId}-${index + 1}`
+  }));
+}
+
+const formats = [
+  "multiple_choice",
+  "fill_blank",
+  "true_false",
+  "multiple_choice",
+  "fill_blank"
+] as const;
+
+function createV2Sets(book: WctBook, days: WctDay[]): WctQuizSet[] {
+  return days.map((day) => ({
     id: `set-${day.id}`,
-    ownerId: "22222222-2222-4222-8222-222222222222",
+    ownerId: OWNER_ID,
     lessonKey: standardWctLessonKey(book.title, day.dayNumber),
     sourceKind: "wct_day",
     sourceId: day.id,
-    generatorVersion: "wct-review-v1",
-    sourceHash: `hash-${day.id}`,
+    generatorVersion: "wct-review-v2",
+    sourceHash: buildStandardWctQuizSource(book, day).sourceHash,
     createdAt: "2026-08-03T00:00:00Z",
-    questions: (["translation", "translation", "pattern", "pattern"] as const).map((kind, index) => {
-      const questionId = `${day.id}-${kind}-${index + 1}`;
+    questions: formats.map((format, index) => {
+      const questionId = `${day.id}-${format}-${index + 1}`;
       return {
         id: questionId,
-        kind,
+        kind: index < 3 ? "translation" as const : "pattern" as const,
+        format,
         prompt: `Prompt ${questionId}`,
-        choices: [1, 2, 3, 4].map((choice) => ({
-          id: `${questionId}-choice-${choice}`,
-          text: `Choice ${choice}`
-        })),
+        choices: choices(questionId, format),
         correctChoiceId: `${questionId}-choice-1`,
-        explanation: `Explanation ${questionId}`
+        explanation: `Explanation ${questionId}`,
+        feedback: {
+          correctSentence: `Sentence ${questionId}`,
+          pattern: `Pattern ${questionId}`,
+          reason: `Reason ${questionId}`
+        }
       };
     })
   }));
 }
 
-function attempt(bookId: string, status: "in_progress" | "completed" = "in_progress") {
+function createV1Sets(book: WctBook, days: WctDay[]): WctQuizSet[] {
+  return days.map((day) => {
+    const draft = generateLegacyWctQuizSetDraft(
+      buildLegacyStandardWctQuizSource(book, day, days)
+    );
+    return {
+      id: `legacy-set-${day.id}`,
+      ownerId: OWNER_ID,
+      ...draft,
+      createdAt: "2026-08-03T00:00:00Z"
+    };
+  });
+}
+
+function band(index: number) {
+  return index < 6 ? "early" as const : index < 11 ? "middle" as const : "late" as const;
+}
+
+function snapshot(book: WctBook, sets: WctQuizSet[]): WctPopQuizQuestion[] {
+  return book.days.map((day, index) => ({
+    sourceQuizSetId: sets[index].id,
+    dayId: day.id,
+    dayNumber: day.dayNumber,
+    dayLabel: day.displayLabel,
+    dayTopic: day.shortLabel,
+    band: band(index),
+    question: structuredClone(sets[index].questions[0])
+  }));
+}
+
+function attempt(
+  book: WctBook,
+  sets: WctQuizSet[],
+  status: "in_progress" | "completed" = "in_progress"
+): WctPopQuizAttempt {
+  const questions = snapshot(book, sets);
   return {
     attemptId: "33333333-3333-4333-8333-333333333333",
-    bookId,
+    bookId: book.id,
     seed: "previous-seed",
-    questions: [],
+    questions,
     answers: [],
-    currentIndex: status === "completed" ? 20 : 3,
+    currentIndex: status === "completed" ? questions.length : 3,
     status,
-    latestScore: status === "completed" ? 18 : null,
+    latestScore: status === "completed" ? questions.length - 2 : null,
     incorrectDays: [],
     startedAt: "2026-08-03T00:00:00Z",
     completedAt: status === "completed" ? "2026-08-03T00:10:00Z" : null
+  };
+}
+
+function stores(book: WctBook, days: WctDay[], sets: WctQuizSet[]) {
+  return {
+    wctStore: {
+      getBook: vi.fn().mockResolvedValue(book),
+      getDay: vi.fn(async (dayId: string) => days.find((day) => day.id === dayId) ?? null)
+    },
+    wctQuizStore: { listSetsByLessonKeys: vi.fn().mockResolvedValue(sets) }
   };
 }
 
@@ -74,36 +176,178 @@ async function service() {
 }
 
 describe("WCT Pop Quiz service", () => {
-  it("starts an eligible book with one Day-topic question from every matching Day quiz set", async () => {
+  it("loads every full Day and starts from one complete current v2 inventory", async () => {
     const book = createBook();
-    const listSetsByLessonKeys = vi.fn().mockResolvedValue(createSets(book));
-    const startAttempt = vi.fn(async (input) => ({ ...attempt(book.id), ...input }));
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const currentSnapshot = snapshot(book, sets);
+    const selectQuestions = vi.fn().mockReturnValue(currentSnapshot);
+    const startAttempt = vi.fn(async (input) => ({
+      ...attempt(book, sets),
+      ...input
+    }));
+    const deps = stores(book, days, sets);
     const { startWctPopQuiz } = await service();
 
     const started = await startWctPopQuiz({
-      wctStore: { getBook: vi.fn().mockResolvedValue(book) },
-      wctQuizStore: { listSetsByLessonKeys },
+      ...deps,
       wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(null), startAttempt },
-      createSeed: () => "fresh-seed"
+      createSeed: () => "fresh-seed",
+      selectQuestions
     }, { bookId: book.id, mode: "start" });
 
-    expect(listSetsByLessonKeys).toHaveBeenCalledWith(
+    expect(deps.wctStore.getDay).toHaveBeenCalledTimes(book.days.length);
+    expect(deps.wctQuizStore.listSetsByLessonKeys).toHaveBeenCalledWith(
       book.days.map((day) => standardWctLessonKey(book.title, day.dayNumber))
     );
-    const storedQuestions = startAttempt.mock.calls[0][0].questions as WctPopQuizQuestion[];
-    expect(storedQuestions).toHaveLength(16);
-    expect(storedQuestions.map((question) => question.dayTopic)).toEqual(
-      book.days.map((day) => day.shortLabel)
-    );
-    expect(started.questions).toEqual(storedQuestions);
-    expect(startAttempt).toHaveBeenCalledWith(expect.objectContaining({
-      bookId: book.id,
-      seed: "fresh-seed",
-      questions: expect.any(Array)
+    expect(selectQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      sourceVersion: "wct-review-v2",
+      previousQuestions: null,
+      candidates: expect.arrayContaining([
+        expect.objectContaining({ dayNumber: 1, dayTopic: book.days[0].shortLabel })
+      ])
+    }));
+    expect(started.questions).toEqual(currentSnapshot);
+  });
+
+  it("returns a current in-progress attempt unchanged only after validating its snapshot", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const existing = attempt(book, sets);
+    const startAttempt = vi.fn();
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(existing), startAttempt }
+    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
+
+    expect(deps.wctStore.getDay).toHaveBeenCalledTimes(16);
+    expect(deps.wctQuizStore.listSetsByLessonKeys).toHaveBeenCalledTimes(1);
+    expect(startAttempt).not.toHaveBeenCalled();
+  });
+
+  it("passes the complete prior snapshot and uniform version to a retake", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const previous = attempt(book, sets, "completed");
+    const selectQuestions = vi.fn().mockReturnValue(previous.questions);
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(previous),
+        startAttempt: vi.fn(async (input) => ({ ...previous, ...input }))
+      },
+      createSeed: () => "replacement-seed",
+      selectQuestions
+    }, { bookId: book.id, mode: "retake" });
+
+    expect(selectQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      seed: "replacement-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: previous.questions
     }));
   });
 
-  it("rejects missing, foreign, Premium, and mismatched title-level books", async () => {
+  it.each(["missing", "mixed", "stale"])(
+    "rejects a %s inventory before attempt mutation",
+    async (problem) => {
+      const book = createBook();
+      const days = createFullDays(book);
+      const v2Sets = createV2Sets(book, days);
+      let sets = v2Sets;
+      if (problem === "missing") sets = v2Sets.slice(0, -1);
+      if (problem === "mixed") sets = [createV1Sets(book, days)[0], ...v2Sets.slice(1)];
+      if (problem === "stale") sets = v2Sets.map((set, index) => (
+        index === 4 ? { ...set, sourceHash: "f".repeat(64) } : set
+      ));
+      const startAttempt = vi.fn();
+      const deps = stores(book, days, sets);
+      const { startWctPopQuiz } = await service();
+
+      await expect(startWctPopQuiz({
+        ...deps,
+        wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(null), startAttempt }
+      }, { bookId: book.id, mode: "start" }))
+        .rejects.toThrow("Pop Quiz needs one complete quiz version");
+      expect(startAttempt).not.toHaveBeenCalled();
+    }
+  );
+
+  it("throws the typed restart error when immutable snapshot content is stale", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions[0].question.prompt = "Stale stored prompt";
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(existing), startAttempt: vi.fn() }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
+  it("throws the typed restart error when the requested attempt was reset", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const deps = stores(book, days, sets);
+    const { getWctPopQuizAttempt } = await service();
+
+    await expect(getWctPopQuizAttempt({
+      ...deps,
+      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(null) }
+    }, book.id)).rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
+  it("throws the typed restart error when an existing attempt references a missing current set", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const existing = attempt(book, sets);
+    const deps = stores(book, days, sets.slice(0, -1));
+    const { getWctPopQuizAttempt } = await service();
+
+    await expect(getWctPopQuizAttempt({
+      ...deps,
+      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(existing) }
+    }, book.id)).rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
+  it("accepts a complete current v1 inventory without materializing format", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV1Sets(book, days);
+    const selectQuestions = vi.fn().mockReturnValue(snapshot(book, sets));
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(null),
+        startAttempt: vi.fn(async (input) => ({ ...attempt(book, sets), ...input }))
+      },
+      selectQuestions
+    }, { bookId: book.id, mode: "start" });
+
+    const selectionInput = selectQuestions.mock.calls[0][0];
+    expect(selectionInput.sourceVersion).toBe("wct-review-v1");
+    expect(selectionInput.candidates.every((item: { question: object }) => (
+      !("format" in item.question)
+    ))).toBe(true);
+  });
+
+  it("rejects missing, Premium, and mismatched title-level books", async () => {
     const { startWctPopQuiz } = await service();
     const baseDeps = {
       wctQuizStore: { listSetsByLessonKeys: vi.fn() },
@@ -117,78 +361,12 @@ describe("WCT Pop Quiz service", () => {
     ]) {
       await expect(startWctPopQuiz({
         ...baseDeps,
-        wctStore: { getBook: vi.fn().mockResolvedValue(book) }
+        wctStore: {
+          getBook: vi.fn().mockResolvedValue(book),
+          getDay: vi.fn()
+        }
       }, { bookId: "11111111-1111-4111-8111-111111111111", mode: "start" }))
         .rejects.toThrow("Pop Quiz is available for Prenovice and Novice only");
     }
-  });
-
-  it("returns an in-progress attempt without rebuilding questions", async () => {
-    const book = createBook();
-    const existing = attempt(book.id);
-    const getAttempt = vi.fn().mockResolvedValue(existing);
-    const { startWctPopQuiz } = await service();
-
-    await expect(startWctPopQuiz({
-      wctStore: { getBook: vi.fn().mockResolvedValue(book) },
-      wctQuizStore: { listSetsByLessonKeys: vi.fn() },
-      wctPopQuizStore: { getAttempt, startAttempt: vi.fn() }
-    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
-  });
-
-  it("preserves a completed attempt when start is requested", async () => {
-    const book = createBook();
-    const existing = attempt(book.id, "completed");
-    const listSetsByLessonKeys = vi.fn();
-    const startAttempt = vi.fn();
-    const selectQuestions = vi.fn();
-    const { startWctPopQuiz } = await service();
-
-    await expect(startWctPopQuiz({
-      wctStore: { getBook: vi.fn().mockResolvedValue(book) },
-      wctQuizStore: { listSetsByLessonKeys },
-      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(existing), startAttempt },
-      selectQuestions
-    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
-
-    expect(listSetsByLessonKeys).not.toHaveBeenCalled();
-    expect(selectQuestions).not.toHaveBeenCalled();
-    expect(startAttempt).not.toHaveBeenCalled();
-  });
-  it("uses a fresh seed and prior signature when replacing a completed attempt", async () => {
-    const book = createBook();
-    const previous = {
-      ...attempt(book.id, "completed"),
-      questions: createSets(book).flatMap((set, setIndex) => set.questions.slice(0, setIndex === 0 ? 4 : 0)).map((question, index) => ({
-        sourceQuizSetId: "set-day-1",
-        dayId: "day-1",
-        dayNumber: 1,
-        dayLabel: "Day 1",
-        band: index < 4 ? "early" as const : "middle" as const,
-        question
-      }))
-    };
-    const selectQuestions = vi.fn().mockReturnValue(createSets(book).flatMap((set) => set.questions).slice(0, 20).map((question, index) => ({
-      sourceQuizSetId: `set-day-${Math.floor(index / 4) + 1}`,
-      dayId: `day-${Math.floor(index / 4) + 1}`,
-      dayNumber: Math.floor(index / 4) + 1,
-      dayLabel: `Day ${Math.floor(index / 4) + 1}`,
-      band: index < 7 ? "early" as const : index < 14 ? "middle" as const : "late" as const,
-      question
-    })));
-    const { startWctPopQuiz } = await service();
-
-    await startWctPopQuiz({
-      wctStore: { getBook: vi.fn().mockResolvedValue(book) },
-      wctQuizStore: { listSetsByLessonKeys: vi.fn().mockResolvedValue(createSets(book)) },
-      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(previous), startAttempt: vi.fn(async (input) => ({ ...previous, ...input })) },
-      createSeed: () => "replacement-seed",
-      selectQuestions
-    }, { bookId: book.id, mode: "retake" });
-
-    expect(selectQuestions).toHaveBeenCalledWith(expect.objectContaining({
-      seed: "replacement-seed",
-      previousSignature: "set-day-1:day-1-pattern-3|set-day-1:day-1-pattern-4|set-day-1:day-1-translation-1|set-day-1:day-1-translation-2"
-    }));
   });
 });

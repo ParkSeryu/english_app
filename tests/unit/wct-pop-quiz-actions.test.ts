@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { WctPopQuizRestartRequiredError } from "@/lib/wct/pop-quiz/types";
+
 const mocks = vi.hoisted(() => ({
   requireCurrentUser: vi.fn(),
   getWctStore: vi.fn(),
@@ -123,5 +125,31 @@ describe("WCT Pop Quiz actions", () => {
       .resolves.toEqual({ ok: false, message: "답안을 저장하지 못했어요. 다시 시도해 주세요." });
     await expect(completeWctPopQuizAction({ bookId, attemptId }))
       .resolves.toEqual({ ok: false, message: "결과를 저장하지 못했어요. 다시 시도해 주세요." });
+  });
+
+  it("maps typed reset or stale attempt failures to the restart message", async () => {
+    mocks.startWctPopQuiz.mockRejectedValue(new WctPopQuizRestartRequiredError());
+    mocks.getWctPopQuizStore.mockReturnValue({
+      confirmAnswer: vi.fn().mockRejectedValue(new WctPopQuizRestartRequiredError()),
+      completeAttempt: vi.fn().mockRejectedValue(new WctPopQuizRestartRequiredError())
+    });
+    const {
+      completeWctPopQuizAction,
+      confirmWctPopQuizAnswerAction,
+      startWctPopQuizAction
+    } = await import("@/app/lessons/books/[bookId]/pop-quiz/actions");
+    const restart = {
+      ok: false,
+      message: "Pop Quiz가 변경됐어요. 새로 시작해 주세요."
+    };
+
+    await expect(startWctPopQuizAction({ bookId, mode: "start" })).resolves.toEqual(restart);
+    await expect(confirmWctPopQuizAnswerAction({
+      bookId,
+      attemptId,
+      questionId: "question-1",
+      choiceId: "choice-1"
+    })).resolves.toEqual(restart);
+    await expect(completeWctPopQuizAction({ bookId, attemptId })).resolves.toEqual(restart);
   });
 });

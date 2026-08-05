@@ -1,5 +1,15 @@
 import type { WctBook } from "@/lib/wct/types";
-import type { WctQuizQuestion } from "@/lib/wct/quiz/types";
+import type {
+  WctQuizGeneratorVersion,
+  WctQuizQuestion
+} from "@/lib/wct/quiz/types";
+
+export class WctPopQuizRestartRequiredError extends Error {
+  constructor() {
+    super("WCT Pop Quiz restart required");
+    this.name = "WctPopQuizRestartRequiredError";
+  }
+}
 
 export type WctPopQuizBand = "early" | "middle" | "late";
 
@@ -20,7 +30,8 @@ export type WctPopQuizSelectionInput = {
   book: WctBook;
   candidates: WctPopQuizCandidate[];
   seed: string;
-  previousSignature: string | null;
+  sourceVersion: WctQuizGeneratorVersion;
+  previousQuestions: WctPopQuizQuestion[] | null;
 };
 
 export type WctPopQuizAnswer = {

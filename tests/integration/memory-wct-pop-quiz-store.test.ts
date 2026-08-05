@@ -5,6 +5,7 @@ import {
   resetMemoryWctPopQuizStoreForTests
 } from "@/lib/wct-pop-quiz-store/memory-store";
 import type { WctPopQuizQuestion } from "@/lib/wct/pop-quiz/types";
+import { WctPopQuizRestartRequiredError } from "@/lib/wct/pop-quiz/types";
 
 const OWNER_A = "00000000-0000-4000-8000-000000000001";
 const OWNER_B = "00000000-0000-4000-8000-000000000002";
@@ -162,5 +163,20 @@ describe("MemoryWctPopQuizStore", () => {
       currentIndex: 28,
       status: "in_progress"
     });
+  });
+
+  it("throws the typed restart error when a referenced attempt was reset", async () => {
+    const ownerA = new MemoryWctPopQuizStore({ id: OWNER_A });
+
+    await expect(ownerA.confirmAnswer({
+      bookId: BOOK_ID,
+      attemptId: "00000000-0000-4000-8000-000000000099",
+      questionId: "question-1",
+      choiceId: "question-1-choice-1"
+    })).rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+    await expect(ownerA.completeAttempt({
+      bookId: BOOK_ID,
+      attemptId: "00000000-0000-4000-8000-000000000099"
+    })).rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
   });
 });

@@ -1,36 +1,56 @@
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import type { WctPopQuizStore } from "@/lib/wct-pop-quiz-store/contract";
 import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
 import { normalizeWctIdentity } from "@/lib/wct/normalization";
-import { selectWctPopQuizQuestions } from "@/lib/wct/pop-quiz/selector";
-import type {
-  WctPopQuizAttempt,
-  WctPopQuizCandidate,
-  WctPopQuizQuestion,
-  WctPopQuizSelectionInput,
-  WctPopQuizSummary
-} from "@/lib/wct/pop-quiz/types";
+import { isCurrentStandardWctQuizSet } from "@/lib/wct/quiz/current-set";
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
+import type {
+  WctQuizGeneratorVersion,
+  WctQuizSet
+} from "@/lib/wct/quiz/types";
+import { wctQuizSetCreateSchema } from "@/lib/wct/quiz/validation";
+import { selectWctPopQuizQuestions } from "@/lib/wct/pop-quiz/selector";
+import {
+  WctPopQuizRestartRequiredError,
+  type WctPopQuizAttempt,
+  type WctPopQuizCandidate,
+  type WctPopQuizQuestion,
+  type WctPopQuizSelectionInput,
+  type WctPopQuizSummary
+} from "@/lib/wct/pop-quiz/types";
 import type { WctStore } from "@/lib/wct-store/contract";
-import type { WctBook } from "@/lib/wct/types";
+import type { WctBook, WctDay } from "@/lib/wct/types";
+
+export { WctPopQuizRestartRequiredError } from "@/lib/wct/pop-quiz/types";
 
 const ineligibleBookMessage = "Pop Quiz is available for Prenovice and Novice only";
+const incompleteInventoryMessage = "Pop Quiz needs one complete quiz version";
 
-type StartDependencies = {
-  wctStore: Pick<WctStore, "getBook">;
+type InventoryDependencies = {
+  wctStore: Pick<WctStore, "getBook" | "getDay">;
   wctQuizStore: Pick<WctQuizStore, "listSetsByLessonKeys">;
+};
+
+type StartDependencies = InventoryDependencies & {
   wctPopQuizStore: Pick<WctPopQuizStore, "getAttempt" | "startAttempt">;
   createSeed?: () => string;
   selectQuestions?: (input: WctPopQuizSelectionInput) => WctPopQuizQuestion[];
 };
 
-type AttemptDependencies = {
+type AttemptDependencies = InventoryDependencies & {
   wctPopQuizStore: Pick<WctPopQuizStore, "getAttempt">;
 };
 
 type SummaryDependencies = {
   wctPopQuizStore: Pick<WctPopQuizStore, "getSummary">;
+};
+
+type CurrentInventory = {
+  sets: WctQuizSet[];
+  candidates: WctPopQuizCandidate[];
+  sourceVersion: WctQuizGeneratorVersion;
 };
 
 function compactIdentity(value: string | null) {
@@ -51,25 +71,74 @@ function requireEligibleBook(book: WctBook | null): WctBook {
   return book;
 }
 
-function previousSignature(attempt: WctPopQuizAttempt | null) {
-  if (!attempt) return null;
-  return attempt.questions
-    .map((item) => `${item.sourceQuizSetId}:${item.question.id}`)
-    .sort()
-    .join("|");
+function failIncompleteInventory(): never {
+  throw new Error(incompleteInventoryMessage);
 }
 
-async function candidatesForBook(
-  deps: StartDependencies,
+async function prepareCurrentInventory(
+  deps: InventoryDependencies,
   book: WctBook
-): Promise<WctPopQuizCandidate[]> {
-  const lessonKeys = book.days.map((day) => standardWctLessonKey(book.title, day.dayNumber));
-  const sets = await deps.wctQuizStore.listSetsByLessonKeys(lessonKeys);
-  const setByLessonKey = new Map(sets.map((set) => [set.lessonKey, set]));
+): Promise<CurrentInventory> {
+  const orderedSummaries = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
+  if (
+    orderedSummaries.length !== book.dayCount
+    || orderedSummaries.some((day, index) => day.dayNumber !== index + 1)
+  ) {
+    return failIncompleteInventory();
+  }
 
-  return book.days.flatMap((day) => {
-    const set = setByLessonKey.get(standardWctLessonKey(book.title, day.dayNumber));
-    if (!set || set.sourceKind !== "wct_day" || set.sourceId !== day.id) return [];
+  const loadedDays = await Promise.all(
+    orderedSummaries.map((summary) => deps.wctStore.getDay(summary.id))
+  );
+  if (loadedDays.some((day) => !day)) return failIncompleteInventory();
+  const allDays = loadedDays as WctDay[];
+  if (allDays.some((day, index) => (
+    day.id !== orderedSummaries[index].id
+    || day.bookId !== book.id
+    || day.dayNumber !== orderedSummaries[index].dayNumber
+  ))) {
+    return failIncompleteInventory();
+  }
+
+  const lessonKeys = orderedSummaries.map((day) => (
+    standardWctLessonKey(book.title, day.dayNumber)
+  ));
+  const loadedSets = await deps.wctQuizStore.listSetsByLessonKeys(lessonKeys);
+  if (loadedSets.length !== lessonKeys.length) return failIncompleteInventory();
+  const setByLessonKey = new Map(loadedSets.map((set) => [set.lessonKey, set]));
+  if (setByLessonKey.size !== lessonKeys.length) return failIncompleteInventory();
+  const sets = lessonKeys.map((lessonKey) => setByLessonKey.get(lessonKey));
+  if (sets.some((set) => !set)) return failIncompleteInventory();
+  const exactSets = sets as WctQuizSet[];
+
+  const versions = new Set(exactSets.map((set) => set.generatorVersion));
+  if (versions.size !== 1) return failIncompleteInventory();
+  const sourceVersion = exactSets[0]?.generatorVersion;
+  if (sourceVersion !== "wct-review-v1" && sourceVersion !== "wct-review-v2") {
+    return failIncompleteInventory();
+  }
+
+  for (const [index, set] of exactSets.entries()) {
+    const parsed = wctQuizSetCreateSchema.safeParse({
+      lessonKey: set.lessonKey,
+      sourceKind: set.sourceKind,
+      sourceId: set.sourceId,
+      generatorVersion: set.generatorVersion,
+      sourceHash: set.sourceHash,
+      questions: set.questions
+    });
+    if (!parsed.success || !isCurrentStandardWctQuizSet({
+      book,
+      day: allDays[index],
+      allDays,
+      quizSet: set
+    })) {
+      return failIncompleteInventory();
+    }
+  }
+
+  const candidates = exactSets.flatMap((set, index) => {
+    const day = orderedSummaries[index];
     return set.questions.map((question) => ({
       sourceQuizSetId: set.id,
       dayId: day.id,
@@ -79,6 +148,35 @@ async function candidatesForBook(
       question
     }));
   });
+  return { sets: exactSets, candidates, sourceVersion };
+}
+
+function validateAttemptSnapshot(
+  attempt: WctPopQuizAttempt,
+  book: WctBook,
+  inventory: CurrentInventory
+) {
+  if (attempt.bookId !== book.id) throw new WctPopQuizRestartRequiredError();
+  const dayById = new Map(book.days.map((day) => [day.id, day]));
+  const setById = new Map(inventory.sets.map((set) => [set.id, set]));
+
+  for (const stored of attempt.questions) {
+    const day = dayById.get(stored.dayId);
+    const set = setById.get(stored.sourceQuizSetId);
+    if (
+      !day
+      || !set
+      || stored.dayNumber !== day.dayNumber
+      || stored.dayLabel !== day.displayLabel
+      || (stored.dayTopic !== undefined && stored.dayTopic !== day.shortLabel)
+      || set.lessonKey !== standardWctLessonKey(book.title, day.dayNumber)
+      || set.sourceKind !== "wct_day"
+      || set.sourceId !== day.id
+      || !set.questions.some((question) => isDeepStrictEqual(question, stored.question))
+    ) {
+      throw new WctPopQuizRestartRequiredError();
+    }
+  }
 }
 
 export async function getWctPopQuizSummary(
@@ -91,8 +189,21 @@ export async function getWctPopQuizSummary(
 export async function getWctPopQuizAttempt(
   deps: AttemptDependencies,
   bookId: string
-): Promise<WctPopQuizAttempt | null> {
-  return deps.wctPopQuizStore.getAttempt(bookId);
+): Promise<WctPopQuizAttempt> {
+  const book = requireEligibleBook(await deps.wctStore.getBook(bookId));
+  const attempt = await deps.wctPopQuizStore.getAttempt(book.id);
+  if (!attempt) throw new WctPopQuizRestartRequiredError();
+  let inventory: CurrentInventory;
+  try {
+    inventory = await prepareCurrentInventory(deps, book);
+  } catch (error) {
+    if (error instanceof Error && error.message === incompleteInventoryMessage) {
+      throw new WctPopQuizRestartRequiredError();
+    }
+    throw error;
+  }
+  validateAttemptSnapshot(attempt, book, inventory);
+  return attempt;
 }
 
 export async function startWctPopQuiz(
@@ -101,17 +212,36 @@ export async function startWctPopQuiz(
 ): Promise<WctPopQuizAttempt> {
   const book = requireEligibleBook(await deps.wctStore.getBook(input.bookId));
   const existing = await deps.wctPopQuizStore.getAttempt(book.id);
-  if (input.mode === "start" && existing) return existing;
+  if (input.mode === "retake" && !existing) {
+    throw new WctPopQuizRestartRequiredError();
+  }
   if (input.mode === "retake" && existing?.status !== "completed") {
     throw new Error("Pop Quiz can only be restarted after completion");
   }
 
+  let inventory: CurrentInventory;
+  try {
+    inventory = await prepareCurrentInventory(deps, book);
+  } catch (error) {
+    if (
+      existing
+      && error instanceof Error
+      && error.message === incompleteInventoryMessage
+    ) {
+      throw new WctPopQuizRestartRequiredError();
+    }
+    throw error;
+  }
+  if (existing) validateAttemptSnapshot(existing, book, inventory);
+  if (input.mode === "start" && existing) return existing;
+
   const seed = (deps.createSeed ?? randomUUID)();
   const questions = (deps.selectQuestions ?? selectWctPopQuizQuestions)({
     book,
-    candidates: await candidatesForBook(deps, book),
+    candidates: inventory.candidates,
     seed,
-    previousSignature: input.mode === "retake" ? previousSignature(existing) : null
+    sourceVersion: inventory.sourceVersion,
+    previousQuestions: input.mode === "retake" ? existing!.questions : null
   });
 
   return deps.wctPopQuizStore.startAttempt({
