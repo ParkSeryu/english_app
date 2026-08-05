@@ -107,6 +107,7 @@ describe("WctQuizQuestionStep", () => {
     for (const choice of multipleChoiceQuestion.choices) {
       expect(screen.getByRole("button", { name: choice.text })).toBeVisible();
     }
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
   it("renders the explicit fill-blank badge and prompt without a textbox", () => {

@@ -2,15 +2,43 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import WctDayQuizPage from "@/app/lessons/books/[bookId]/days/[dayId]/quiz/page";
 import { WctQuizRunner } from "@/components/wct/WctQuizRunner";
 import type { WctQuizSet } from "@/lib/wct/quiz/types";
+import type { WctBook, WctDay } from "@/lib/wct/types";
 
 const mocks = vi.hoisted(() => ({
-  submitWctQuizAttemptAction: vi.fn()
+  submitWctQuizAttemptAction: vi.fn(),
+  requireCurrentUser: vi.fn(),
+  getBook: vi.fn(),
+  getDay: vi.fn(),
+  getSetByLessonKey: vi.fn(),
+  isCurrentStandardWctQuizSet: vi.fn()
 }));
 
 vi.mock("@/app/lessons/quiz-actions", () => ({
   submitWctQuizAttemptAction: mocks.submitWctQuizAttemptAction
+}));
+
+vi.mock("@/lib/auth", () => ({
+  requireCurrentUser: mocks.requireCurrentUser
+}));
+
+vi.mock("@/lib/wct-store", () => ({
+  getWctStore: () => ({
+    getBook: mocks.getBook,
+    getDay: mocks.getDay
+  })
+}));
+
+vi.mock("@/lib/wct-quiz-store", () => ({
+  getWctQuizStore: () => ({
+    getSetByLessonKey: mocks.getSetByLessonKey
+  })
+}));
+
+vi.mock("@/lib/wct/quiz/current-set", () => ({
+  isCurrentStandardWctQuizSet: mocks.isCurrentStandardWctQuizSet
 }));
 
 const quizSet: WctQuizSet = {
@@ -52,6 +80,31 @@ const structuredQuizSet: WctQuizSet = {
       reason: `Reason ${question.id}`
     }
   }))
+};
+
+const day: WctDay = {
+  id: "day-1",
+  bookId: "book-1",
+  dayNumber: 1,
+  shortLabel: "Topic 1",
+  displayLabel: "Day 1 (Topic 1)",
+  sourcePageStart: null,
+  sourcePageEnd: null,
+  sourceNeedsReview: false,
+  learningSummary: null,
+  concepts: [],
+  patterns: [],
+  importantNotes: [],
+  practicePrompts: []
+};
+
+const book: WctBook = {
+  id: "book-1",
+  title: "WCT Pre-Novice",
+  levelLabel: null,
+  dayCount: 1,
+  sortOrder: 0,
+  days: [day]
 };
 
 async function answerQuiz(
@@ -237,5 +290,47 @@ describe("WctQuizRunner", () => {
     });
     expect(screen.getByText("저장됐어요")).toBeVisible();
     expect(screen.queryByText("저장되지 않았어요")).not.toBeInTheDocument();
+  });
+});
+
+describe("WctDayQuizPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.requireCurrentUser.mockResolvedValue({ id: "user-1" });
+    mocks.getBook.mockResolvedValue(book);
+    mocks.getDay.mockResolvedValue(day);
+    mocks.isCurrentStandardWctQuizSet.mockReturnValue(true);
+  });
+
+  async function renderPage(quizSetForRoute: WctQuizSet) {
+    mocks.getSetByLessonKey.mockResolvedValue(quizSetForRoute);
+    render(await WctDayQuizPage({
+      params: Promise.resolve({ bookId: book.id, dayId: day.id })
+    }));
+  }
+
+  it("keeps accepted v1 standard quizzes context-free with legacy feedback", async () => {
+    const user = userEvent.setup();
+    await renderPage(quizSet);
+
+    await user.click(screen.getByRole("button", { name: "Correct 1" }));
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
+
+    expect(screen.getByText("Explanation 1")).toBeVisible();
+    expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
+    expect(screen.queryByText(/정답 문장 ·/)).not.toBeInTheDocument();
+  });
+
+  it("passes exact Day context to accepted v2 standard quizzes", async () => {
+    const user = userEvent.setup();
+    await renderPage(structuredQuizSet);
+
+    expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Correct 1" }));
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
+
+    expect(screen.getByText("Day 1 · Topic 1")).toBeVisible();
+    expect(screen.getByText("정답 문장 · Correct sentence question-1"))
+      .toBeVisible();
   });
 });

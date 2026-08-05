@@ -6,6 +6,7 @@ import { getWctQuizStore } from "@/lib/wct-quiz-store";
 import { getWctStore } from "@/lib/wct-store";
 import { isCurrentStandardWctQuizSet } from "@/lib/wct/quiz/current-set";
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
+import { WCT_STANDARD_QUIZ_GENERATOR_VERSION } from "@/lib/wct/quiz/types";
 import type { WctDay } from "@/lib/wct/types";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,9 @@ export default async function WctDayQuizPage({
       <WctQuizRunner
         quizSet={quizSet}
         returnHref={`/lessons/books/${book.id}/days/${day.id}`}
-        feedbackContext={`Day ${day.dayNumber} · ${day.shortLabel}`}
+        feedbackContext={quizSet.generatorVersion === WCT_STANDARD_QUIZ_GENERATOR_VERSION
+          ? `Day ${day.dayNumber} · ${day.shortLabel}`
+          : undefined}
         sourceContext={{ bookId: book.id, dayId: day.id }}
       />
     </main>

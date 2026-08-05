@@ -16,6 +16,8 @@ import type {
   WctPopQuizResult
 } from "@/lib/wct/pop-quiz/types";
 
+const saveFailureMessage = "답안을 저장하지 못했어요. 다시 시도해 주세요.";
+
 export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizAttempt; returnHref: string }) {
   const total = attempt.questions.length;
   const [questionIndex, setQuestionIndex] = useState(attempt.currentIndex);
@@ -43,26 +45,31 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
     if (!question || !selectedChoiceId || saving || answers.some((answer) => answer.questionId === question.id)) return;
     setSaving(true);
     setSaveError(null);
-    const actionResult = await confirmWctPopQuizAnswerAction({
-      bookId: attempt.bookId,
-      attemptId: attempt.attemptId,
-      questionId: question.id,
-      choiceId: selectedChoiceId
-    });
-    setSaving(false);
-    if (!actionResult.ok) {
-      setSaveError(actionResult.message);
-      return;
+    try {
+      const actionResult = await confirmWctPopQuizAnswerAction({
+        bookId: attempt.bookId,
+        attemptId: attempt.attemptId,
+        questionId: question.id,
+        choiceId: selectedChoiceId
+      });
+      if (!actionResult.ok) {
+        setSaveError(actionResult.message);
+        return;
+      }
+      setConfirmation(actionResult.data);
+      setAnswers((current) => current.some((answer) => answer.questionId === actionResult.data.answer.questionId)
+        ? current
+        : [...current, actionResult.data.answer]);
+      setIsAnswerConfirmed(true);
+    } catch {
+      setSaveError(saveFailureMessage);
+    } finally {
+      setSaving(false);
     }
-    setConfirmation(actionResult.data);
-    setAnswers((current) => current.some((answer) => answer.questionId === actionResult.data.answer.questionId)
-      ? current
-      : [...current, actionResult.data.answer]);
   }
 
   function confirmAnswer() {
     if (!selectedChoiceId || isAnswerConfirmed || saving) return;
-    setIsAnswerConfirmed(true);
     void saveAnswer();
   }
 
@@ -168,7 +175,7 @@ export function WctPopQuizRunner({ attempt, returnHref }: { attempt: WctPopQuizA
           ? `Day ${questionEntry.dayNumber} · ${questionEntry.dayTopic}`
           : questionEntry.dayLabel}
       />
-      {isAnswerConfirmed && saveError ? (
+      {saveError ? (
         <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-700">
           <p>{saveError}</p>
           <button type="button" onClick={confirmation ? completeAttempt : saveAnswer} disabled={saving} className="mt-3 rounded-full bg-rose-700 px-4 py-2 text-sm font-black text-white disabled:opacity-60">저장 다시 시도</button>

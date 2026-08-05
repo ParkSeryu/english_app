@@ -111,7 +111,7 @@ describe("WctPopQuizRunner", () => {
     expect(screen.queryByText("Explanation 2")).not.toBeInTheDocument();
   });
 
-  it("allows selection changes, shows feedback on confirmation, and waits for saving before advance", async () => {
+  it("keeps feedback hidden while saving and confirms the selected O/X choice after success", async () => {
     const user = userEvent.setup();
     let resolveConfirmation: (value: ReturnType<typeof confirmation>) => void;
     mocks.confirmWctPopQuizAnswerAction.mockReturnValue(new Promise((resolve) => {
@@ -126,25 +126,30 @@ describe("WctPopQuizRunner", () => {
     await user.click(screen.getByRole("button", { name: "O" }));
     await user.click(screen.getByRole("button", { name: "정답 확인" }));
 
-    expect(screen.getByText("정답이에요")).toBeVisible();
-    const feedbackPanel = screen.getByText("정답이에요").parentElement;
+    await waitFor(() => {
+      expect(mocks.confirmWctPopQuizAnswerAction).toHaveBeenCalledWith({
+        bookId: attempt.bookId,
+        attemptId: attempt.attemptId,
+        questionId: "question-1",
+        choiceId: "choice-1-1"
+      });
+    });
+    expect(screen.queryByText("정답이에요")).not.toBeInTheDocument();
+    expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("정답 문장 · Correct sentence 1"))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText("Reason 1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "O" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "정답 확인" })).toBeDisabled();
+
+    resolveConfirmation!(confirmation(0));
+    const feedbackPanel = (await screen.findByText("정답이에요")).parentElement;
     expect(feedbackPanel).not.toBeNull();
     expect(feedbackPanel).toHaveAttribute("aria-live", "polite");
     expect(within(feedbackPanel!).getByText("Day 1 · Topic 1")).toBeVisible();
     expect(screen.getByText("정답 문장 · Correct sentence 1")).toBeVisible();
     expect(screen.getByText("원래 패턴 · Pattern 1")).toBeVisible();
     expect(screen.getByText("Reason 1")).toBeVisible();
-    expect(screen.getByRole("button", { name: "다음 문제" })).toBeDisabled();
-
-    expect(mocks.confirmWctPopQuizAnswerAction).toHaveBeenCalledWith({
-      bookId: attempt.bookId,
-      attemptId: attempt.attemptId,
-      questionId: "question-1",
-      choiceId: "choice-1-1"
-    });
-
-    resolveConfirmation!(confirmation(0));
-    await screen.findByRole("button", { name: "다음 문제" });
     expect(screen.getByRole("button", { name: "다음 문제" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "다음 문제" }));
     expect(screen.getByText("2 / 16")).toBeVisible();
@@ -165,7 +170,7 @@ describe("WctPopQuizRunner", () => {
     expect(within(feedbackPanel!).getByText("Day 2")).toBeVisible();
   });
 
-  it("keeps confirmed feedback visible and retries a failed save without advancing", async () => {
+  it("keeps feedback hidden after an action error and confirms after retry", async () => {
     const user = userEvent.setup();
     mocks.confirmWctPopQuizAnswerAction
       .mockResolvedValueOnce({ ok: false, message: "답안을 저장하지 못했어요. 다시 시도해 주세요." })
@@ -175,14 +180,39 @@ describe("WctPopQuizRunner", () => {
     await user.click(screen.getByRole("button", { name: "X" }));
     await user.click(screen.getByRole("button", { name: "정답 확인" }));
 
-    expect(await screen.findByText("아쉬워요. 정답을 확인해 보세요.")).toBeVisible();
-    expect(screen.getByText("답안을 저장하지 못했어요. 다시 시도해 주세요.")).toBeVisible();
-    expect(screen.getByRole("button", { name: "다음 문제" })).toBeDisabled();
+    expect(await screen.findByText("답안을 저장하지 못했어요. 다시 시도해 주세요.")).toBeVisible();
+    expect(screen.queryByText("아쉬워요. 정답을 확인해 보세요.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("정답 문장 · Correct sentence 1"))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "X" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "정답 확인" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "저장 다시 시도" }));
 
     await waitFor(() => expect(mocks.confirmWctPopQuizAnswerAction).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("아쉬워요. 정답을 확인해 보세요.")).toBeVisible();
     expect(screen.getByRole("button", { name: "다음 문제" })).toBeEnabled();
     expect(screen.getByText("1 / 16")).toBeVisible();
+  });
+
+  it("keeps feedback hidden when the answer action rejects and allows retry", async () => {
+    const user = userEvent.setup();
+    mocks.confirmWctPopQuizAnswerAction
+      .mockRejectedValueOnce(new Error("network failure"))
+      .mockResolvedValueOnce(confirmation(0));
+    render(<WctPopQuizRunner attempt={attempt} returnHref="/lessons/books/book-1" />);
+
+    await user.click(screen.getByRole("button", { name: "O" }));
+    await user.click(screen.getByRole("button", { name: "정답 확인" }));
+
+    expect(await screen.findByText("답안을 저장하지 못했어요. 다시 시도해 주세요.")).toBeVisible();
+    expect(screen.queryByText("정답이에요")).not.toBeInTheDocument();
+    expect(screen.queryByText("Day 1 · Topic 1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "O" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "저장 다시 시도" }));
+    expect(await screen.findByText("정답이에요")).toBeVisible();
+    expect(screen.getByText("Day 1 · Topic 1")).toBeVisible();
   });
 
   it("exposes the selected answer before confirmation without feedback", async () => {
