@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { mapWctPopQuizAttempt } from "@/lib/wct-pop-quiz-store/mappers";
 import { buildLegacyStandardWctQuizSource } from "@/lib/wct/quiz/adapters";
 import { generateLegacyWctQuizSetDraft } from "@/lib/wct/quiz/generator";
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
@@ -402,12 +403,24 @@ describe("WCT Pop Quiz service", () => {
     ))).toBe(true);
   });
 
-  it("preserves a valid historical v1 20-question snapshot without Day topics", async () => {
+  it("keeps legacy v1 20-question rows readable but requires a current-service restart", async () => {
     const book = createBook();
     const days = createFullDays(book);
     const sets = createV1Sets(book, days);
-    const existing = attempt(book, sets);
-    existing.questions = legacyTwentySnapshot(book, sets);
+    const historicalQuestions = legacyTwentySnapshot(book, sets);
+    const existing = mapWctPopQuizAttempt({
+      attempt_id: "33333333-3333-4333-8333-333333333333",
+      book_id: book.id,
+      seed: "legacy-seed",
+      questions: historicalQuestions,
+      answers: [],
+      current_index: 0,
+      status: "in_progress",
+      latest_score: null,
+      incorrect_days: [],
+      started_at: "2026-08-03T00:00:00Z",
+      completed_at: null
+    });
     const deps = stores(book, days, sets);
     const { startWctPopQuiz } = await service();
 
@@ -421,7 +434,8 @@ describe("WCT Pop Quiz service", () => {
         getAttempt: vi.fn().mockResolvedValue(existing),
         startAttempt: vi.fn()
       }
-    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
   });
 
   it("rejects a partial current v1 one-per-Day snapshot", async () => {
@@ -487,6 +501,57 @@ describe("WCT Pop Quiz service", () => {
       }
     }, { bookId: book.id, mode: "start" }))
       .rejects.toThrow("Pop Quiz needs one complete quiz version");
+    expect(startAttempt).not.toHaveBeenCalled();
+  });
+
+  it.each(["shortLabel", "displayLabel"] as const)(
+    "rejects a full-Day %s that differs from its book summary",
+    async (field) => {
+      const book = createBook();
+      const days = createFullDays(book);
+      days[0][field] = field === "shortLabel" ? "Changed topic" : "Changed Day 1";
+      const sets = createV2Sets(book, days);
+      const startAttempt = vi.fn();
+      const deps = stores(book, days, sets);
+      const { startWctPopQuiz } = await service();
+
+      await expect(startWctPopQuiz({
+        ...deps,
+        wctPopQuizStore: {
+          getAttempt: vi.fn().mockResolvedValue(null),
+          startAttempt
+        }
+      }, { bookId: book.id, mode: "start" }))
+        .rejects.toThrow("Pop Quiz needs one complete quiz version");
+      expect(startAttempt).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ["title without WCT", "Pattern book Prenovice", "Prenovice", 16],
+    ["Premium mixed title", "WCT Premium Prenovice", "Prenovice", 16],
+    ["title-level mismatch", "WCT Pattern book Prenovice", "Novice", 28]
+  ] as const)("rejects a %s through the shared standard-book identity rules", async (
+    _label,
+    title,
+    levelLabel,
+    dayCount
+  ) => {
+    const book = createBook({ title, levelLabel, dayCount });
+    const days = createFullDays(book);
+    const sets = createV1Sets(book, days);
+    const startAttempt = vi.fn();
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(null),
+        startAttempt
+      }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toThrow("Pop Quiz is available for Prenovice and Novice only");
     expect(startAttempt).not.toHaveBeenCalled();
   });
 

@@ -3,9 +3,9 @@ import { isDeepStrictEqual } from "node:util";
 
 import type { WctPopQuizStore } from "@/lib/wct-pop-quiz-store/contract";
 import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
-import { normalizeWctIdentity } from "@/lib/wct/normalization";
 import { isCurrentStandardWctQuizSet } from "@/lib/wct/quiz/current-set";
 import { standardWctLessonKey } from "@/lib/wct/quiz/keys";
+import { resolveStandardWctLevel } from "@/lib/wct/quiz/standard/source";
 import type {
   WctQuizGeneratorVersion,
   WctQuizSet
@@ -53,15 +53,13 @@ type CurrentInventory = {
   sourceVersion: WctQuizGeneratorVersion;
 };
 
-function compactIdentity(value: string | null) {
-  return value ? normalizeWctIdentity(value).replace(/\s/g, "") : "";
-}
-
 export function isWctPopQuizEligible(book: WctBook) {
-  const titleWords = normalizeWctIdentity(book.title).split(" ");
-  const level = compactIdentity(book.levelLabel);
-  return (level === "prenovice" || level === "novice")
-    && titleWords.some((word) => compactIdentity(word) === level);
+  try {
+    resolveStandardWctLevel(book);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function requireEligibleBook(book: WctBook | null): WctBook {
@@ -80,7 +78,7 @@ async function prepareCurrentInventory(
   book: WctBook
 ): Promise<CurrentInventory> {
   const orderedSummaries = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
-  const expectedDayCount = compactIdentity(book.levelLabel) === "prenovice" ? 16 : 28;
+  const expectedDayCount = resolveStandardWctLevel(book) === "prenovice" ? 16 : 28;
   if (
     book.dayCount !== expectedDayCount
     || orderedSummaries.length !== expectedDayCount
@@ -98,6 +96,8 @@ async function prepareCurrentInventory(
     day.id !== orderedSummaries[index].id
     || day.bookId !== book.id
     || day.dayNumber !== orderedSummaries[index].dayNumber
+    || day.shortLabel !== orderedSummaries[index].shortLabel
+    || day.displayLabel !== orderedSummaries[index].displayLabel
   ))) {
     return failIncompleteInventory();
   }
@@ -166,22 +166,17 @@ function validateAttemptSnapshot(
 ) {
   if (attempt.bookId !== book.id) throw new WctPopQuizRestartRequiredError();
   const orderedDays = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
-  const isLegacyTwenty = inventory.sourceVersion === "wct-review-v1"
-    && attempt.questions.length === 20;
   const dayIds = attempt.questions.map((item) => item.dayId);
   const dayNumbers = attempt.questions.map((item) => item.dayNumber);
   if (
-    !isLegacyTwenty
-    && (
-      attempt.questions.length !== orderedDays.length
-      || new Set(dayIds).size !== orderedDays.length
-      || new Set(dayNumbers).size !== orderedDays.length
-      || attempt.questions.some((item, index) => (
-        item.dayId !== orderedDays[index].id
-        || item.dayNumber !== orderedDays[index].dayNumber
-        || item.dayTopic !== orderedDays[index].shortLabel
-      ))
-    )
+    attempt.questions.length !== orderedDays.length
+    || new Set(dayIds).size !== orderedDays.length
+    || new Set(dayNumbers).size !== orderedDays.length
+    || attempt.questions.some((item, index) => (
+      item.dayId !== orderedDays[index].id
+      || item.dayNumber !== orderedDays[index].dayNumber
+      || item.dayTopic !== orderedDays[index].shortLabel
+    ))
   ) {
     throw new WctPopQuizRestartRequiredError();
   }
@@ -196,9 +191,7 @@ function validateAttemptSnapshot(
       || !set
       || stored.dayNumber !== day.dayNumber
       || stored.dayLabel !== day.displayLabel
-      || (isLegacyTwenty
-        ? stored.dayTopic !== undefined && stored.dayTopic !== day.shortLabel
-        : stored.dayTopic !== day.shortLabel)
+      || stored.dayTopic !== day.shortLabel
       || set.lessonKey !== standardWctLessonKey(book.title, day.dayNumber)
       || set.sourceKind !== "wct_day"
       || set.sourceId !== day.id

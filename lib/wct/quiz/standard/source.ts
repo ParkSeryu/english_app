@@ -43,7 +43,7 @@ function hasPremiumIdentity(value: string | null) {
   return /(?:^|[^a-z0-9])premium(?:$|[^a-z0-9])/iu.test(normalizeWctIdentity(value));
 }
 
-function resolveLevel(book: WctBook): WctStandardLevel {
+export function resolveStandardWctLevel(book: WctBook): WctStandardLevel {
   const normalizedTitle = normalizeWctIdentity(book.title);
   const titleLevel = identityLevel(normalizedTitle);
   const labelLevel = identityLevel(book.levelLabel);
@@ -104,7 +104,7 @@ function canonicalEntries(day: WctDay): WctStandardSourceEntry[] {
 }
 
 function canonicalSourceInput(book: WctBook, day: WctDay) {
-  const level = resolveLevel(book);
+  const level = resolveStandardWctLevel(book);
   const topic = canonicalText(day.shortLabel);
   const lessonKey = standardWctLessonKey(book.title, day.dayNumber);
   const entries = canonicalEntries(day);
