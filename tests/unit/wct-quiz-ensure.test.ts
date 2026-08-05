@@ -97,6 +97,9 @@ class CountingQuizStore implements WctQuizStore {
     private readonly failure: Error | null = null
   ) {}
 
+  getSetById: WctQuizStore["getSetById"] = (id) => (
+    this.delegate.getSetById(id)
+  );
   getSetByLessonKey: WctQuizStore["getSetByLessonKey"] = (key) => (
     this.delegate.getSetByLessonKey(key)
   );

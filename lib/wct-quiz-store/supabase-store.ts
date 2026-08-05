@@ -3,6 +3,9 @@ import { z } from "zod";
 import type { UserIdentity } from "@/lib/types";
 import type { WctQuizStore } from "@/lib/wct-quiz-store/contract";
 import {
+  parseWctStandardQuizBookSyncs
+} from "@/lib/wct-quiz-store/standard-sync-validation";
+import {
   mapWctQuizAttemptResult,
   mapWctQuizSet
 } from "@/lib/wct-quiz-store/mappers";
@@ -16,7 +19,6 @@ import type {
   WctQuizSummary
 } from "@/lib/wct/quiz/types";
 import {
-  wctStandardQuizSetCreateSchema,
   wctQuizSetCreateSchema,
   wctQuizSubmissionSchema
 } from "@/lib/wct/quiz/validation";
@@ -58,6 +60,17 @@ export class SupabaseWctQuizStore implements WctQuizStore {
       .select(QUIZ_SET_SELECT)
       .eq("owner_id", this.user.id)
       .eq("lesson_key", lessonKey)
+      .maybeSingle();
+    if (error) throw new Error(`WCT quiz set query failed: ${error.message}`);
+    return data ? mapWctQuizSet(data) : null;
+  }
+
+  async getSetById(id: string): Promise<WctQuizSet | null> {
+    const { data, error } = await (await this.client())
+      .from("wct_quiz_sets")
+      .select(QUIZ_SET_SELECT)
+      .eq("owner_id", this.user.id)
+      .eq("id", id)
       .maybeSingle();
     if (error) throw new Error(`WCT quiz set query failed: ${error.message}`);
     return data ? mapWctQuizSet(data) : null;
@@ -133,30 +146,7 @@ export class SupabaseWctQuizStore implements WctQuizStore {
     if (!this.admin) {
       throw new Error("WCT standard quiz synchronization requires an admin store");
     }
-    if (books.length === 0 || books.length > 100) {
-      throw new Error("WCT standard quiz synchronization requires 1 to 100 books");
-    }
-    const seenBooks = new Set<string>();
-    const seenLessonKeys = new Set<string>();
-    const parsedBooks = books.map((book) => {
-      const bookId = book.bookId.trim();
-      if (!bookId || bookId.length > 240 || seenBooks.has(bookId)) {
-        throw new Error("WCT standard quiz synchronization has an invalid book");
-      }
-      seenBooks.add(bookId);
-      if (book.sets.length === 0) {
-        throw new Error("WCT standard quiz synchronization requires complete book sets");
-      }
-      const sets = book.sets.map((set) => {
-        const parsed = wctStandardQuizSetCreateSchema.parse(set);
-        if (seenLessonKeys.has(parsed.lessonKey)) {
-          throw new Error("WCT standard quiz synchronization has duplicate lesson keys");
-        }
-        seenLessonKeys.add(parsed.lessonKey);
-        return parsed;
-      });
-      return { bookId, sets };
-    });
+    const parsedBooks = parseWctStandardQuizBookSyncs(books);
     const { data, error } = await (await this.client()).rpc(
       "sync_wct_standard_quiz_sets",
       { p_owner_id: this.user.id, p_books: parsedBooks }

@@ -203,6 +203,7 @@ describe("WCT import API", () => {
       }))
     });
     vi.spyOn(wctQuizStores, "getAdminWctQuizStore").mockReturnValue({
+      getSetById: (id) => realAdmin.getSetById(id),
       getSetByLessonKey: (key) => realAdmin.getSetByLessonKey(key),
       listSetsByLessonKeys: (keys) => realAdmin.listSetsByLessonKeys(keys),
       getSummaryByLessonKey: (key) => realAdmin.getSummaryByLessonKey(key),

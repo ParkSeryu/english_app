@@ -69,7 +69,13 @@ export async function submitWctQuizAttemptAction(
   try {
     const user = await requireCurrentUser();
     const quizStore = getWctQuizStore(user);
-    if (parsed.sourceContext) {
+    const quizSet = await quizStore.getSetById(parsed.submission.quizSetId);
+    if (!quizSet) return { ok: false, message: staleQuizMessage };
+
+    if (quizSet.sourceKind === "wct_day") {
+      if (!parsed.sourceContext) {
+        return { ok: false, message: staleQuizMessage };
+      }
       const wctStore = getWctStore(user);
       const book = await wctStore.getBook(parsed.sourceContext.bookId);
       if (!book) return { ok: false, message: staleQuizMessage };
@@ -85,16 +91,18 @@ export async function submitWctQuizAttemptAction(
         return { ok: false, message: staleQuizMessage };
       }
       const allDays = loadedDays as WctDay[];
-      const quizSet = await quizStore.getSetByLessonKey(
-        standardWctLessonKey(book.title, day.dayNumber)
-      );
       if (
-        !quizSet
-        || quizSet.id !== parsed.submission.quizSetId
+        quizSet.lessonKey !== standardWctLessonKey(book.title, day.dayNumber)
         || !isCurrentStandardWctQuizSet({ book, day, allDays, quizSet })
       ) {
         return { ok: false, message: staleQuizMessage };
       }
+    } else if (quizSet.sourceKind === "wct_premium") {
+      if (parsed.sourceContext) {
+        return { ok: false, message: staleQuizMessage };
+      }
+    } else {
+      return { ok: false, message: staleQuizMessage };
     }
 
     const result = await quizStore.submitAttempt(parsed.submission);

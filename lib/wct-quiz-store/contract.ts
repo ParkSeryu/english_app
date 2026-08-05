@@ -9,6 +9,7 @@ import type {
 } from "@/lib/wct/quiz/types";
 
 export interface WctQuizStore {
+  getSetById(id: string): Promise<WctQuizSet | null>;
   getSetByLessonKey(lessonKey: string): Promise<WctQuizSet | null>;
   listSetsByLessonKeys(lessonKeys: string[]): Promise<WctQuizSet[]>;
   getSummaryByLessonKey(lessonKey: string): Promise<WctQuizSummary | null>;

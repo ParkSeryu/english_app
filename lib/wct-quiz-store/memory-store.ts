@@ -7,6 +7,9 @@ import {
   commitMemoryWctPopQuizAttempts,
   invalidateMemoryWctPopQuizAttempt
 } from "@/lib/wct-pop-quiz-store/memory-store";
+import {
+  parseWctStandardQuizBookSyncs
+} from "@/lib/wct-quiz-store/standard-sync-validation";
 import { stableStringify } from "@/lib/wct/normalization";
 import type {
   WctQuizAttemptResult,
@@ -18,7 +21,6 @@ import type {
   WctQuizSummary
 } from "@/lib/wct/quiz/types";
 import {
-  wctStandardQuizSetCreateSchema,
   wctQuizSetCreateSchema,
   wctQuizSubmissionSchema
 } from "@/lib/wct/quiz/validation";
@@ -33,6 +35,7 @@ type WctQuizProgress = {
 type MemoryWctQuizState = {
   sets: Map<string, WctQuizSet>;
   progress: Map<string, WctQuizProgress>;
+  standardBookIds: Map<string, string>;
 };
 
 const memoryWctQuizStateKey = Symbol.for("english-app.memory-wct-quiz-store");
@@ -41,10 +44,13 @@ function getState(): MemoryWctQuizState {
   const globalState = globalThis as typeof globalThis & {
     [memoryWctQuizStateKey]?: MemoryWctQuizState;
   };
-  return (globalState[memoryWctQuizStateKey] ??= {
+  const state = (globalState[memoryWctQuizStateKey] ??= {
     sets: new Map(),
-    progress: new Map()
+    progress: new Map(),
+    standardBookIds: new Map()
   });
+  state.standardBookIds ??= new Map();
+  return state;
 }
 
 function setKey(ownerId: string, lessonKey: string) {
@@ -63,6 +69,7 @@ export function resetMemoryWctQuizStoreForTests() {
   const state = getState();
   state.sets.clear();
   state.progress.clear();
+  state.standardBookIds.clear();
 }
 
 export class MemoryWctQuizStore implements WctQuizStore {
@@ -70,6 +77,13 @@ export class MemoryWctQuizStore implements WctQuizStore {
     private readonly user: UserIdentity,
     private readonly admin = false
   ) {}
+
+  async getSetById(id: string): Promise<WctQuizSet | null> {
+    const set = [...getState().sets.values()].find((candidate) => (
+      candidate.id === id && candidate.ownerId === this.user.id
+    ));
+    return set ? clone(set) : null;
+  }
 
   async getSetByLessonKey(lessonKey: string): Promise<WctQuizSet | null> {
     const set = getState().sets.get(setKey(this.user.id, lessonKey));
@@ -123,31 +137,7 @@ export class MemoryWctQuizStore implements WctQuizStore {
     if (!this.admin) {
       throw new Error("WCT standard quiz synchronization requires an admin store");
     }
-    if (books.length === 0 || books.length > 100) {
-      throw new Error("WCT standard quiz synchronization requires 1 to 100 books");
-    }
-
-    const seenBooks = new Set<string>();
-    const seenLessonKeys = new Set<string>();
-    const parsedBooks = books.map((book) => {
-      const bookId = book.bookId.trim();
-      if (!bookId || bookId.length > 240 || seenBooks.has(bookId)) {
-        throw new Error("WCT standard quiz synchronization has an invalid book");
-      }
-      seenBooks.add(bookId);
-      if (book.sets.length === 0) {
-        throw new Error("WCT standard quiz synchronization requires complete book sets");
-      }
-      const sets = book.sets.map((set) => {
-        const parsed = wctStandardQuizSetCreateSchema.parse(set);
-        if (seenLessonKeys.has(parsed.lessonKey)) {
-          throw new Error("WCT standard quiz synchronization has duplicate lesson keys");
-        }
-        seenLessonKeys.add(parsed.lessonKey);
-        return parsed;
-      });
-      return { bookId, sets };
-    });
+    const parsedBooks = parseWctStandardQuizBookSyncs(books);
 
     const state = getState();
     for (const book of parsedBooks) {
@@ -157,7 +147,17 @@ export class MemoryWctQuizStore implements WctQuizStore {
           existing
           && existing.generatorVersion === set.generatorVersion
           && existing.sourceHash === set.sourceHash
-          && stableStringify(existing.questions) !== stableStringify(set.questions)
+          && (
+            existing.lessonKey !== set.lessonKey
+            || existing.sourceKind !== set.sourceKind
+            || existing.sourceId !== set.sourceId
+            || (
+              state.standardBookIds.has(setKey(this.user.id, set.lessonKey))
+              && state.standardBookIds.get(setKey(this.user.id, set.lessonKey))
+                !== book.bookId
+            )
+            || stableStringify(existing.questions) !== stableStringify(set.questions)
+          )
         ) {
           throw new Error(
             `WCT quiz generator/version integrity collision for ${set.lessonKey}`
@@ -168,6 +168,7 @@ export class MemoryWctQuizStore implements WctQuizStore {
 
     const sets = clone(state.sets);
     const progress = clone(state.progress);
+    const standardBookIds = clone(state.standardBookIds);
     const popAttempts = cloneMemoryWctPopQuizAttempts();
     const result: WctStandardQuizSyncResult = {
       createdCount: 0,
@@ -182,6 +183,7 @@ export class MemoryWctQuizStore implements WctQuizStore {
       for (const set of book.sets) {
         const key = setKey(this.user.id, set.lessonKey);
         const existing = sets.get(key);
+        standardBookIds.set(key, book.bookId);
         if (!existing) {
           sets.set(key, {
             ...clone(set),
@@ -225,6 +227,7 @@ export class MemoryWctQuizStore implements WctQuizStore {
 
     state.sets = sets;
     state.progress = progress;
+    state.standardBookIds = standardBookIds;
     commitMemoryWctPopQuizAttempts(popAttempts);
     return result;
   }

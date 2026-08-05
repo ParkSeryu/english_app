@@ -219,6 +219,93 @@ describe("MemoryWctQuizStore", () => {
     await expect(admin.getSetByLessonKey(set.lessonKey)).resolves.toEqual(stored);
   });
 
+  it("treats a changed immutable source identity as a collision without resets", async () => {
+    const bookId = "book-prenovice";
+    const set = v2Draft(1);
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+    const learner = new MemoryWctQuizStore({ id: USER_A });
+    const popStore = new MemoryWctPopQuizStore({ id: USER_A });
+    await admin.syncStandardSets([{ bookId, sets: [set] }]);
+    const stored = await admin.getSetByLessonKey(set.lessonKey);
+    if (!stored) throw new Error("missing standard fixture set");
+    await learner.submitAttempt(answersFor(stored, 0));
+    const popAttempt = await popStore.startAttempt({
+      bookId,
+      seed: "source-collision-fixture",
+      questions: popQuestions([set])
+    });
+
+    await expect(admin.syncStandardSets([{ bookId, sets: [{
+      ...set,
+      sourceId: "different-day-source"
+    }] }])).rejects.toThrow("integrity collision");
+
+    await expect(admin.getSetByLessonKey(set.lessonKey)).resolves.toEqual(stored);
+    await expect(learner.getSummaryByLessonKey(set.lessonKey))
+      .resolves.toMatchObject({ latestScore: 5 });
+    await expect(popStore.getAttempt(bookId)).resolves.toEqual(popAttempt);
+  });
+
+  it("treats a changed immutable book relation as a collision without resets", async () => {
+    const originalBookId = "book-prenovice-a";
+    const set = v2Draft(1);
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+    const learner = new MemoryWctQuizStore({ id: USER_A });
+    const popStore = new MemoryWctPopQuizStore({ id: USER_A });
+    await admin.syncStandardSets([{ bookId: originalBookId, sets: [set] }]);
+    const stored = await admin.getSetByLessonKey(set.lessonKey);
+    if (!stored) throw new Error("missing standard fixture set");
+    await learner.submitAttempt(answersFor(stored, 0));
+    const popAttempt = await popStore.startAttempt({
+      bookId: originalBookId,
+      seed: "book-collision-fixture",
+      questions: popQuestions([set])
+    });
+
+    await expect(admin.syncStandardSets([{
+      bookId: "book-prenovice-b",
+      sets: [set]
+    }])).rejects.toThrow("integrity collision");
+
+    await expect(admin.getSetByLessonKey(set.lessonKey)).resolves.toEqual(stored);
+    await expect(learner.getSummaryByLessonKey(set.lessonKey))
+      .resolves.toMatchObject({ latestScore: 5 });
+    await expect(popStore.getAttempt(originalBookId)).resolves.toEqual(popAttempt);
+  });
+
+  it("rejects duplicate source IDs within one book before mutation", async () => {
+    const first = v2Draft(1);
+    const second = { ...v2Draft(2), sourceId: first.sourceId };
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+
+    await expect(admin.syncStandardSets([{
+      bookId: "book-prenovice",
+      sets: [first, second]
+    }])).rejects.toThrow("duplicate source IDs");
+    await expect(admin.listSetsByLessonKeys([
+      first.lessonKey,
+      second.lessonKey
+    ])).resolves.toEqual([]);
+  });
+
+  it("rejects duplicate source IDs across books before mutation", async () => {
+    const first = v2Draft(1);
+    const second = { ...v2Draft(2), sourceId: first.sourceId };
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+
+    await expect(admin.syncStandardSets([{
+      bookId: "book-prenovice-a",
+      sets: [first]
+    }, {
+      bookId: "book-prenovice-b",
+      sets: [second]
+    }])).rejects.toThrow("duplicate source IDs");
+    await expect(admin.listSetsByLessonKeys([
+      first.lessonKey,
+      second.lessonKey
+    ])).resolves.toEqual([]);
+  });
+
   it("creates once and returns the immutable existing set on replay", async () => {
     const admin = new MemoryWctQuizStore({ id: USER_A }, true);
     const first = await admin.createSetIfMissing(draft());
