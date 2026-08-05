@@ -1,7 +1,7 @@
 # WCT Quiz Quality and Variety Design
 
 Date: 2026-08-05
-Status: Approved in conversation; awaiting review of this written specification
+Status: Approved
 
 ## Summary
 
@@ -348,6 +348,12 @@ draft before calling it. Within one transaction, the operation:
 5. deletes the current Pop Quiz row for every affected book because its
    immutable snapshot may contain an old source question;
 6. rolls back every set and progress change if any affected Day fails.
+
+The skip case assumes deterministic generator integrity: matching generator
+version and source hash must also reproduce the same canonical question JSON.
+If those identity fields match but the payload differs, synchronization treats
+the row as a version/hash collision and fails without mutation; it does not
+silently overwrite questions or reset progress under an unchanged version.
 
 The database implementation is one service-role-only transactional RPC; normal
 authenticated clients retain read-only table access and cannot call it. The
