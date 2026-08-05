@@ -78,6 +78,7 @@ export function auditStandardQuestionCandidate(
   const { question, provenance } = candidate;
   const expectedChoiceCount = question.format === "true_false" ? 2 : 4;
   if (forbiddenPromptMetadata.test(question.prompt)
+    || question.choices.some((choice) => forbiddenPromptMetadata.test(choice.text))
     || question.choices.length !== expectedChoiceCount
     || provenance.choiceEvidence.length !== expectedChoiceCount
     || new Set(question.choices.map((choice) => normalizeWctIdentity(choice.text))).size
@@ -123,8 +124,12 @@ export function auditStandardQuestionCandidate(
   }
 
   const blank = provenance.blankSpan;
+  const expectedPrompt = blank
+    ? `${provenance.sourceSentence.slice(0, blank.start)}____${provenance.sourceSentence.slice(blank.end)}`
+    : null;
   if (!blank
     || provenance.sourceSentence.slice(blank.start, blank.end) !== blank.correctText
+    || question.prompt !== expectedPrompt
     || (question.prompt.match(/____/g) ?? []).length !== 1
     || correctEvidence[0].choiceText !== blank.correctText) return false;
   return distractors.every((item) => item.mutation?.start === blank.start

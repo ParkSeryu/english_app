@@ -38,13 +38,23 @@ function identityLevel(value: string | null): WctStandardLevel | null {
   return null;
 }
 
+function hasPremiumIdentity(value: string | null) {
+  if (!value) return false;
+  return /(?:^|[^a-z0-9])premium(?:$|[^a-z0-9])/iu.test(normalizeWctIdentity(value));
+}
+
 function resolveLevel(book: WctBook): WctStandardLevel {
   const normalizedTitle = normalizeWctIdentity(book.title);
   const titleLevel = identityLevel(normalizedTitle);
   const labelLevel = identityLevel(book.levelLabel);
   const hasWctIdentity = /(?:^|\s)wct(?:$|\s)/u.test(normalizedTitle);
 
-  if (!hasWctIdentity || !titleLevel || !labelLevel || titleLevel !== labelLevel) {
+  if (hasPremiumIdentity(book.title)
+    || hasPremiumIdentity(book.levelLabel)
+    || !hasWctIdentity
+    || !titleLevel
+    || !labelLevel
+    || titleLevel !== labelLevel) {
     throw new Error("WCT v2 requires a matching Prenovice or Novice book");
   }
   return titleLevel;
@@ -52,7 +62,9 @@ function resolveLevel(book: WctBook): WctStandardLevel {
 
 function canonicalEntries(day: WctDay): WctStandardSourceEntry[] {
   return [...day.patterns]
-    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .sort((left, right) => (
+      left.sortOrder - right.sortOrder || left.id.localeCompare(right.id)
+    ))
     .flatMap((pattern) => {
       const patternText = canonicalText(pattern.patternText);
       const patternMeaningKo = nullableCanonicalText(pattern.meaningKo);
@@ -66,7 +78,9 @@ function canonicalEntries(day: WctDay): WctStandardSourceEntry[] {
       }
 
       return [...pattern.examples]
-        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .sort((left, right) => (
+          left.sortOrder - right.sortOrder || left.id.localeCompare(right.id)
+        ))
         .flatMap((example) => {
           const englishText = canonicalText(example.englishText);
           const meaningKo = nullableCanonicalText(example.meaningKo);

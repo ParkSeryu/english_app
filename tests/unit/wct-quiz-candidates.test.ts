@@ -69,6 +69,19 @@ describe("standard WCT format candidates", () => {
     expect(auditStandardQuestionCandidate(candidate!)).toBe(true);
   });
 
+  it("rejects a fill candidate whose displayed prompt does not match its blank span", () => {
+    const candidate = buildFillBlankCandidate(indirectEntry(), "pattern")!;
+    const tampered: WctStandardQuestionCandidate = {
+      ...candidate,
+      question: {
+        ...candidate.question,
+        prompt: "Unrelated ____ sentence."
+      }
+    };
+
+    expect(auditStandardQuestionCandidate(tampered)).toBe(false);
+  });
+
   it("uses verbatim O statements and exactly one evidenced mutation for X", () => {
     const source = modalEntry();
     const correct = buildTrueFalseCandidate(source, "O", "pattern");
@@ -130,5 +143,17 @@ describe("standard WCT format candidates", () => {
     const metadata = modalEntry({ patternText: "WCT Day 2: can + base verb" });
 
     expect(buildMultipleChoiceCandidate(metadata, "pattern")).toBeNull();
+  });
+
+  it("rejects metadata in displayed choices while allowing ordinary day vocabulary", () => {
+    const metadata = modalEntry({
+      englishText: "I can finish this WCT Day 2 course at Novice level."
+    });
+    const ordinary = modalEntry({
+      englishText: "I can finish this every day."
+    });
+
+    expect(buildMultipleChoiceCandidate(metadata, "translation")).toBeNull();
+    expect(buildMultipleChoiceCandidate(ordinary, "translation")).not.toBeNull();
   });
 });
