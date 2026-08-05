@@ -276,3 +276,4 @@ until docker exec "$CONTAINER" pg_isready -U postgres >/dev/null 2>&1; do
 done
 
 docker exec -i "$CONTAINER" psql -U postgres -d postgres < "$SQL_FILE"
+scripts/verify-wct-quiz-concurrency.sh "$CONTAINER"

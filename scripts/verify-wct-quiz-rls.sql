@@ -1,5 +1,35 @@
 -- WCT review quiz sets are service-created, owner-readable, and server-scored.
 set role service_role;
+insert into public.wct_books (id, owner_id, title, level_label)
+values
+  (
+    '49000000-0000-4000-8000-0000000000aa',
+    '00000000-0000-4000-8000-0000000000aa',
+    'WCT Standard Fixture',
+    'Pre Novice'
+  ),
+  (
+    '49000000-0000-4000-8000-0000000000bb',
+    '00000000-0000-4000-8000-0000000000bb',
+    'WCT Standard Fixture',
+    'Pre Novice'
+  );
+
+insert into public.wct_days (id, book_id, day_number, short_label)
+values
+  (
+    '49100000-0000-4000-8000-0000000000aa',
+    '49000000-0000-4000-8000-0000000000aa',
+    1,
+    'Owner A'
+  ),
+  (
+    '49100000-0000-4000-8000-0000000000bb',
+    '49000000-0000-4000-8000-0000000000bb',
+    1,
+    'Owner B'
+  );
+
 with generated_questions as (
   select jsonb_agg(jsonb_build_object(
     'id', 'q' || number,
@@ -23,7 +53,7 @@ insert into public.wct_quiz_sets (
 select
   quiz.id,
   quiz.owner_id,
-  'wct-book:wct-prenovice:day:1',
+  'wct-book:wct-standard-fixture:day:1',
   'wct_day',
   quiz.source_id,
   'wct-review-v1',
@@ -34,13 +64,13 @@ cross join (values
   (
     '50000000-0000-4000-8000-0000000000aa'::uuid,
     '00000000-0000-4000-8000-0000000000aa'::uuid,
-    'day-owner-a',
+    '49100000-0000-4000-8000-0000000000aa',
     'a'
   ),
   (
     '50000000-0000-4000-8000-0000000000bb'::uuid,
     '00000000-0000-4000-8000-0000000000bb'::uuid,
-    'day-owner-b',
+    '49100000-0000-4000-8000-0000000000bb',
     'b'
   )
 ) quiz(id, owner_id, source_id, hash_character);
@@ -192,3 +222,319 @@ end $$;
 reset role;
 
 select 'WCT quiz RLS verification passed' as result;
+
+-- Premium v1 keeps its relationless scoring path and raw four-choice payload.
+set role service_role;
+insert into public.wct_quiz_sets (
+  id, owner_id, lesson_key, source_kind, source_id,
+  generator_version, source_hash, questions
+)
+select
+  '49400000-0000-4000-8000-0000000000aa',
+  '00000000-0000-4000-8000-0000000000aa',
+  'wct-premium:checkpoint-a-fixture',
+  'wct_premium',
+  'checkpoint-a-fixture',
+  'wct-review-v1',
+  repeat('f', 64),
+  jsonb_agg(jsonb_build_object(
+    'id', 'premium-q' || number,
+    'kind', case when number <= 3 then 'translation' else 'pattern' end,
+    'prompt', 'Premium prompt ' || number,
+    'choices', jsonb_build_array(
+      jsonb_build_object('id', 'premium-q' || number || '-a', 'text', 'A'),
+      jsonb_build_object('id', 'premium-q' || number || '-b', 'text', 'B'),
+      jsonb_build_object('id', 'premium-q' || number || '-c', 'text', 'C'),
+      jsonb_build_object('id', 'premium-q' || number || '-d', 'text', 'D')
+    ),
+    'correctChoiceId', 'premium-q' || number || '-a',
+    'explanation', 'Premium explanation ' || number
+  ) order by number)
+from generate_series(1, 5) number;
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
+do $$
+declare
+  v_result jsonb;
+begin
+  v_result := public.submit_wct_quiz_attempt(
+    '49400000-0000-4000-8000-0000000000aa',
+    '[
+      {"questionId":"premium-q1","choiceId":"premium-q1-a"},
+      {"questionId":"premium-q2","choiceId":"premium-q2-a"},
+      {"questionId":"premium-q3","choiceId":"premium-q3-a"},
+      {"questionId":"premium-q4","choiceId":"premium-q4-a"},
+      {"questionId":"premium-q5","choiceId":"premium-q5-a"}
+    ]'::jsonb
+  );
+  if (v_result->>'score')::integer <> 5 then
+    raise exception 'Premium v1 scoring changed under checkpoint A';
+  end if;
+end $$;
+reset role;
+
+-- Checkpoint A synchronizes complete v2 books atomically and resets only changed sets.
+set role service_role;
+insert into public.wct_books (id, owner_id, title, level_label)
+values (
+  '49200000-0000-4000-8000-0000000000aa',
+  '00000000-0000-4000-8000-0000000000aa',
+  'WCT V2 Sync',
+  'Pre Novice'
+);
+
+insert into public.wct_days (id, book_id, day_number, short_label)
+values
+  (
+    '49300000-0000-4000-8000-000000000001',
+    '49200000-0000-4000-8000-0000000000aa',
+    1,
+    'V2 One'
+  ),
+  (
+    '49300000-0000-4000-8000-000000000002',
+    '49200000-0000-4000-8000-0000000000aa',
+    2,
+    'V2 Two'
+  );
+
+do $$
+declare
+  v_books jsonb;
+  v_changed jsonb;
+  v_invalid jsonb;
+  v_sets jsonb := '[]'::jsonb;
+  v_questions jsonb;
+  v_result jsonb;
+  v_day integer;
+  v_first_id uuid;
+  v_first_created_at timestamptz;
+  v_count integer;
+begin
+  for v_day in 1..2 loop
+    select jsonb_agg(
+      jsonb_build_object(
+        'id', format('v2-day-%s-q%s', v_day, number),
+        'kind', case when number <= 3 then 'translation' else 'pattern' end,
+        'format', (array[
+          'multiple_choice', 'fill_blank', 'multiple_choice',
+          'fill_blank', 'true_false'
+        ])[number],
+        'prompt', format('V2 Day %s prompt %s', v_day, number),
+        'choices', case when number = 5 then
+          jsonb_build_array(
+            jsonb_build_object('id', format('v2-day-%s-q%s-o', v_day, number), 'text', 'O'),
+            jsonb_build_object('id', format('v2-day-%s-q%s-x', v_day, number), 'text', 'X')
+          )
+        else
+          jsonb_build_array(
+            jsonb_build_object('id', format('v2-day-%s-q%s-a', v_day, number), 'text', format('A%s-%s', v_day, number)),
+            jsonb_build_object('id', format('v2-day-%s-q%s-b', v_day, number), 'text', format('B%s-%s', v_day, number)),
+            jsonb_build_object('id', format('v2-day-%s-q%s-c', v_day, number), 'text', format('C%s-%s', v_day, number)),
+            jsonb_build_object('id', format('v2-day-%s-q%s-d', v_day, number), 'text', format('D%s-%s', v_day, number))
+          )
+        end,
+        'correctChoiceId', format('v2-day-%s-q%s-%s', v_day, number, case when number = 5 then 'o' else 'a' end),
+        'explanation', format('V2 Day %s explanation %s', v_day, number),
+        'feedback', jsonb_build_object(
+          'correctSentence', format('V2 Day %s sentence %s', v_day, number),
+          'pattern', format('V2 Day %s pattern %s', v_day, number),
+          'reason', format('V2 Day %s reason %s', v_day, number)
+        )
+      ) order by number
+    )
+    into v_questions
+    from generate_series(1, 5) number;
+
+    v_sets := v_sets || jsonb_build_array(jsonb_build_object(
+      'lessonKey', format('wct-book:wct-v2-sync:day:%s', v_day),
+      'sourceKind', 'wct_day',
+      'sourceId', format('49300000-0000-4000-8000-%s', lpad(v_day::text, 12, '0')),
+      'generatorVersion', 'wct-review-v2',
+      'sourceHash', repeat(v_day::text, 64),
+      'questions', v_questions
+    ));
+  end loop;
+  v_books := jsonb_build_array(jsonb_build_object(
+    'bookId', '49200000-0000-4000-8000-0000000000aa',
+    'sets', v_sets
+  ));
+
+  v_result := public.sync_wct_standard_quiz_sets(
+    '00000000-0000-4000-8000-0000000000aa',
+    v_books
+  );
+  if v_result <> '{
+    "createdCount":2,
+    "updatedCount":0,
+    "unchangedCount":0,
+    "resetQuizProgressCount":0,
+    "resetPopProgressCount":0
+  }'::jsonb then
+    raise exception 'initial v2 sync counts were wrong: %', v_result;
+  end if;
+
+  select id, created_at into v_first_id, v_first_created_at
+  from public.wct_quiz_sets
+  where owner_id = '00000000-0000-4000-8000-0000000000aa'
+    and lesson_key = 'wct-book:wct-v2-sync:day:1';
+
+  insert into public.wct_quiz_progress (
+    quiz_set_id, user_id, latest_score, completed_at
+  ) values (
+    v_first_id,
+    '00000000-0000-4000-8000-0000000000aa',
+    5,
+    clock_timestamp()
+  );
+  insert into public.wct_pop_quiz_progress (
+    owner_id, book_id, seed, questions, status
+  ) values (
+    '00000000-0000-4000-8000-0000000000aa',
+    '49200000-0000-4000-8000-0000000000aa',
+    'sync-preserve',
+    jsonb_build_array(jsonb_build_object('fixture', true)),
+    'in_progress'
+  );
+
+  v_result := public.sync_wct_standard_quiz_sets(
+    '00000000-0000-4000-8000-0000000000aa',
+    v_books
+  );
+  if v_result <> '{
+    "createdCount":0,
+    "updatedCount":0,
+    "unchangedCount":2,
+    "resetQuizProgressCount":0,
+    "resetPopProgressCount":0
+  }'::jsonb then
+    raise exception 'unchanged v2 sync counts were wrong: %', v_result;
+  end if;
+  select count(*) into v_count from public.wct_quiz_progress
+  where quiz_set_id = v_first_id;
+  if v_count <> 1 then raise exception 'unchanged sync deleted Day progress'; end if;
+  select count(*) into v_count from public.wct_pop_quiz_progress
+  where book_id = '49200000-0000-4000-8000-0000000000aa';
+  if v_count <> 1 then raise exception 'unchanged sync deleted Pop progress'; end if;
+
+  begin
+    perform public.sync_wct_standard_quiz_sets(
+      '00000000-0000-4000-8000-0000000000aa',
+      jsonb_set(v_books, '{0,sets,0,questions,0,prompt}', '"collision"')
+    );
+    raise exception 'same-version/hash semantic collision unexpectedly synced';
+  exception when others then
+    if sqlerrm not like '%generator/version integrity collision%' then raise; end if;
+  end;
+
+  v_changed := jsonb_set(v_books, '{0,sets,0,sourceHash}', to_jsonb(repeat('d', 64)));
+  v_changed := jsonb_set(v_changed, '{0,sets,0,questions,0,prompt}', '"changed prompt"');
+  v_result := public.sync_wct_standard_quiz_sets(
+    '00000000-0000-4000-8000-0000000000aa',
+    v_changed
+  );
+  if v_result <> '{
+    "createdCount":0,
+    "updatedCount":1,
+    "unchangedCount":1,
+    "resetQuizProgressCount":1,
+    "resetPopProgressCount":1
+  }'::jsonb then
+    raise exception 'changed v2 sync counts were wrong: %', v_result;
+  end if;
+  if not exists (
+    select 1 from public.wct_quiz_sets
+    where id = v_first_id and created_at = v_first_created_at
+      and source_hash = repeat('d', 64)
+  ) then
+    raise exception 'changed sync did not preserve set identity and created_at';
+  end if;
+
+  insert into public.wct_quiz_progress (
+    quiz_set_id, user_id, latest_score, completed_at
+  ) values (
+    v_first_id,
+    '00000000-0000-4000-8000-0000000000aa',
+    4,
+    clock_timestamp()
+  );
+  insert into public.wct_pop_quiz_progress (
+    owner_id, book_id, seed, questions, status
+  ) values (
+    '00000000-0000-4000-8000-0000000000aa',
+    '49200000-0000-4000-8000-0000000000aa',
+    'sync-rollback',
+    jsonb_build_array(jsonb_build_object('fixture', true)),
+    'in_progress'
+  );
+
+  v_invalid := jsonb_set(v_changed, '{0,sets,0,sourceHash}', to_jsonb(repeat('e', 64)));
+  v_invalid := jsonb_set(v_invalid, '{0,sets,0,questions,0,prompt}', '"must rollback"');
+  v_invalid := jsonb_set(v_invalid, '{0,sets,1,sourceKind}', '"wct_premium"');
+  begin
+    perform public.sync_wct_standard_quiz_sets(
+      '00000000-0000-4000-8000-0000000000aa',
+      v_invalid
+    );
+    raise exception 'invalid second set unexpectedly synced';
+  exception when others then
+    if sqlerrm not like '%invalid WCT standard quiz set%' then raise; end if;
+  end;
+  if not exists (
+    select 1 from public.wct_quiz_sets
+    where id = v_first_id and source_hash = repeat('d', 64)
+  ) then
+    raise exception 'invalid second set failed to roll back the first update';
+  end if;
+  select count(*) into v_count from public.wct_quiz_progress
+  where quiz_set_id = v_first_id;
+  if v_count <> 1 then raise exception 'rollback did not preserve Day progress'; end if;
+  select count(*) into v_count from public.wct_pop_quiz_progress
+  where book_id = '49200000-0000-4000-8000-0000000000aa';
+  if v_count <> 1 then raise exception 'rollback did not preserve Pop progress'; end if;
+
+  begin
+    perform public.sync_wct_standard_quiz_sets(
+      '00000000-0000-4000-8000-0000000000bb',
+      v_changed
+    );
+    raise exception 'service role synced a book for its non-owner';
+  exception when others then
+    if sqlerrm not like '%does not belong to WCT quiz owner%' then raise; end if;
+  end;
+end $$;
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
+do $$
+begin
+  begin
+    perform public.sync_wct_standard_quiz_sets(
+      '00000000-0000-4000-8000-0000000000aa',
+      '[]'::jsonb
+    );
+    raise exception 'authenticated sync unexpectedly executed';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+set role anon;
+set request.jwt.claim.sub = '';
+do $$
+begin
+  begin
+    perform public.sync_wct_standard_quiz_sets(
+      '00000000-0000-4000-8000-0000000000aa',
+      '[]'::jsonb
+    );
+    raise exception 'anonymous sync unexpectedly executed';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+select 'WCT v2 sync verification passed' as result;
