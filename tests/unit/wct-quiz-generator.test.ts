@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildPremiumWctQuizSource,
-  buildStandardWctQuizSource
+  buildLegacyStandardWctQuizSource
 } from "@/lib/wct/quiz/adapters";
-import { generateWctQuizSetDraft } from "@/lib/wct/quiz/generator";
+import {
+  generateLegacyWctQuizSetDraft,
+  generatePremiumWctQuizSetDraft
+} from "@/lib/wct/quiz/generator";
 import {
   premiumWctLessonKey,
   standardWctLessonKey
@@ -122,11 +125,15 @@ function approvedPremiumChoiceText(lesson: WctPremiumLesson) {
 
 describe("WCT quiz generator", () => {
   it("creates the fixed standard 3 translation and 2 pattern mix", () => {
-    const source = buildStandardWctQuizSource(book, dayOne, [dayOne, dayTwo]);
-    const draft = generateWctQuizSetDraft(source);
+    const source = buildLegacyStandardWctQuizSource(book, dayOne, [dayOne, dayTwo]);
+    const draft = generateLegacyWctQuizSetDraft(source);
 
     expect(draft.lessonKey).toBe("wct-book:wct-prenovice:day:1");
     expect(draft.questions).toHaveLength(5);
+    expect(draft.generatorVersion).toBe("wct-review-v1");
+    expect(draft.questions.every((question) => !(
+      "format" in question || "feedback" in question
+    ))).toBe(true);
     expect(draft.questions.map((question) => question.kind)).toEqual([
       "translation",
       "translation",
@@ -145,10 +152,10 @@ describe("WCT quiz generator", () => {
   });
 
   it("is byte-stable for the same source and generator version", () => {
-    const source = buildStandardWctQuizSource(book, dayOne, [dayOne, dayTwo]);
+    const source = buildLegacyStandardWctQuizSource(book, dayOne, [dayOne, dayTwo]);
 
-    expect(generateWctQuizSetDraft(source))
-      .toEqual(generateWctQuizSetDraft(source));
+    expect(generateLegacyWctQuizSetDraft(source))
+      .toEqual(generateLegacyWctQuizSetDraft(source));
   });
 
   it("cycles a sparse Day while keeping five prompts distinct", () => {
@@ -163,8 +170,8 @@ describe("WCT quiz generator", () => {
       days: [...book.days, sparseDay]
     };
 
-    const draft = generateWctQuizSetDraft(
-      buildStandardWctQuizSource(sparseBook, sparseDay, [
+    const draft = generateLegacyWctQuizSetDraft(
+      buildLegacyStandardWctQuizSource(sparseBook, sparseDay, [
         dayOne,
         dayTwo,
         sparseDay
@@ -192,8 +199,8 @@ describe("WCT quiz generator", () => {
       days: [...book.days, repeatedMeaningDay]
     };
 
-    const draft = generateWctQuizSetDraft(
-      buildStandardWctQuizSource(repeatedMeaningBook, repeatedMeaningDay, [
+    const draft = generateLegacyWctQuizSetDraft(
+      buildLegacyStandardWctQuizSource(repeatedMeaningBook, repeatedMeaningDay, [
         dayOne,
         dayTwo,
         repeatedMeaningDay
@@ -209,7 +216,7 @@ describe("WCT quiz generator", () => {
     expect(lesson).not.toBeNull();
     if (!lesson) return;
 
-    const draft = generateWctQuizSetDraft(buildPremiumWctQuizSource(lesson));
+    const draft = generatePremiumWctQuizSetDraft(buildPremiumWctQuizSource(lesson));
     const approvedChoices = approvedPremiumChoiceText(lesson);
 
     expect(draft.questions.map((question) => question.kind)).toEqual([
@@ -219,6 +226,10 @@ describe("WCT quiz generator", () => {
       "pattern",
       "pattern"
     ]);
+    expect(draft.generatorVersion).toBe("wct-review-v1");
+    expect(draft.questions.every((question) => !(
+      "format" in question || "feedback" in question
+    ))).toBe(true);
     for (const choice of draft.questions.flatMap((question) => question.choices)) {
       expect(approvedChoices.has(choice.text)).toBe(true);
     }
@@ -241,8 +252,19 @@ describe("WCT quiz generator", () => {
       }))
     };
 
-    expect(() => generateWctQuizSetDraft(insufficientSource))
+    expect(() => generateLegacyWctQuizSetDraft(insufficientSource))
       .toThrow("WCT quiz needs four distinct choices");
+  });
+
+  it("rejects a non-Premium source at the Premium v1 entry point", () => {
+    const source = buildLegacyStandardWctQuizSource(
+      book,
+      dayOne,
+      [dayOne, dayTwo]
+    );
+
+    expect(() => generatePremiumWctQuizSetDraft(source))
+      .toThrow("Premium v1 generator requires a Premium source");
   });
 
   it("normalizes stable standard and Premium lesson keys", () => {

@@ -171,7 +171,7 @@ function standardSourceHashInput(
   };
 }
 
-export function buildStandardWctQuizSource(
+export function buildLegacyStandardWctQuizSource(
   book: WctBook,
   target: WctDay,
   allDays: readonly WctDay[]
@@ -188,6 +188,8 @@ export function buildStandardWctQuizSource(
     ]
   };
 }
+
+export const buildStandardWctQuizSource = buildLegacyStandardWctQuizSource;
 
 function firstFact(blocks: readonly WctPremiumContentBlock[]) {
   for (const block of blocks) {

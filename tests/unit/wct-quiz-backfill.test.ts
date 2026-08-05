@@ -61,7 +61,7 @@ function fixtureBook(
 }
 
 describe("WCT quiz backfill rows", () => {
-  it("builds 44 standard plus 1 Premium valid row", () => {
+  it("builds 45 raw legacy v1 rows without v2 standard output", () => {
     const rows = buildBackfillRows([
       fixtureBook("prenovice", "WCT Prenovice", 16),
       fixtureBook("novice", "WCT Novice", 28)
@@ -73,6 +73,11 @@ describe("WCT quiz backfill rows", () => {
     expect(rows.filter((row) => row.sourceKind === "wct_premium"))
       .toHaveLength(1);
     expect(rows.every((row) => row.questions.length === 5)).toBe(true);
+    expect(rows.every((row) => row.generatorVersion === "wct-review-v1"))
+      .toBe(true);
+    expect(rows.every((row) => row.questions.every((question) => !(
+      "format" in question || "feedback" in question
+    )))).toBe(true);
     expect(rows.every((row) => !("ownerId" in row))).toBe(true);
   });
 });

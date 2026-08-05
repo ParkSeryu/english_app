@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { normalizeWctIdentity, stableStringify } from "../normalization.ts";
 import {
-  WCT_QUIZ_GENERATOR_VERSION,
+  WCT_PREMIUM_QUIZ_GENERATOR_VERSION,
   type WctQuizQuestionSeed,
   type WctQuizSetCreateInput,
   type WctQuizSource
@@ -73,7 +73,7 @@ function buildQuestion(
   };
 }
 
-export function generateWctQuizSetDraft(
+export function generateLegacyWctQuizSetDraft(
   source: WctQuizSource
 ): WctQuizSetCreateInput {
   if (source.seeds.length !== 5) {
@@ -87,7 +87,7 @@ export function generateWctQuizSetDraft(
     lessonKey: source.lessonKey,
     sourceKind: source.sourceKind,
     sourceId: source.sourceId,
-    generatorVersion: WCT_QUIZ_GENERATOR_VERSION,
+    generatorVersion: WCT_PREMIUM_QUIZ_GENERATOR_VERSION,
     sourceHash: stableRank(
       source.lessonKey,
       stableStringify(source.sourceHashInput)
@@ -95,3 +95,14 @@ export function generateWctQuizSetDraft(
     questions
   });
 }
+
+export function generatePremiumWctQuizSetDraft(
+  source: WctQuizSource
+): WctQuizSetCreateInput {
+  if (source.sourceKind !== "wct_premium") {
+    throw new Error("Premium v1 generator requires a Premium source");
+  }
+  return generateLegacyWctQuizSetDraft(source);
+}
+
+export const generateWctQuizSetDraft = generateLegacyWctQuizSetDraft;

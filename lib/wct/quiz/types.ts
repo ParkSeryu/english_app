@@ -1,4 +1,9 @@
-export const WCT_QUIZ_GENERATOR_VERSION = "wct-review-v1" as const;
+export const WCT_STANDARD_QUIZ_GENERATOR_VERSION = "wct-review-v2" as const;
+export const WCT_PREMIUM_QUIZ_GENERATOR_VERSION = "wct-review-v1" as const;
+
+export type WctQuizGeneratorVersion =
+  | typeof WCT_STANDARD_QUIZ_GENERATOR_VERSION
+  | typeof WCT_PREMIUM_QUIZ_GENERATOR_VERSION;
 
 export type WctQuizSourceKind = "wct_day" | "wct_premium";
 export type WctQuizQuestionKind = "translation" | "pattern" | "concept";
@@ -8,14 +13,33 @@ export type WctQuizChoice = {
   text: string;
 };
 
+export type WctQuizQuestionFormat =
+  | "multiple_choice"
+  | "fill_blank"
+  | "true_false";
+
+export type WctQuizFeedback = {
+  correctSentence: string;
+  pattern: string;
+  reason: string;
+};
+
 export type WctQuizQuestion = {
   id: string;
   kind: WctQuizQuestionKind;
+  format?: WctQuizQuestionFormat;
   prompt: string;
   choices: WctQuizChoice[];
   correctChoiceId: string;
   explanation: string;
+  feedback?: WctQuizFeedback;
 };
+
+export function getWctQuizQuestionFormat(
+  question: WctQuizQuestion
+): WctQuizQuestionFormat {
+  return question.format ?? "multiple_choice";
+}
 
 export type WctQuizQuestionSeed = {
   seedKey: string;
@@ -38,7 +62,7 @@ export type WctQuizSetCreateInput = {
   lessonKey: string;
   sourceKind: WctQuizSourceKind;
   sourceId: string;
-  generatorVersion: typeof WCT_QUIZ_GENERATOR_VERSION;
+  generatorVersion: WctQuizGeneratorVersion;
   sourceHash: string;
   questions: WctQuizQuestion[];
 };

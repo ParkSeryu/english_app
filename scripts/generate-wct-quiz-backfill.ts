@@ -6,9 +6,12 @@ import { pathToFileURL } from "node:url";
 
 import {
   buildPremiumWctQuizSource,
-  buildStandardWctQuizSource
+  buildLegacyStandardWctQuizSource
 } from "../lib/wct/quiz/adapters.ts";
-import { generateWctQuizSetDraft } from "../lib/wct/quiz/generator.ts";
+import {
+  generateLegacyWctQuizSetDraft,
+  generatePremiumWctQuizSetDraft
+} from "../lib/wct/quiz/generator.ts";
 import type { WctQuizSetCreateInput } from "../lib/wct/quiz/types.ts";
 import {
   listWctPremiumLessons,
@@ -96,8 +99,8 @@ export function buildBackfillRows(
 ): BackfillRow[] {
   const standardRows = books.flatMap((book) => (
     book.days.map((day): StandardBackfillRow => {
-      const draft = generateWctQuizSetDraft(
-        buildStandardWctQuizSource(book, day, book.days)
+      const draft = generateLegacyWctQuizSetDraft(
+        buildLegacyStandardWctQuizSource(book, day, book.days)
       );
       if (draft.sourceKind !== "wct_day") {
         throw new Error("Standard WCT backfill generated the wrong source kind");
@@ -111,7 +114,7 @@ export function buildBackfillRows(
     })
   ));
   const premiumRows = premiumLessons.map((lesson): PremiumBackfillRow => {
-    const draft = generateWctQuizSetDraft(
+    const draft = generatePremiumWctQuizSetDraft(
       buildPremiumWctQuizSource(lesson)
     );
     if (draft.sourceKind !== "wct_premium") {

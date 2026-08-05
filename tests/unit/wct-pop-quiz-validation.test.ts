@@ -35,7 +35,31 @@ describe("wctPopQuizQuestionsSchema", () => {
   });
 
   it("accepts a legacy 20-question snapshot without Day topics", () => {
-    expect(wctPopQuizQuestionsSchema.safeParse(questions(20, false)).success).toBe(true);
+    const rawSnapshot = questions(20, false);
+    const parsed = wctPopQuizQuestionsSchema.parse(rawSnapshot);
+
+    expect(parsed).toEqual(rawSnapshot);
+    expect("format" in parsed[0].question).toBe(false);
+  });
+
+  it("accepts a shared v2 two-choice true/false question", () => {
+    const snapshot = questions(1, true);
+    snapshot[0].question = {
+      ...snapshot[0].question,
+      format: "true_false",
+      choices: [
+        { id: "question-1-o", text: "O" },
+        { id: "question-1-x", text: "X" }
+      ],
+      correctChoiceId: "question-1-o",
+      feedback: {
+        correctSentence: "This is correct.",
+        pattern: "be + adjective",
+        reason: "The sentence follows the pattern."
+      }
+    };
+
+    expect(wctPopQuizQuestionsSchema.parse(snapshot)).toEqual(snapshot);
   });
 
   it("rejects duplicate question IDs", () => {
@@ -49,7 +73,7 @@ describe("wctPopQuizQuestionsSchema", () => {
     const snapshot = questions(16, true);
     snapshot[0].question.choices[1].id = snapshot[0].question.choices[0].id;
 
-    expect(() => wctPopQuizQuestionsSchema.parse(snapshot)).toThrow("Choice IDs must be distinct");
+    expect(() => wctPopQuizQuestionsSchema.parse(snapshot)).toThrow("Choices must be distinct");
   });
 
   it("rejects a correct choice ID that is not present", () => {
