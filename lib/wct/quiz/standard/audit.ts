@@ -17,6 +17,36 @@ import type {
 
 const forbiddenLearnerText = /\bwct\b|\bday\s*#?\s*\d+\b|\bcourse\b|\b(?:pre\s*novice|prenovice|novice|premium)\b/iu;
 const brokenText = /\uFFFD|\?{3,}/u;
+const INVALID_QUESTION_ID = "invalid-question";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function runtimeQuestionId(value: unknown) {
+  return isRecord(value) && typeof value.id === "string" && value.id
+    ? value.id
+    : INVALID_QUESTION_ID;
+}
+
+function isStructurallySafeQuestion(value: unknown): value is WctQuizQuestion {
+  if (!isRecord(value)
+    || typeof value.id !== "string"
+    || typeof value.kind !== "string"
+    || (value.format !== undefined && typeof value.format !== "string")
+    || typeof value.prompt !== "string"
+    || !Array.isArray(value.choices)
+    || value.choices.some((choice) => !isRecord(choice)
+      || typeof choice.id !== "string"
+      || typeof choice.text !== "string")
+    || typeof value.correctChoiceId !== "string"
+    || typeof value.explanation !== "string") return false;
+  return value.feedback === undefined
+    || (isRecord(value.feedback)
+      && typeof value.feedback.correctSentence === "string"
+      && typeof value.feedback.pattern === "string"
+      && typeof value.feedback.reason === "string");
+}
 
 export type WctStandardAuditFailure = {
   level: WctStandardLevel;
@@ -376,10 +406,15 @@ export function auditStandardWctQuizInventory(
       });
     }
     for (const set of sets) {
-      const { source, draft } = set;
-      const setQuestionId = draft.questions[0]?.id ?? "set";
+      const { source } = set;
+      const rawDraft: unknown = set.draft;
+      const schemaResult = wctStandardQuizSetCreateSchema.safeParse(rawDraft);
+      const draft = isRecord(rawDraft) ? rawDraft : {};
+      const rawQuestions = Array.isArray(draft.questions) ? draft.questions : [];
+      const questions = rawQuestions.filter(isStructurallySafeQuestion);
+      const setQuestionId = runtimeQuestionId(rawQuestions[0]);
       const addFailure = (questionId: string, rule: string, reason: string) => {
-        const key = `${source.level}:${source.dayNumber}:${questionId}:${rule}`;
+        const key = `${source.level}:${source.dayNumber}:${questionId}:${rule}:${reason}`;
         if (failureKeys.has(key)) return;
         failureKeys.add(key);
         failures.push({
@@ -390,6 +425,21 @@ export function auditStandardWctQuizInventory(
           reason
         });
       };
+      if (!schemaResult.success) {
+        for (const issue of schemaResult.error.issues) {
+          const questionIndex = issue.path[0] === "questions"
+            && typeof issue.path[1] === "number"
+            ? issue.path[1]
+            : null;
+          addFailure(
+            questionIndex === null
+              ? setQuestionId
+              : runtimeQuestionId(rawQuestions[questionIndex]),
+            "schema_validation",
+            `${issue.path.map(String).join(".") || "set"}: ${issue.message}`
+          );
+        }
+      }
       if (source.level !== book.level
         || draft.lessonKey !== source.lessonKey
         || draft.sourceId !== source.sourceId
@@ -420,27 +470,11 @@ export function auditStandardWctQuizInventory(
       ])].some((text) => brokenText.test(text))) {
         addFailure(setQuestionId, "korean_text_integrity", "Source contains replacement output.");
       }
-      if (draft.questions.length !== 5) {
+      if (questions.length !== 5) {
         addFailure(setQuestionId, "question_count", "A standard Day must contain five questions.");
       }
-      const schemaResult = wctStandardQuizSetCreateSchema.safeParse(draft);
-      if (!schemaResult.success) {
-        for (const issue of schemaResult.error.issues) {
-          const questionIndex = issue.path[0] === "questions"
-            && typeof issue.path[1] === "number"
-            ? issue.path[1]
-            : null;
-          addFailure(
-            questionIndex === null
-              ? setQuestionId
-              : draft.questions[questionIndex]?.id ?? setQuestionId,
-            "schema_validation",
-            issue.message
-          );
-        }
-      }
-      const duplicatePrompts = draft.questions.filter((question, index, questions) => (
-        questions.some((other, otherIndex) => otherIndex !== index
+      const duplicatePrompts = questions.filter((question, index, dayQuestions) => (
+        dayQuestions.some((other, otherIndex) => otherIndex !== index
           && normalizeWctIdentity(other.prompt) === normalizeWctIdentity(question.prompt))
       ));
       for (const question of duplicatePrompts) {
@@ -450,8 +484,8 @@ export function auditStandardWctQuizInventory(
           "Normalized question prompts must be unique within a Day."
         );
       }
-      const duplicateQuestionIds = draft.questions.filter((question, index, questions) => (
-        questions.some((other, otherIndex) => otherIndex !== index && other.id === question.id)
+      const duplicateQuestionIds = questions.filter((question, index, dayQuestions) => (
+        dayQuestions.some((other, otherIndex) => otherIndex !== index && other.id === question.id)
       ));
       for (const question of duplicateQuestionIds) {
         addFailure(
@@ -460,21 +494,21 @@ export function auditStandardWctQuizInventory(
           "Question IDs must be unique within a Day."
         );
       }
-      if (stableStringify(formatCounts(draft.questions)) !== stableStringify({
+      if (stableStringify(formatCounts(questions)) !== stableStringify({
         multiple_choice: 2,
         fill_blank: 2,
         true_false: 1
       })) {
         addFailure(setQuestionId, "format_mix", "A standard Day must use the 2/2/1 format mix.");
       }
-      if (stableStringify(kindCounts(draft.questions)) !== stableStringify({
+      if (stableStringify(kindCounts(questions)) !== stableStringify({
         translation: 3,
         pattern: 2
       })) {
         addFailure(setQuestionId, "kind_mix", "A standard Day must use the 3/2 kind mix.");
       }
-      for (const [index, question] of draft.questions.entries()) {
-        if (index > 0 && question.format === draft.questions[index - 1].format) {
+      for (const [index, question] of questions.entries()) {
+        if (index > 0 && question.format === questions[index - 1].format) {
           addFailure(question.id, "adjacent_format", "Adjacent questions repeat a format.");
         }
         const candidates = set.candidates.filter((candidate) => (

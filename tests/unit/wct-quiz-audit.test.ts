@@ -73,6 +73,12 @@ function cloneInventory(input: readonly WctGeneratedStandardQuizBook[]) {
   return structuredClone(input) as WctGeneratedStandardQuizBook[];
 }
 
+function auditRuntimeInput(input: unknown) {
+  return auditStandardWctQuizInventory(
+    input as readonly WctGeneratedStandardQuizBook[]
+  );
+}
+
 function expectFailure(
   generated: WctGeneratedStandardQuizBook[],
   level: "prenovice" | "novice",
@@ -223,6 +229,91 @@ describe("standard WCT release audit", () => {
     question.choices = question.choices.slice(0, 2);
 
     expectFailure(generated, "prenovice", 1, question.id, "schema_validation");
+  });
+
+  it.each([
+    ["missing questions", (draft: Record<string, unknown>) => {
+      delete draft.questions;
+    }],
+    ["wrong-typed questions", (draft: Record<string, unknown>) => {
+      draft.questions = "five";
+    }]
+  ])("fails closed when a set has %s and continues the valid inventory", (_name, mutate) => {
+    const generated: unknown = cloneInventory(inventory());
+    const books = generated as Array<{ sets: Array<{ draft: Record<string, unknown> }> }>;
+    mutate(books[0].sets[0].draft);
+
+    expect(() => auditRuntimeInput(generated)).not.toThrow();
+    const audit = auditRuntimeInput(generated);
+    expect(audit.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      dayNumber: 1,
+      questionId: "invalid-question",
+      rule: "schema_validation"
+    }));
+    expect(audit.rows).toHaveLength(215);
+    expect(audit.rows.some((row) => row.level === "prenovice" && row.dayNumber === 2))
+      .toBe(true);
+  });
+
+  it("records every available schema issue for one malformed question", () => {
+    const generated: unknown = cloneInventory(inventory());
+    const books = generated as Array<{
+      sets: Array<{ draft: { questions: Array<Record<string, unknown>> } }>;
+    }>;
+    const question = books[0].sets[0].draft.questions[0];
+    const questionId = question.id as string;
+    delete question.prompt;
+    delete question.choices;
+    delete question.explanation;
+
+    const audit = auditRuntimeInput(generated);
+    expect(audit.failures.filter((failure) => (
+      failure.level === "prenovice"
+      && failure.dayNumber === 1
+      && failure.questionId === questionId
+      && failure.rule === "schema_validation"
+    )).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["missing prompt", (question: Record<string, unknown>) => {
+      delete question.prompt;
+    }],
+    ["wrong-typed prompt", (question: Record<string, unknown>) => {
+      question.prompt = 7;
+    }],
+    ["missing choices", (question: Record<string, unknown>) => {
+      delete question.choices;
+    }],
+    ["wrong-typed choices", (question: Record<string, unknown>) => {
+      question.choices = "O/X";
+    }],
+    ["missing explanation", (question: Record<string, unknown>) => {
+      delete question.explanation;
+    }],
+    ["wrong-typed explanation", (question: Record<string, unknown>) => {
+      question.explanation = false;
+    }]
+  ])("fails closed on a question with %s", (_name, mutate) => {
+    const generated: unknown = cloneInventory(inventory());
+    const books = generated as Array<{
+      sets: Array<{ draft: { questions: Array<Record<string, unknown>> } }>;
+    }>;
+    const question = books[0].sets[0].draft.questions[0];
+    const questionId = question.id as string;
+    mutate(question);
+
+    expect(() => auditRuntimeInput(generated)).not.toThrow();
+    const audit = auditRuntimeInput(generated);
+    expect(audit.failures).toContainEqual(expect.objectContaining({
+      level: "prenovice",
+      dayNumber: 1,
+      questionId,
+      rule: "schema_validation"
+    }));
+    expect(audit.rows.some((row) => row.level === "prenovice" && row.dayNumber === 2))
+      .toBe(true);
   });
 
   it("requires exact MC and O/X prompt derivation without foreign affixes", () => {
