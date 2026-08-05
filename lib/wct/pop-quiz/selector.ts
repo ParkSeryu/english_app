@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import type { WctDaySummary } from "@/lib/wct/types";
 import type { WctQuizQuestionFormat } from "@/lib/wct/quiz/types";
@@ -74,22 +75,56 @@ function seedOffset(seed: string) {
   return createHash("sha256").update(seed).digest()[0] % formatSchedule.length;
 }
 
+function previousV2QuestionsByDay(
+  input: WctPopQuizSelectionInput,
+  days: WctDaySummary[]
+) {
+  const previousQuestions = input.previousQuestions;
+  if (!previousQuestions) return new Map<string, WctPopQuizQuestion>();
+  const previousDayIds = previousQuestions.map((item) => item.dayId);
+  if (
+    previousQuestions.length !== days.length
+    || new Set(previousDayIds).size !== previousQuestions.length
+  ) {
+    throw new Error("Pop Quiz needs one complete quiz version");
+  }
+
+  const dayById = new Map(days.map((day) => [day.id, day]));
+  for (const previous of previousQuestions) {
+    const day = dayById.get(previous.dayId);
+    const matchesCandidate = input.candidates.some((candidate) => (
+      candidate.sourceQuizSetId === previous.sourceQuizSetId
+      && candidate.dayId === previous.dayId
+      && candidate.dayNumber === previous.dayNumber
+      && candidate.dayLabel === previous.dayLabel
+      && candidate.dayTopic === previous.dayTopic
+      && isDeepStrictEqual(candidate.question, previous.question)
+    ));
+    if (
+      !day
+      || previous.dayNumber !== day.dayNumber
+      || previous.dayLabel !== day.displayLabel
+      || previous.dayTopic !== day.shortLabel
+      || !previous.question.format
+      || !matchesCandidate
+    ) {
+      throw new Error("Pop Quiz needs one complete quiz version");
+    }
+  }
+  if (days.some((day) => !previousDayIds.includes(day.id))) {
+    throw new Error("Pop Quiz needs one complete quiz version");
+  }
+  return new Map(previousQuestions.map((item) => [item.dayId, item]));
+}
+
 function selectV2(input: WctPopQuizSelectionInput) {
   const days = orderedDays(input);
   const bandByDayId = buildBandByDayId(days);
-  const previousByDayId = new Map(
-    input.previousQuestions?.map((item) => [item.dayId, item]) ?? []
-  );
-  if (input.previousQuestions && previousByDayId.size !== days.length) {
-    throw new Error("Pop Quiz needs one complete quiz version");
-  }
+  const previousByDayId = previousV2QuestionsByDay(input, days);
   const offset = seedOffset(input.seed);
 
   return days.map((day, index) => {
     const previous = previousByDayId.get(day.id);
-    if (input.previousQuestions && !previous?.question.format) {
-      throw new Error("Pop Quiz needs one complete quiz version");
-    }
     const targetFormat = previous?.question.format
       ? nextWctQuizFormat(previous.question.format)
       : formatSchedule[(index + offset) % formatSchedule.length];

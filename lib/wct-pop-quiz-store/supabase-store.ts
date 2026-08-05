@@ -24,11 +24,15 @@ type SupabaseLike = Awaited<ReturnType<typeof createServerSupabaseClient>>;
 const ATTEMPT_SELECT =
   "attempt_id,book_id,seed,questions,answers,current_index,status,latest_score,incorrect_days,started_at,completed_at";
 
+export const WCT_POP_QUIZ_RESTART_REQUIRED_RPC_ERROR = {
+  code: "P0001",
+  message: "WCT_POP_QUIZ_RESTART_REQUIRED"
+} as const;
+
 function throwRpcError(prefix: string, error: { code?: string; message: string }): never {
   if (
-    error.code === "P0002"
-    || error.message.includes("WCT_POP_QUIZ_RESTART_REQUIRED")
-    || error.message.includes("WCT Pop Quiz attempt not found")
+    error.code === WCT_POP_QUIZ_RESTART_REQUIRED_RPC_ERROR.code
+    && error.message === WCT_POP_QUIZ_RESTART_REQUIRED_RPC_ERROR.message
   ) {
     throw new WctPopQuizRestartRequiredError();
   }

@@ -15,16 +15,17 @@ import type { WctBook, WctDay } from "@/lib/wct/types";
 const OWNER_ID = "22222222-2222-4222-8222-222222222222";
 
 function createBook(
-  overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabel">> = {}
+  overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabel" | "dayCount">> = {}
 ): WctBook {
   const id = overrides.id ?? "11111111-1111-4111-8111-111111111111";
+  const dayCount = overrides.dayCount ?? 16;
   return {
     id,
     title: overrides.title ?? "WCT Pattern book Prenovice",
     levelLabel: overrides.levelLabel === undefined ? "Pre Novice" : overrides.levelLabel,
-    dayCount: 16,
+    dayCount,
     sortOrder: 1,
-    days: Array.from({ length: 16 }, (_, index) => ({
+    days: Array.from({ length: dayCount }, (_, index) => ({
       id: `day-${index + 1}`,
       bookId: id,
       dayNumber: index + 1,
@@ -138,6 +139,19 @@ function snapshot(book: WctBook, sets: WctQuizSet[]): WctPopQuizQuestion[] {
     band: band(index),
     question: structuredClone(sets[index].questions[0])
   }));
+}
+
+function legacyTwentySnapshot(book: WctBook, sets: WctQuizSet[]): WctPopQuizQuestion[] {
+  return book.days.flatMap((day, dayIndex) => (
+    sets[dayIndex].questions.slice(0, dayIndex < 4 ? 2 : 1).map((question) => ({
+      sourceQuizSetId: sets[dayIndex].id,
+      dayId: day.id,
+      dayNumber: day.dayNumber,
+      dayLabel: day.displayLabel,
+      band: band(dayIndex),
+      question: structuredClone(question)
+    }))
+  ));
 }
 
 function attempt(
@@ -296,6 +310,47 @@ describe("WCT Pop Quiz service", () => {
       .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
   });
 
+  it.each([
+    ["partial", (questions: WctPopQuizQuestion[]) => questions.slice(0, -1)],
+    ["duplicate Day", (questions: WctPopQuizQuestion[]) => {
+      const changed = structuredClone(questions);
+      changed[1] = structuredClone(changed[0]);
+      return changed;
+    }],
+    ["out-of-order Days", (questions: WctPopQuizQuestion[]) => {
+      const changed = structuredClone(questions);
+      [changed[0], changed[1]] = [changed[1], changed[0]];
+      return changed;
+    }],
+    ["missing Day topic", (questions: WctPopQuizQuestion[]) => {
+      const changed = structuredClone(questions);
+      delete changed[0].dayTopic;
+      return changed;
+    }],
+    ["changed Day topic", (questions: WctPopQuizQuestion[]) => {
+      const changed = structuredClone(questions);
+      changed[0].dayTopic = "Changed topic";
+      return changed;
+    }]
+  ] as const)("rejects a %s current v2 active snapshot", async (_label, change) => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions = change(existing.questions);
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(existing),
+        startAttempt: vi.fn()
+      }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
   it("throws the typed restart error when the requested attempt was reset", async () => {
     const book = createBook();
     const days = createFullDays(book);
@@ -345,6 +400,94 @@ describe("WCT Pop Quiz service", () => {
     expect(selectionInput.candidates.every((item: { question: object }) => (
       !("format" in item.question)
     ))).toBe(true);
+  });
+
+  it("preserves a valid historical v1 20-question snapshot without Day topics", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV1Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions = legacyTwentySnapshot(book, sets);
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    expect(existing.questions).toHaveLength(20);
+    expect(existing.questions.every((item) => (
+      item.dayTopic === undefined && !("format" in item.question)
+    ))).toBe(true);
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(existing),
+        startAttempt: vi.fn()
+      }
+    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
+  });
+
+  it("rejects a partial current v1 one-per-Day snapshot", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV1Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions = existing.questions.slice(0, -1);
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(existing),
+        startAttempt: vi.fn()
+      }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
+  it.each([
+    ["15-Day Prenovice", "Prenovice", "WCT Pattern book Prenovice", 15],
+    ["17-Day Prenovice", "Prenovice", "WCT Pattern book Prenovice", 17],
+    ["16-Day Novice", "Novice", "WCT Pattern book Novice", 16]
+  ] as const)(
+    "rejects a %s inventory before attempt mutation",
+    async (_label, levelLabel, title, dayCount) => {
+      const book = createBook({ title, levelLabel, dayCount });
+      const days = createFullDays(book);
+      const sets = createV2Sets(book, days);
+      const startAttempt = vi.fn();
+      const deps = stores(book, days, sets);
+      const { startWctPopQuiz } = await service();
+
+      await expect(startWctPopQuiz({
+        ...deps,
+        wctPopQuizStore: {
+          getAttempt: vi.fn().mockResolvedValue(null),
+          startAttempt
+        },
+        selectQuestions: vi.fn().mockReturnValue(snapshot(book, sets))
+      }, { bookId: book.id, mode: "start" }))
+        .rejects.toThrow("Pop Quiz needs one complete quiz version");
+      expect(startAttempt).not.toHaveBeenCalled();
+    }
+  );
+
+  it("rejects duplicate current quiz-set IDs before attempt mutation", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    sets[1].id = sets[0].id;
+    const startAttempt = vi.fn();
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(null),
+        startAttempt
+      }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toThrow("Pop Quiz needs one complete quiz version");
+    expect(startAttempt).not.toHaveBeenCalled();
   });
 
   it("rejects missing, Premium, and mismatched title-level books", async () => {

@@ -80,8 +80,10 @@ async function prepareCurrentInventory(
   book: WctBook
 ): Promise<CurrentInventory> {
   const orderedSummaries = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
+  const expectedDayCount = compactIdentity(book.levelLabel) === "prenovice" ? 16 : 28;
   if (
-    orderedSummaries.length !== book.dayCount
+    book.dayCount !== expectedDayCount
+    || orderedSummaries.length !== expectedDayCount
     || orderedSummaries.some((day, index) => day.dayNumber !== index + 1)
   ) {
     return failIncompleteInventory();
@@ -105,6 +107,12 @@ async function prepareCurrentInventory(
   ));
   const loadedSets = await deps.wctQuizStore.listSetsByLessonKeys(lessonKeys);
   if (loadedSets.length !== lessonKeys.length) return failIncompleteInventory();
+  if (
+    new Set(loadedSets.map((set) => set.id)).size !== loadedSets.length
+    || new Set(loadedSets.map((set) => set.sourceId)).size !== loadedSets.length
+  ) {
+    return failIncompleteInventory();
+  }
   const setByLessonKey = new Map(loadedSets.map((set) => [set.lessonKey, set]));
   if (setByLessonKey.size !== lessonKeys.length) return failIncompleteInventory();
   const sets = lessonKeys.map((lessonKey) => setByLessonKey.get(lessonKey));
@@ -157,7 +165,27 @@ function validateAttemptSnapshot(
   inventory: CurrentInventory
 ) {
   if (attempt.bookId !== book.id) throw new WctPopQuizRestartRequiredError();
-  const dayById = new Map(book.days.map((day) => [day.id, day]));
+  const orderedDays = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
+  const isLegacyTwenty = inventory.sourceVersion === "wct-review-v1"
+    && attempt.questions.length === 20;
+  const dayIds = attempt.questions.map((item) => item.dayId);
+  const dayNumbers = attempt.questions.map((item) => item.dayNumber);
+  if (
+    !isLegacyTwenty
+    && (
+      attempt.questions.length !== orderedDays.length
+      || new Set(dayIds).size !== orderedDays.length
+      || new Set(dayNumbers).size !== orderedDays.length
+      || attempt.questions.some((item, index) => (
+        item.dayId !== orderedDays[index].id
+        || item.dayNumber !== orderedDays[index].dayNumber
+        || item.dayTopic !== orderedDays[index].shortLabel
+      ))
+    )
+  ) {
+    throw new WctPopQuizRestartRequiredError();
+  }
+  const dayById = new Map(orderedDays.map((day) => [day.id, day]));
   const setById = new Map(inventory.sets.map((set) => [set.id, set]));
 
   for (const stored of attempt.questions) {
@@ -168,7 +196,9 @@ function validateAttemptSnapshot(
       || !set
       || stored.dayNumber !== day.dayNumber
       || stored.dayLabel !== day.displayLabel
-      || (stored.dayTopic !== undefined && stored.dayTopic !== day.shortLabel)
+      || (isLegacyTwenty
+        ? stored.dayTopic !== undefined && stored.dayTopic !== day.shortLabel
+        : stored.dayTopic !== day.shortLabel)
       || set.lessonKey !== standardWctLessonKey(book.title, day.dayNumber)
       || set.sourceKind !== "wct_day"
       || set.sourceId !== day.id

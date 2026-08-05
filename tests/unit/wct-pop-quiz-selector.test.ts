@@ -209,6 +209,58 @@ describe("WCT Pop Quiz selector", () => {
     });
   });
 
+  it("rejects a duplicate v2 previous Day even when Map collapse leaves complete coverage", () => {
+    const book = createBook();
+    const candidates = createV2Candidates(book);
+    const first = selectWctPopQuizQuestions({
+      book,
+      candidates,
+      seed: "first-attempt-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: null
+    });
+
+    expect(() => selectWctPopQuizQuestions({
+      book,
+      candidates,
+      seed: "retake-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: [...first, structuredClone(first[0])]
+    })).toThrow("Pop Quiz needs one complete quiz version");
+  });
+
+  it.each([
+    ["foreign set", (previous: WctPopQuizCandidate) => {
+      previous.sourceQuizSetId = "foreign-set";
+    }],
+    ["fabricated content", (previous: WctPopQuizCandidate) => {
+      previous.question.prompt = "Fabricated previous prompt";
+    }],
+    ["missing Day topic", (previous: WctPopQuizCandidate) => {
+      delete previous.dayTopic;
+    }]
+  ] as const)("rejects v2 previous snapshot %s", (_label, mutate) => {
+    const book = createBook();
+    const candidates = createV2Candidates(book);
+    const first = selectWctPopQuizQuestions({
+      book,
+      candidates,
+      seed: "first-attempt-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: null
+    });
+    const previousQuestions = structuredClone(first);
+    mutate(previousQuestions[0]);
+
+    expect(() => selectWctPopQuizQuestions({
+      book,
+      candidates,
+      seed: "retake-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions
+    })).toThrow("Pop Quiz needs one complete quiz version");
+  });
+
   it("retains the legacy whole-signature retake rule", () => {
     const book = createBook();
     const input = {
