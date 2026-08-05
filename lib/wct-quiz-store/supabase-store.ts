@@ -119,6 +119,9 @@ export class SupabaseWctQuizStore implements WctQuizStore {
       throw new Error("WCT quiz creation requires an admin store");
     }
     const parsed = wctQuizSetCreateSchema.parse(input);
+    if (parsed.generatorVersion === "wct-review-v2") {
+      throw new Error("WCT v2 standard sets must use atomic synchronization");
+    }
     const { error } = await (await this.client())
       .from("wct_quiz_sets")
       .upsert({

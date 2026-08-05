@@ -318,6 +318,15 @@ describe("MemoryWctQuizStore", () => {
     expect(replay.sourceHash).toBe("a".repeat(64));
   });
 
+  it("rejects v2 standard sets on the relationless legacy create path", async () => {
+    const admin = new MemoryWctQuizStore({ id: USER_A }, true);
+    const set = v2Draft(1);
+
+    await expect(admin.createSetIfMissing(set))
+      .rejects.toThrow("must use atomic synchronization");
+    await expect(admin.getSetByLessonKey(set.lessonKey)).resolves.toBeNull();
+  });
+
   it("rejects quiz creation through a learner store", async () => {
     const learner = new MemoryWctQuizStore({ id: USER_A });
 

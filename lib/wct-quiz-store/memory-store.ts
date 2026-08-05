@@ -117,6 +117,9 @@ export class MemoryWctQuizStore implements WctQuizStore {
       throw new Error("WCT quiz creation requires an admin store");
     }
     const parsed = wctQuizSetCreateSchema.parse(input);
+    if (parsed.generatorVersion === "wct-review-v2") {
+      throw new Error("WCT v2 standard sets must use atomic synchronization");
+    }
     const key = setKey(this.user.id, parsed.lessonKey);
     const existing = getState().sets.get(key);
     if (existing) return clone(existing);
@@ -142,7 +145,17 @@ export class MemoryWctQuizStore implements WctQuizStore {
     const state = getState();
     for (const book of parsedBooks) {
       for (const set of book.sets) {
-        const existing = state.sets.get(setKey(this.user.id, set.lessonKey));
+        const key = setKey(this.user.id, set.lessonKey);
+        const existing = state.sets.get(key);
+        const recordedBookId = state.standardBookIds.get(key);
+        if (
+          existing?.generatorVersion === "wct-review-v2"
+          && recordedBookId !== book.bookId
+        ) {
+          throw new Error(
+            `WCT quiz generator/version integrity collision for ${set.lessonKey}`
+          );
+        }
         if (
           existing
           && existing.generatorVersion === set.generatorVersion
@@ -151,11 +164,6 @@ export class MemoryWctQuizStore implements WctQuizStore {
             existing.lessonKey !== set.lessonKey
             || existing.sourceKind !== set.sourceKind
             || existing.sourceId !== set.sourceId
-            || (
-              state.standardBookIds.has(setKey(this.user.id, set.lessonKey))
-              && state.standardBookIds.get(setKey(this.user.id, set.lessonKey))
-                !== book.bookId
-            )
             || stableStringify(existing.questions) !== stableStringify(set.questions)
           )
         ) {
