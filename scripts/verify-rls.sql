@@ -462,6 +462,56 @@ cross join lateral (
 ) questions;
 reset role;
 
+-- A malformed directly inserted v2 source cannot exploit SQL NULL format checks.
+set role service_role;
+update public.wct_quiz_sets
+set questions = jsonb_set(questions, '{0}', (questions->0) - 'format')
+where id = '64200000-0000-4000-8000-000000000001';
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
+do $$
+declare
+  v_malformed_questions jsonb;
+begin
+  select jsonb_agg(
+    jsonb_build_object(
+      'sourceQuizSetId', quiz.id,
+      'dayId', day.id,
+      'dayNumber', day.day_number,
+      'dayLabel', format('Day %s (%s)', day.day_number, btrim(day.short_label)),
+      'dayTopic', day.short_label,
+      'band', case day.day_number when 1 then 'early' when 2 then 'middle' else 'late' end,
+      'question', quiz.questions->(case day.day_number when 1 then 0 when 2 then 1 else 4 end)
+    ) order by day.day_number
+  )
+  into v_malformed_questions
+  from public.wct_quiz_sets quiz
+  join public.wct_days day on day.id::text = quiz.source_id
+  where day.book_id = '64000000-0000-4000-8000-0000000000aa';
+
+  begin
+    perform public.start_wct_pop_quiz(
+      '64000000-0000-4000-8000-0000000000aa',
+      'missing-v2-format',
+      v_malformed_questions
+    );
+    raise exception 'missing-format v2 source unexpectedly started';
+  exception when others then
+    if sqlerrm not like '%versions cannot be mixed%' then raise; end if;
+  end;
+end $$;
+reset role;
+
+set role service_role;
+update public.wct_quiz_sets
+set questions = jsonb_set(questions, '{0,format}', '"multiple_choice"'::jsonb)
+where id = '64200000-0000-4000-8000-000000000001';
+reset role;
+
+select 'WCT v2 missing-format rejection verification passed' as result;
+
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
 do $$

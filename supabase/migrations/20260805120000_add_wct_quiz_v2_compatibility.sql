@@ -683,9 +683,10 @@ begin
     if exists (
       select 1
       from jsonb_array_elements(p_questions) item
-      where item->'question'->>'format' not in (
-        'multiple_choice', 'fill_blank', 'true_false'
-      )
+      where jsonb_typeof(item->'question'->'format') is distinct from 'string'
+        or coalesce(item->'question'->>'format', '') not in (
+          'multiple_choice', 'fill_blank', 'true_false'
+        )
     ) then
       raise exception 'WCT Pop Quiz versions cannot be mixed';
     end if;
@@ -838,7 +839,7 @@ declare
   v_answer_count integer;
   v_question_count integer;
   v_score integer;
-  v_completed_at timestamptz := clock_timestamp();
+  v_completed_at timestamptz;
 begin
   if v_user_id is null then
     raise exception 'Authentication required';
@@ -928,6 +929,7 @@ begin
     on question->>'id' = answer->>'questionId'
   where question->>'correctChoiceId' = answer->>'choiceId';
 
+  v_completed_at := clock_timestamp();
   insert into public.wct_quiz_progress (
     quiz_set_id,
     user_id,

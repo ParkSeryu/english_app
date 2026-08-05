@@ -538,3 +538,55 @@ end $$;
 reset role;
 
 select 'WCT v2 sync verification passed' as result;
+
+-- JSON-null v2 formats must be rejected even when the request equals the source.
+set role service_role;
+update public.wct_quiz_sets
+set questions = jsonb_set(questions, '{0,format}', 'null'::jsonb)
+where owner_id = '00000000-0000-4000-8000-0000000000aa'
+  and lesson_key = 'wct-book:wct-v2-sync:day:1';
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
+do $$
+declare
+  v_malformed_questions jsonb;
+begin
+  select jsonb_agg(
+    jsonb_build_object(
+      'sourceQuizSetId', quiz.id,
+      'dayId', day.id,
+      'dayNumber', day.day_number,
+      'dayLabel', format('Day %s (%s)', day.day_number, btrim(day.short_label)),
+      'dayTopic', day.short_label,
+      'band', case day.day_number when 1 then 'early' else 'middle' end,
+      'question', quiz.questions->(case day.day_number when 1 then 0 else 1 end)
+    ) order by day.day_number
+  )
+  into v_malformed_questions
+  from public.wct_quiz_sets quiz
+  join public.wct_days day on day.id::text = quiz.source_id
+  where day.book_id = '49200000-0000-4000-8000-0000000000aa';
+
+  begin
+    perform public.start_wct_pop_quiz(
+      '49200000-0000-4000-8000-0000000000aa',
+      'null-v2-format',
+      v_malformed_questions
+    );
+    raise exception 'null-format v2 source unexpectedly started';
+  exception when others then
+    if sqlerrm not like '%versions cannot be mixed%' then raise; end if;
+  end;
+end $$;
+reset role;
+
+set role service_role;
+update public.wct_quiz_sets
+set questions = jsonb_set(questions, '{0,format}', '"multiple_choice"'::jsonb)
+where owner_id = '00000000-0000-4000-8000-0000000000aa'
+  and lesson_key = 'wct-book:wct-v2-sync:day:1';
+reset role;
+
+select 'WCT v2 null-format rejection verification passed' as result;

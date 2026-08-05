@@ -39,6 +39,30 @@ wait_for_advisory_lock() {
   return 1
 }
 
+wait_for_ungranted_advisory_lock() {
+  local application_name="$1"
+  local attempts=0
+  local lock_count
+  while (( attempts < 40 )); do
+    if ! lock_count="$(docker exec "$CONTAINER" psql -Atq -U postgres -d postgres -c \
+      "select count(*) from pg_locks locks join pg_stat_activity activity on activity.pid = locks.pid where locks.locktype = 'advisory' and locks.granted = false and activity.application_name = '$application_name'")"; then
+      attempts=$((attempts + 1))
+      sleep 0.1
+      continue
+    fi
+    if [[ "$lock_count" == "1" ]]; then
+      echo "observed ungranted advisory lock requested by $application_name"
+      return 0
+    fi
+    attempts=$((attempts + 1))
+    sleep 0.1
+  done
+  echo "timed out waiting for ungranted advisory lock requested by $application_name" >&2
+  docker exec "$CONTAINER" psql -U postgres -d postgres -c \
+    "select activity.application_name, activity.state, activity.wait_event_type, activity.wait_event, locks.locktype, locks.granted from pg_stat_activity activity left join pg_locks locks on locks.pid = activity.pid where activity.application_name = '$application_name'" >&2 || true
+  return 1
+}
+
 psql_exec <<'SQL'
 set role service_role;
 insert into public.wct_books (id, owner_id, title, level_label)
@@ -155,7 +179,7 @@ from generate_series(1, 2) day_number;
 reset role;
 SQL
 
-timeout 12s docker exec -e PGAPPNAME=wct-sync-pop -i "$CONTAINER" \
+timeout 20s docker exec -e PGAPPNAME=wct-sync-pop -i "$CONTAINER" \
   psql -v ON_ERROR_STOP=1 -U postgres -d postgres >"$SYNC_OUT" 2>&1 <<'SQL' &
 begin;
 set role service_role;
@@ -163,7 +187,7 @@ select public.sync_wct_standard_quiz_sets(
   '00000000-0000-4000-8000-0000000000aa',
   public.test_wct_sync_payload('new-pop')
 );
-select pg_sleep(3);
+select pg_sleep(6);
 commit;
 SQL
 SYNC_PID=$!
@@ -173,7 +197,7 @@ if ! wait_for_advisory_lock "wct-sync-pop"; then
   exit 1
 fi
 
-timeout 12s docker exec -e PGAPPNAME=wct-pop-waiter -i "$CONTAINER" \
+timeout 20s docker exec -e PGAPPNAME=wct-pop-waiter -i "$CONTAINER" \
   psql -v ON_ERROR_STOP=1 -Atq -U postgres -d postgres >"$POP_OUT" 2>&1 <<'SQL' &
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
@@ -190,6 +214,13 @@ POP_PID=$!
 sleep 0.4
 if ! kill -0 "$POP_PID" 2>/dev/null; then
   echo "Pop start did not wait for the sync advisory lock" >&2
+  cat "$POP_OUT" >&2
+  exit 1
+fi
+if ! wait_for_ungranted_advisory_lock "wct-pop-waiter"; then
+  wait "$SYNC_PID" || true
+  wait "$POP_PID" || true
+  cat "$SYNC_OUT" >&2
   cat "$POP_OUT" >&2
   exit 1
 fi
@@ -225,7 +256,7 @@ select public.submit_wct_quiz_attempt(
 reset role;
 SQL
 
-timeout 12s docker exec -e PGAPPNAME=wct-sync-submit -i "$CONTAINER" \
+timeout 20s docker exec -e PGAPPNAME=wct-sync-submit -i "$CONTAINER" \
   psql -v ON_ERROR_STOP=1 -U postgres -d postgres >"$SUBMIT_SYNC_OUT" 2>&1 <<'SQL' &
 begin;
 set role service_role;
@@ -233,7 +264,7 @@ select public.sync_wct_standard_quiz_sets(
   '00000000-0000-4000-8000-0000000000aa',
   public.test_wct_sync_payload('submit-new')
 );
-select pg_sleep(3);
+select pg_sleep(6);
 commit;
 SQL
 SUBMIT_SYNC_PID=$!
@@ -244,7 +275,7 @@ if ! wait_for_advisory_lock "wct-sync-submit"; then
 fi
 
 set +e
-timeout 12s docker exec -e PGAPPNAME=wct-submit-waiter -i "$CONTAINER" \
+timeout 20s docker exec -e PGAPPNAME=wct-submit-waiter -i "$CONTAINER" \
   psql -v ON_ERROR_STOP=1 -U postgres -d postgres >"$SUBMIT_OUT" 2>&1 <<'SQL' &
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-4000-8000-0000000000aa';
@@ -264,6 +295,13 @@ set -e
 sleep 0.4
 if ! kill -0 "$SUBMIT_PID" 2>/dev/null; then
   echo "stale standard submission did not wait for the sync advisory lock" >&2
+  cat "$SUBMIT_OUT" >&2
+  exit 1
+fi
+if ! wait_for_ungranted_advisory_lock "wct-submit-waiter"; then
+  wait "$SUBMIT_SYNC_PID" || true
+  wait "$SUBMIT_PID" || true
+  cat "$SUBMIT_SYNC_OUT" >&2
   cat "$SUBMIT_OUT" >&2
   exit 1
 fi
