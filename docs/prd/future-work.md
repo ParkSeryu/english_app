@@ -119,7 +119,7 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ### 2026-08-06 — T-013: WCT Pop Quiz Bulk Day Loading
 
-- Status: Complete (local verification gate passed; production integration remains controller-owned follow-up).
+- Status: Complete (local verification, `main` synchronization, and production deployment passed).
 - Priority: High
 - Workstream: Course Reference
 - Surface: WCT Pop Quiz shared Day store, server action, and dynamic quiz route loading path.
@@ -174,8 +174,15 @@ _막힌 작업과 필요한 결정을 여기에 둡니다._
   target remains main/production project `ccawzrrkxuirrwvaecvw`.
 - Remaining intentional cost: the server action and redirected dynamic page
   each validate inventory, but each now uses one bulk Day query rather than
-  16/28 Day queries. Exact production deployment and clean `main`
-  synchronization are still controller-owned integration checks.
+  16/28 Day queries.
+- Deployment: release commit
+  `ab618e747301075e6d3cde5fcd9f9224689874b3` was synchronized on
+  `main`/`origin/main`; GitHub combined status and Vercel were `success`
+  (`Deployment has completed`). Production root
+  `https://english-phi-drab.vercel.app/` returned 200, and the exact
+  Prenovice/Novice Pop Quiz routes returned 307 with correct login Locations.
+- Remaining risk: none known for WCT. The production smoke was unauthenticated
+  and read-only; no hosted data or quiz progress was changed.
 
 ### 2026-08-06 — T-012: WCT Pop Quiz Day Order Shuffle
 

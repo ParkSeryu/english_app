@@ -1,6 +1,6 @@
 # WCT Pop Quiz Bulk Day Loading
 
-- Status: Complete (local verification gate passed at `10c367db02989cc5685007690f3661a8815256d7`)
+- Status: Complete (verified at `10c367db02989cc5685007690f3661a8815256d7`; deployed via `ab618e747301075e6d3cde5fcd9f9224689874b3`)
 - Tracker: `docs/prd/future-work.md#t-013-wct-pop-quiz-bulk-day-loading`
 - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-bulk-day-loading-design.md`
 - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-bulk-day-loading.md`
@@ -17,6 +17,7 @@
 - [x] Missing, duplicate, foreign, mismatched, and stale inventory still fails closed before attempt mutation.
 - [x] Existing shuffle, resume, retake, persistence, scoring, v1, standard Day quiz, and Premium behavior remains unchanged.
 - [x] The full local verification gate and localhost/LAN route smoke passed.
+- [x] The exact release commit was synchronized to `main` and deployed successfully to production.
 
 ## Local Verification Evidence
 
@@ -52,6 +53,17 @@ to `/login?next=...` with the exact route encoded. Server output had no 500,
 `InternalServerError`, missing module/chunk, schema, or failed server-action
 error.
 
+## Production Integration Evidence
+
+- Release commit `ab618e747301075e6d3cde5fcd9f9224689874b3` was synchronized on
+  `main` and `origin/main` before this closure-only documentation update.
+- GitHub combined status and the Vercel context both reached `success` with
+  `Deployment has completed`. Deployment status URL:
+  `https://vercel.com/parkseryus-projects/english/JDZgSWbi4XTuLHYodtaRAYWkbTxa`.
+- Production root `https://english-phi-drab.vercel.app/` returned HTTP 200.
+  The exact Prenovice and Novice Pop Quiz routes returned HTTP 307 with their
+  correct encoded `/login?next=...` destinations.
+
 ## Changed Files
 
 Exact pre-completion inventory from `git diff --name-only origin/main...HEAD`:
@@ -79,7 +91,7 @@ tests/unit/wct-supabase-store.test.ts
 - Surface classification: shared store/server-action/dynamic-route loading path => runtime-facing.
 - No schema/migration, hosted Supabase write, progress reset, authentication mutation, or production WCT data change occurred. The hosted target, if read, remains main/production project `ccawzrrkxuirrwvaecvw`.
 - Remaining intentional cost: the server action and redirected dynamic page each validate inventory; each validation now uses one bulk Day query rather than 16 Prenovice or 28 Novice Day queries.
-- Production deployment and clean `main` synchronization remain controller-owned follow-up checks; they are not represented as completed by this local lifecycle record.
+- No WCT-specific remaining release risk is known. Production verification was unauthenticated and read-only, so it created no quiz progress.
 
 - Surface classification: shared store/server-action/dynamic-route loading path => runtime-facing.
 - Non-goals: UI/copy, selector rules, persistence/RPC, schema/migration, production data, standard Day quiz, and Premium changes.
