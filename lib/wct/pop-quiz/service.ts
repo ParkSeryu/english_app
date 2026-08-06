@@ -170,7 +170,8 @@ function validateAttemptSnapshot(
   const orderedDays = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
   const dayIds = attempt.questions.map((item) => item.dayId);
   const dayNumbers = attempt.questions.map((item) => item.dayNumber);
-  const hasInvalidCanonicalPosition = inventory.sourceVersion === "wct-review-v1"
+  const hasInvalidCanonicalPosition = attempt.questions.length === orderedDays.length
+    && inventory.sourceVersion === "wct-review-v1"
     && attempt.questions.some((item, index) => (
       item.dayId !== orderedDays[index].id
       || item.dayNumber !== orderedDays[index].dayNumber

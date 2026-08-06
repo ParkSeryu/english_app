@@ -515,6 +515,25 @@ describe("WCT Pop Quiz service", () => {
       .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
   });
 
+  it("rejects an overlong current v1 snapshot with the typed restart error", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV1Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions.push(structuredClone(existing.questions[0]));
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(existing),
+        startAttempt: vi.fn()
+      }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
   it("keeps positional validation for a reordered current v1 snapshot", async () => {
     const book = createBook();
     const days = createFullDays(book);
