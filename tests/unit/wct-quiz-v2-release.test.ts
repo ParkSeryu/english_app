@@ -565,7 +565,7 @@ describe("WCT v2 release command guards", () => {
       "supabase/migrations/20260728121000_backfill_wct_review_quizzes.sql"
     ])).toThrow("refuses to overwrite an applied migration");
 
-    expect(parseV2QuizCommand([
+    expect(() => parseV2QuizCommand([
       "generate",
       "--artifact",
       "/tmp/artifact.json",
@@ -573,8 +573,8 @@ describe("WCT v2 release command guards", () => {
       "/tmp/approval.json",
       "--output",
       CHECKPOINT_B_MIGRATION
-    ])).toMatchObject({ command: "generate", output: CHECKPOINT_B_MIGRATION });
-    expect(parseV2QuizCommand([
+    ])).toThrow(`WCT v2 output already exists: ${CHECKPOINT_B_MIGRATION}`);
+    expect(() => parseV2QuizCommand([
       "generate",
       "--artifact",
       "/tmp/artifact.json",
@@ -582,7 +582,7 @@ describe("WCT v2 release command guards", () => {
       "/tmp/approval.json",
       "--output",
       CHECKPOINT_B_MIGRATION.replaceAll("/", "\\")
-    ])).toMatchObject({ command: "generate", output: CHECKPOINT_B_MIGRATION });
+    ])).toThrow(`WCT v2 output already exists: ${CHECKPOINT_B_MIGRATION}`);
 
     expect(() => parseV2QuizCommand([
       "fixture",
@@ -1033,6 +1033,39 @@ describe("WCT v2 approval manifest", () => {
 });
 
 describe("WCT v2 rendered release SQL", () => {
+  it("allows only the explicit session marker with zero target books to no-op", () => {
+    const sql = renderMigration(artifact());
+    const targetCountStart = sql.indexOf("select count(*)::integer\n  into v_target_book_count");
+    const markerGuard = `if current_setting('app.wct_v2_allow_empty_fixture', true) = 'on'
+    and v_target_book_count = 0 then
+    return;
+  end if;`;
+    const inventoryGuard = `if v_target_book_count <> 2
+    or (select count(*) from public.wct_books where id in (`;
+    const markerGuardStart = sql.indexOf(markerGuard);
+    const targetCountSql = sql.slice(targetCountStart, markerGuardStart);
+
+    expect(sql.match(/current_setting\('app\.wct_v2_allow_empty_fixture', true\)/gu))
+      .toHaveLength(1);
+    expect(sql.match(/\breturn;/gu)).toHaveLength(1);
+    expect(sql).toContain("v_target_book_count integer;");
+    expect(sql).toContain(`select count(*)::integer
+  into v_target_book_count
+  from public.wct_books
+  where id in (`);
+    expect(targetCountSql).toContain("4a71e072-96de-4722-8874-c35b3ca97ec1");
+    expect(targetCountSql).toContain("c4ab0760-3c31-4533-9631-0e2ead3bfe90");
+    expect(targetCountSql).not.toContain("owner_id");
+    expect(sql).toContain(markerGuard);
+    expect(sql).toContain(inventoryGuard);
+    expect(markerGuardStart).toBeLessThan(sql.indexOf(inventoryGuard));
+    expect(sql.indexOf(inventoryGuard)).toBeLessThan(
+      sql.indexOf("update public.wct_examples")
+    );
+    expect(sql).not.toContain("set app.wct_v2_allow_empty_fixture");
+    expect(sql).not.toContain("set_config('app.wct_v2_allow_empty_fixture'");
+  });
+
   it("chooses a dollar-quote delimiter absent from the complete generated body", () => {
     const current = artifact();
     current.sets[0].questions[0].prompt = "Literal attacker text: $wct_v2$";
@@ -1411,6 +1444,15 @@ describe("WCT v2 hosted environment and package guards", () => {
         SUPABASE_SERVICE_ROLE_KEY: "key"
       })).toThrow("exact HTTPS main/production origin");
     }
+  });
+
+  it("never enables the local empty-fixture marker in the production migration runner", () => {
+    const runner = readFileSync(
+      path.join(process.cwd(), "scripts/db-migrations.mjs"),
+      "utf8"
+    );
+
+    expect(runner).not.toContain("app.wct_v2_allow_empty_fixture");
   });
 
   it("exposes five guarded scripts and removes only the unsafe v1 generator entry", () => {

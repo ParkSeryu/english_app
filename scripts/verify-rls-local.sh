@@ -38,11 +38,18 @@ values ('261f2e21-9532-446f-8694-0b2bc54df360')
 on conflict do nothing;
 SQL
 
+cat >> "$SQL_FILE" <<'SQL'
+-- Checkpoint B may no-op only for this blank, local policy-replay session.
+set app.wct_v2_allow_empty_fixture = 'on';
+SQL
+
 for migration in supabase/migrations/*.sql; do
   cat "$migration" >> "$SQL_FILE"
 done
 
 cat >> "$SQL_FILE" <<'SQL'
+
+reset app.wct_v2_allow_empty_fixture;
 
 grant usage on schema public, auth to anon, authenticated, service_role;
 

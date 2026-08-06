@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "wct-quiz-v2-approval-v2",
+  "approved": true,
+  "reviewer": "Codex Round 9 independent editorial review",
+  "reviewedRows": 220,
+  "approvedAt": "2026-08-06T01:04:57.855Z",
+  "generatorVersion": "wct-review-v2",
+  "sourceCorrectionManifestHash": "62ac2ffd9e911bf05c29b9ed0fd3daa2a661c0211e39567e4c617592a8983b3b",
+  "preSourceInventoryHash": "cc5d1f5cc1f6979947a3507e98fa9655df91bffbf4cb32f66923fe1bebc985ac",
+  "postSourceInventoryHash": "5dea55cb64177e6f02d3d34e89237700bec8a0e787ed99a9899696370dc2d682",
+  "questionArtifactHash": "9c1e2cfbfddef63eb168cc6a217080f40980cf11111fb85fba19fc42820a69b6",
+  "premiumSetSnapshotHash": "369f629146db3a94ed2866756c7311bc348d849ef9f20f9c9638912e23baf1b6",
+  "targetV1SetSnapshotHash": "57969f51755a52ca1c7dccd99b92f1c828b3fa4144344a81489a8097383e20ed",
+  "releaseEnvelopeHash": "16e4b008001d62a14a61d2c8f88f744ab394e46e20836508de4525afaadb130a",
+  "approvalMetadataHash": "d0b256539464fc54448214433f10c02fcfcce9743b11e56cb3bbabbd66bc8b7b"
+}

@@ -11,7 +11,7 @@ const sql = existsSync(migrationPath) ? readFileSync(migrationPath, "utf8") : ""
 describe("WCT quiz v2 compatibility migration", () => {
   it("installs a service-role-only atomic standard-set synchronization RPC", () => {
     expect(existsSync(migrationPath)).toBe(true);
-    expect(existsSync(checkpointBPath)).toBe(false);
+    expect(existsSync(checkpointBPath)).toBe(true);
     expect(sql).toContain("sync_wct_standard_quiz_sets(uuid, jsonb)");
     expect(sql).toContain(
       "grant execute on function public.sync_wct_standard_quiz_sets(uuid, jsonb) to service_role"

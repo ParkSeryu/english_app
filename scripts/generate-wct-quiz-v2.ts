@@ -1455,6 +1455,7 @@ export function renderMigration(artifact: WctV2QuestionArtifact) {
   v_expected_target_after jsonb := ${sqlLiteral(JSON.stringify(expectedAfter))}::jsonb;
   v_expected_premium jsonb := ${sqlLiteral(JSON.stringify(expectedPremium))}::jsonb;
   v_count integer;
+  v_target_book_count integer;
   v_question_count integer;
   v_current_books jsonb;
   v_current_target_graph jsonb;
@@ -1481,10 +1482,24 @@ begin
   lock table public.wct_quiz_sets, public.wct_quiz_progress, public.wct_pop_quiz_progress
   in share row exclusive mode;
 
-  if (select count(*) from public.wct_books where id in (
+  select count(*)::integer
+  into v_target_book_count
+  from public.wct_books
+  where id in (
     ${sqlLiteral(PRENOVICE_BOOK_ID)}::uuid,
     ${sqlLiteral(NOVICE_BOOK_ID)}::uuid
-  ) and owner_id = v_owner_id) <> 2 then
+  );
+
+  if current_setting('app.wct_v2_allow_empty_fixture', true) = 'on'
+    and v_target_book_count = 0 then
+    return;
+  end if;
+
+  if v_target_book_count <> 2
+    or (select count(*) from public.wct_books where id in (
+      ${sqlLiteral(PRENOVICE_BOOK_ID)}::uuid,
+      ${sqlLiteral(NOVICE_BOOK_ID)}::uuid
+    ) and owner_id = v_owner_id) <> 2 then
     raise exception 'WCT v2 exact target book inventory mismatch';
   end if;
 
