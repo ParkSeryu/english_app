@@ -170,15 +170,17 @@ function validateAttemptSnapshot(
   const orderedDays = [...book.days].sort((left, right) => left.dayNumber - right.dayNumber);
   const dayIds = attempt.questions.map((item) => item.dayId);
   const dayNumbers = attempt.questions.map((item) => item.dayNumber);
+  const hasInvalidCanonicalPosition = inventory.sourceVersion === "wct-review-v1"
+    && attempt.questions.some((item, index) => (
+      item.dayId !== orderedDays[index].id
+      || item.dayNumber !== orderedDays[index].dayNumber
+      || item.dayTopic !== orderedDays[index].shortLabel
+    ));
   if (
     attempt.questions.length !== orderedDays.length
     || new Set(dayIds).size !== orderedDays.length
     || new Set(dayNumbers).size !== orderedDays.length
-    || attempt.questions.some((item, index) => (
-      item.dayId !== orderedDays[index].id
-      || item.dayNumber !== orderedDays[index].dayNumber
-      || item.dayTopic !== orderedDays[index].shortLabel
-    ))
+    || hasInvalidCanonicalPosition
   ) {
     throw new WctPopQuizRestartRequiredError();
   }

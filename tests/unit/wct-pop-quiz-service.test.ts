@@ -363,11 +363,6 @@ describe("WCT Pop Quiz service", () => {
       changed[1] = structuredClone(changed[0]);
       return changed;
     }],
-    ["out-of-order Days", (questions: WctPopQuizQuestion[]) => {
-      const changed = structuredClone(questions);
-      [changed[0], changed[1]] = [changed[1], changed[0]];
-      return changed;
-    }],
     ["missing Day topic", (questions: WctPopQuizQuestion[]) => {
       const changed = structuredClone(questions);
       delete changed[0].dayTopic;
@@ -395,6 +390,24 @@ describe("WCT Pop Quiz service", () => {
       }
     }, { bookId: book.id, mode: "start" }))
       .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
+  it("resumes a complete current v2 snapshot in its persisted shuffled order", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions = [...existing.questions].reverse();
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(existing),
+        startAttempt: vi.fn()
+      }
+    }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
   });
 
   it("throws the typed restart error when the requested attempt was reset", async () => {
@@ -489,6 +502,25 @@ describe("WCT Pop Quiz service", () => {
     const sets = createV1Sets(book, days);
     const existing = attempt(book, sets);
     existing.questions = existing.questions.slice(0, -1);
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(existing),
+        startAttempt: vi.fn()
+      }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toBeInstanceOf(WctPopQuizRestartRequiredError);
+  });
+
+  it("keeps positional validation for a reordered current v1 snapshot", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV1Sets(book, days);
+    const existing = attempt(book, sets);
+    existing.questions = [...existing.questions].reverse();
     const deps = stores(book, days, sets);
     const { startWctPopQuiz } = await service();
 
