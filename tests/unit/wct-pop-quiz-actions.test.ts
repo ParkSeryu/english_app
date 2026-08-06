@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getWctQuizStore: vi.fn(),
   getWctPopQuizStore: vi.fn(),
   startWctPopQuiz: vi.fn(),
+  revalidatePath: vi.fn(),
   redirect: vi.fn()
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/lib/wct-store", () => ({ getWctStore: mocks.getWctStore }));
 vi.mock("@/lib/wct-quiz-store", () => ({ getWctQuizStore: mocks.getWctQuizStore }));
 vi.mock("@/lib/wct-pop-quiz-store", () => ({ getWctPopQuizStore: mocks.getWctPopQuizStore }));
 vi.mock("@/lib/wct/pop-quiz/service", () => ({ startWctPopQuiz: mocks.startWctPopQuiz }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 const bookId = "11111111-1111-4111-8111-111111111111";
@@ -64,7 +66,11 @@ describe("WCT Pop Quiz actions", () => {
       bookId,
       mode: "start"
     });
+    expect(mocks.revalidatePath).toHaveBeenNthCalledWith(1, `/lessons/books/${bookId}`);
+    expect(mocks.revalidatePath).toHaveBeenNthCalledWith(2, `/lessons/books/${bookId}/pop-quiz`);
     expect(mocks.redirect).toHaveBeenCalledWith(`/lessons/books/${bookId}/pop-quiz`);
+    expect(mocks.revalidatePath.mock.invocationCallOrder[1])
+      .toBeLessThan(mocks.redirect.mock.invocationCallOrder[0]);
   });
 
   it("returns the exact preparation message for an insufficient selector pool", async () => {

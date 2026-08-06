@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -54,7 +55,10 @@ export async function startWctPopQuizAction(input: unknown): Promise<PopQuizActi
     return { ok: false, message: "Pop Quiz를 시작하지 못했어요. 다시 시도해 주세요." };
   }
 
-  redirect(`/lessons/books/${parsed.data.bookId}/pop-quiz`);
+  const bookPath = `/lessons/books/${parsed.data.bookId}`;
+  revalidatePath(bookPath);
+  revalidatePath(`${bookPath}/pop-quiz`);
+  redirect(`${bookPath}/pop-quiz`);
 }
 
 export async function confirmWctPopQuizAnswerAction(

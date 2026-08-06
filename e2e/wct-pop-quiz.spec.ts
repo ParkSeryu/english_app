@@ -168,12 +168,17 @@ test("completes and retakes mobile Pop Quiz journeys for Prenovice and Novice", 
     const reviewLinks = page.getByRole("link", { name: /Day \d+ 복습/ });
     await expect(reviewLinks).toHaveCount(total);
 
-    const reviewHref = await reviewLinks.first().getAttribute("href");
-    await reviewLinks.first().click();
-    await expect(page).toHaveURL(reviewHref ?? "");
+    if (level === "prenovice") {
+      await page.getByRole("button", { name: "다시 풀기", exact: true }).click();
+      await expect(page.getByText(`1 / ${total}`, { exact: true })).toBeVisible();
+    } else {
+      const reviewHref = await reviewLinks.first().getAttribute("href");
+      await reviewLinks.first().click();
+      await expect(page).toHaveURL(reviewHref ?? "");
 
-    await page.goto(`/lessons/books/${bookId}`);
-    await page.getByRole("button", { name: `다시 풀기 · 최근 0/${total}` }).click();
+      await page.goto(`/lessons/books/${bookId}`);
+      await page.getByRole("button", { name: `다시 풀기 · 최근 0/${total}` }).click();
+    }
     const retakeSignature = await collectRetakeSignature(page, level, total);
     expect(retakeSignature).toHaveLength(total);
     expect(new Set(retakeSignature.map((question) => question.dayId))).toEqual(new Set(wrongDayIds));

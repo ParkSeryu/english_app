@@ -46,7 +46,11 @@ export default async function WctPopQuizPage({ params }: { params: Promise<{ boo
 
   return (
     <main className="min-h-screen px-1 py-6 sm:px-4 sm:py-10">
-      <WctPopQuizRunner attempt={attempt} returnHref={`/lessons/books/${book.id}`} />
+      <WctPopQuizRunner
+        key={attempt.attemptId}
+        attempt={attempt}
+        returnHref={`/lessons/books/${book.id}`}
+      />
     </main>
   );
 }
