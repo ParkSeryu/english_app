@@ -20,7 +20,7 @@ If code implementation has started or an implementation PR is open, the feature 
 
 | Area | Tracker | Folder | PRD | Test spec | Implementation plan | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| WCT Pop Quiz Day Order Shuffle | T-012 | `active/` | `active/wct-pop-quiz-day-order-shuffle/prd.md` | `active/wct-pop-quiz-day-order-shuffle/test-spec.md` | `active/wct-pop-quiz-day-order-shuffle/implementation-plan.md` | Active deterministic seeded Day-order shuffle for new v2 16/28-Day attempts and retakes; resume order, v1, and Premium remain unchanged. |
+| WCT Pop Quiz Day Order Shuffle | T-012 | `complete/` | `complete/wct-pop-quiz-day-order-shuffle/prd.md` | `complete/wct-pop-quiz-day-order-shuffle/test-spec.md` | `complete/wct-pop-quiz-day-order-shuffle/implementation-plan.md` | Completed deterministic seeded Day-order shuffle for new v2 16/28-Day attempts and retakes; persisted resume order, v1, and Premium remain unchanged. |
 | WCT Quiz Quality and Variety | T-011 | `complete/` | `complete/wct-quiz-quality-variety/prd.md` | `complete/wct-quiz-quality-variety/test-spec.md` | `complete/wct-quiz-quality-variety/implementation-plan.md` | Completed 44-set/220-question v2 replacement, 16/28-Day varied Pop retakes, production readback, smoke cleanup, and deployment. |
 | Daily expression memorization MVP | Foundation | `complete/` | `complete/daily-expression-memorization/prd.md` | `complete/daily-expression-memorization/test-spec.md` | `complete/daily-expression-memorization/implementation-plan.md` | Current product baseline. Preserve unless a tracker item explicitly changes it. |
 | New-member learning load | T-002 | `complete/` | `complete/new-member-learning-load/prd.md` | `complete/new-member-learning-load/test-spec.md` | `complete/new-member-learning-load/implementation-plan.md` | Completed signup-date based onboarding load reduction. |
@@ -39,13 +39,13 @@ docs/prd/
   future-work.md
   active/
     README.md
+  backlog/
+  complete/
     wct-pop-quiz-day-order-shuffle/
       README.md
       prd.md
       test-spec.md
       implementation-plan.md
-  backlog/
-  complete/
     wct-quiz-quality-variety/
       README.md
       prd.md

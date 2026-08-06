@@ -107,44 +107,6 @@
 
 ## Active
 
-### T-012: WCT Pop Quiz Day Order Shuffle
-
-- Status: Active
-- Priority: High
-- Workstream: Course Reference
-- Surface: WCT Pop Quiz v2 selection, server action, persisted attempt
-  validation, and learner UI flow.
-- Surface classification: mixed selection logic/server action/persistence validation/UI flow => runtime-facing.
-- Pull readiness:
-  - [x] User value is clear.
-  - [x] Acceptance criteria are testable.
-  - [x] Required data/schema changes are identified: none.
-  - [x] Required live route/action checks are identified.
-- Artifacts:
-  - README: `docs/prd/active/wct-pop-quiz-day-order-shuffle/README.md`
-  - PRD: `docs/prd/active/wct-pop-quiz-day-order-shuffle/prd.md`
-  - Test spec: `docs/prd/active/wct-pop-quiz-day-order-shuffle/test-spec.md`
-  - Implementation plan: `docs/prd/active/wct-pop-quiz-day-order-shuffle/implementation-plan.md`
-  - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-day-order-shuffle-design.md`
-  - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-day-order-shuffle.md`
-- Why: Learners should not be able to anticipate the next source Day in a new
-  v2 WCT Pop Quiz attempt.
-- Scope: Deterministically shuffle and persist the Day order for new v2
-  Prenovice and Novice attempts and retakes while preserving per-Day v2
-  question and format rotation and stored resume order.
-- Non-goals: schema/data migration, Premium, standard Day quiz, lesson content, feedback copy/timing, scoring, and v1 behavior changes.
-- Acceptance criteria:
-  - [ ] New v2 16/28-Day attempts contain every Day once in a non-canonical seeded order.
-  - [ ] A v2 retake changes Day order plus every Day's question ID and format.
-  - [ ] Resume preserves the stored order; v1 and Premium behavior stay unchanged.
-  - [ ] Local live routes, mobile E2E, RLS, build, and production deployment checks pass.
-- Verification:
-  - [ ] Run selector, service, store/RPC, mobile E2E, lint, typecheck, build,
-    RLS, and local/production live-route checks from the approved design and
-    canonical plan.
-- Notes / links: v2 uses a deterministic seed-based Day permutation; no schema
-  or production data migration is required.
-
 ## Backlog
 
 ## Blocked
@@ -152,6 +114,63 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-08-06 — T-012: WCT Pop Quiz Day Order Shuffle
+
+- Status: Complete
+- Priority: High
+- Workstream: Course Reference
+- Surface: WCT Pop Quiz v2 selection, server action, persisted attempt
+  validation, and learner UI flow.
+- Surface classification: mixed selection logic/server action/persistence validation/UI flow => runtime-facing.
+- Result:
+  - [x] New v2 16/28-Day attempts contain every Day once in a non-canonical seeded order.
+  - [x] A v2 retake changes Day order plus every Day's question ID and format.
+  - [x] Resume preserves the stored order; v1 and Premium behavior stay unchanged.
+  - [x] Local live routes, mobile E2E, RLS, build, and production deployment checks pass.
+- Artifacts:
+  - README: `docs/prd/complete/wct-pop-quiz-day-order-shuffle/README.md`
+  - PRD: `docs/prd/complete/wct-pop-quiz-day-order-shuffle/prd.md`
+  - Test spec: `docs/prd/complete/wct-pop-quiz-day-order-shuffle/test-spec.md`
+  - Implementation plan: `docs/prd/complete/wct-pop-quiz-day-order-shuffle/implementation-plan.md`
+  - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-day-order-shuffle-design.md`
+  - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-day-order-shuffle.md`
+- Changed files: exact 14-path implementation inventory for
+  `d3f7ac7..89434d4` is recorded in the
+  [completed README](complete/wct-pop-quiz-day-order-shuffle/README.md#changed-files).
+  Runtime changes are `lib/wct/pop-quiz/selector.ts`,
+  `lib/wct/pop-quiz/service.ts`, `scripts/verify-rls.sql`,
+  `e2e/wct-pop-quiz.spec.ts`, and the matching selector/service unit tests;
+  the remaining paths are the approved design/plan and T-012 lifecycle docs.
+- Verification commands passed:
+
+  ```bash
+  npm run lint
+  npm run typecheck
+  npm test -- tests/unit/wct-pop-quiz-selector.test.ts tests/unit/wct-pop-quiz-service.test.ts tests/unit/wct-pop-quiz-actions.test.ts tests/unit/wct-pop-quiz-validation.test.ts tests/integration/memory-wct-pop-quiz-store.test.ts tests/components/wct-pop-quiz-runner.test.tsx
+  npm test
+  npm run build
+  npm run verify:rls
+  npm run test:e2e -- e2e/wct-pop-quiz.spec.ts --project=mobile-chromium
+  git diff --check
+  ```
+
+  Focused Vitest passed 83/83. The first full run timed out an unchanged,
+  CPU-heavy WCT audit at 5.626s; systematic isolation passed the audit file
+  3/3 and the single case in 1.07s. The unchanged exact retry passed 712 tests
+  with 2 skipped. Build, local RLS/RPC, 2/2 mobile E2E, and diff checks passed.
+  A fresh production-configured `0.0.0.0:3001` server returned root 200 and
+  required Pop 307 login redirects over localhost/LAN with zero prohibited
+  runtime errors.
+- Deployment: exact commit
+  `89434d410ac5364e34dcde10f258e2b46cad8aa2` is synchronized on
+  `main`/`origin/main`. GitHub combined status and Vercel context are `success`
+  (`Deployment has completed`). Production root returned 200; both exact
+  Prenovice/Novice Pop routes returned 307 with correct login Locations.
+- Database: no migration/schema change and no hosted data write,
+  authentication, or quiz-progress mutation.
+- Remaining risk: none known for WCT. The pre-existing audit remains sensitive
+  to local CPU contention, but its cause was isolated and the exact suite passed.
 
 ### 2026-08-06 — T-011: WCT Quiz Quality and Variety
 
