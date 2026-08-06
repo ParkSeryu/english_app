@@ -14,6 +14,11 @@ import {
 import type { WctBook, WctDay } from "@/lib/wct/types";
 
 const OWNER_ID = "22222222-2222-4222-8222-222222222222";
+const productionNoviceDays = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+  27, 28, 29, 30, 31
+] as const;
 
 function createBook(
   overrides: Partial<Pick<WctBook, "id" | "title" | "levelLabel" | "dayCount">> = {}
@@ -65,6 +70,17 @@ function createFullDays(book: WctBook): WctDay[] {
       }]
     }]
   }));
+}
+
+function useProductionNoviceDays(book: WctBook) {
+  book.days = book.days.map((day, index) => ({
+    ...day,
+    id: `day-${productionNoviceDays[index]}`,
+    dayNumber: productionNoviceDays[index],
+    shortLabel: `Topic ${productionNoviceDays[index]}`,
+    displayLabel: `Day ${productionNoviceDays[index]}`
+  }));
+  return book;
 }
 
 function choices(questionId: string, format?: WctQuizQuestionFormat) {
@@ -223,6 +239,35 @@ describe("WCT Pop Quiz service", () => {
       ])
     }));
     expect(started.questions).toEqual(currentSnapshot);
+  });
+
+  it("accepts the complete production Novice inventory with gapped Day numbers", async () => {
+    const book = useProductionNoviceDays(createBook({
+      title: "WCT Pattern book Novice",
+      levelLabel: "Novice",
+      dayCount: 28
+    }));
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const currentSnapshot = snapshot(book, sets);
+    const selectQuestions = vi.fn().mockReturnValue(currentSnapshot);
+    const deps = stores(book, days, sets);
+    const { startWctPopQuiz } = await service();
+
+    const started = await startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: {
+        getAttempt: vi.fn().mockResolvedValue(null),
+        startAttempt: vi.fn(async (input) => ({ ...attempt(book, sets), ...input }))
+      },
+      createSeed: () => "production-novice-seed",
+      selectQuestions
+    }, { bookId: book.id, mode: "start" });
+
+    expect(started.questions.map((item) => item.dayNumber)).toEqual(productionNoviceDays);
+    expect(deps.wctQuizStore.listSetsByLessonKeys).toHaveBeenCalledWith(
+      productionNoviceDays.map((dayNumber) => standardWctLessonKey(book.title, dayNumber))
+    );
   });
 
   it("returns a current in-progress attempt unchanged only after validating its snapshot", async () => {

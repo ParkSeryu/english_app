@@ -8,14 +8,20 @@ import type { WctBook, WctDay } from "../../types.ts";
 import { wctStandardQuizSetCreateSchema } from "../validation.ts";
 import {
   auditStandardQuestionCandidate,
-  buildFillBlankCandidate,
-  buildMultipleChoiceCandidate,
+  buildFillBlankCandidates,
+  buildMultipleChoiceCandidates,
   buildTrueFalseCandidate
 } from "./candidates.ts";
 import {
   STANDARD_WCT_DAY_OVERRIDES,
   type WctStandardDayOverride
 } from "./overrides.ts";
+import {
+  eligibleStandardExampleIds,
+  hasBalancedStandardSourceUsage,
+  hasUniqueStandardLearningTargets,
+  standardLearningTargetKey
+} from "./diversity.ts";
 import { buildStandardWctQuizSource } from "./source.ts";
 import type {
   WctGeneratedStandardQuizBook,
@@ -26,6 +32,10 @@ import type {
 } from "./types.ts";
 
 const GENERATOR_VERSION = "wct-review-v2" as const;
+const PRODUCTION_STANDARD_BOOK_IDS = new Set([
+  "4a71e072-96de-4722-8874-c35b3ca97ec1",
+  "c4ab0760-3c31-4533-9631-0e2ead3bfe90"
+]);
 type StandardFormat = "multiple_choice" | "fill_blank" | "true_false";
 type StandardKind = "translation" | "pattern";
 type TruthState = "O" | "X";
@@ -33,6 +43,30 @@ type Slot = { format: StandardFormat; kind: StandardKind };
 
 function sha256(...parts: string[]) {
   return createHash("sha256").update(parts.join("\0")).digest("hex");
+}
+
+export function orderStandardChoiceTexts(
+  source: Pick<WctStandardQuizSource, "lessonKey" | "sourceHash">,
+  slotIndex: number,
+  texts: readonly string[]
+) {
+  return [...texts].sort((left, right) => (
+    sha256(
+      GENERATOR_VERSION,
+      source.lessonKey,
+      source.sourceHash,
+      String(slotIndex),
+      "choice-order",
+      left
+    ).localeCompare(sha256(
+      GENERATOR_VERSION,
+      source.lessonKey,
+      source.sourceHash,
+      String(slotIndex),
+      "choice-order",
+      right
+    )) || left.localeCompare(right)
+  ));
 }
 
 function uniquePermutations<T extends string>(values: readonly T[]) {
@@ -60,35 +94,27 @@ function uniquePermutations<T extends string>(values: readonly T[]) {
   return result;
 }
 
-function hashRankedPermutation<T extends string>(
-  values: readonly T[],
-  seed: string,
-  accept: (permutation: readonly T[]) => boolean = () => true
-) {
-  const eligible = uniquePermutations(values).filter(accept);
-  if (eligible.length === 0) throw new Error("WCT v2 has no valid slot permutation");
-  return eligible.sort((left, right) => (
-    sha256(seed, left.join("\0")).localeCompare(sha256(seed, right.join("\0")))
-      || left.join("\0").localeCompare(right.join("\0"))
-  ))[0];
+function slotPlansForSource(source: WctStandardQuizSource): Slot[][] {
+  const formats = uniquePermutations<StandardFormat>([
+    "multiple_choice", "multiple_choice", "fill_blank", "fill_blank", "true_false"
+  ]).filter((permutation) => permutation.every((format, index) => (
+    index === 0 || format !== permutation[index - 1]
+  )));
+  const kinds = uniquePermutations<StandardKind>([
+    "translation", "translation", "translation", "pattern", "pattern"
+  ]);
+  return formats.flatMap((formatPlan) => kinds.map((kindPlan) => (
+    formatPlan.map((format, index) => ({ format, kind: kindPlan[index] }))
+  ))).sort((left, right) => {
+    const leftKey = left.map((slot) => `${slot.format}:${slot.kind}`).join("\0");
+    const rightKey = right.map((slot) => `${slot.format}:${slot.kind}`).join("\0");
+    return sha256(source.lessonKey, source.sourceHash, "slots", leftKey)
+      .localeCompare(sha256(source.lessonKey, source.sourceHash, "slots", rightKey))
+      || leftKey.localeCompare(rightKey);
+  });
 }
 
-function slotsForSource(source: WctStandardQuizSource): Slot[] {
-  const formats = hashRankedPermutation<StandardFormat>(
-    ["multiple_choice", "multiple_choice", "fill_blank", "fill_blank", "true_false"],
-    `${source.lessonKey}\0${source.sourceHash}\0formats`,
-    (permutation) => permutation.every((format, index) => (
-      index === 0 || format !== permutation[index - 1]
-    ))
-  );
-  const kinds = hashRankedPermutation<StandardKind>(
-    ["translation", "translation", "translation", "pattern", "pattern"],
-    `${source.lessonKey}\0${source.sourceHash}\0kinds`
-  );
-  return formats.map((format, index) => ({ format, kind: kinds[index] }));
-}
-
-function candidateFor(
+function candidatesFor(
   source: WctStandardQuizSource,
   entryIndex: number,
   slot: Slot,
@@ -96,12 +122,13 @@ function candidateFor(
 ) {
   const entry = source.entries[entryIndex];
   if (slot.format === "multiple_choice") {
-    return buildMultipleChoiceCandidate(entry, slot.kind);
+    return buildMultipleChoiceCandidates(entry, slot.kind);
   }
   if (slot.format === "fill_blank") {
-    return buildFillBlankCandidate(entry, slot.kind);
+    return buildFillBlankCandidates(entry, slot.kind);
   }
-  return buildTrueFalseCandidate(entry, state, slot.kind);
+  const candidate = buildTrueFalseCandidate(entry, state, slot.kind);
+  return candidate ? [candidate] : [];
 }
 
 function candidateKey(candidate: WctStandardQuestionCandidate) {
@@ -109,8 +136,29 @@ function candidateKey(candidate: WctStandardQuestionCandidate) {
     candidate.question.format,
     candidate.question.kind,
     candidate.provenance.patternId,
-    candidate.provenance.exampleId
+    candidate.provenance.exampleId,
+    candidate.question.prompt,
+    ...candidate.question.choices.map((choice) => choice.text)
   ].join("\0");
+}
+
+function candidateRuleFamily(candidate: WctStandardQuestionCandidate) {
+  return candidate.provenance.statementMutation?.ruleFamily
+    ?? candidate.provenance.choiceEvidence.find((evidence) => evidence.mutation)
+      ?.mutation?.ruleFamily
+    ?? "";
+}
+
+function whCandidateTier(slot: Slot, candidate: WctStandardQuestionCandidate) {
+  if (!/\bwh\b/iu.test(candidate.question.feedback.pattern)) return 0;
+  const family = candidateRuleFamily(candidate);
+  if (slot.kind === "pattern") {
+    if (family === "direct_question_order") return 0;
+    if (family === "wh_auxiliary_form" || family === "wh_base_verb") return 1;
+    if (family === "wh_question_word" || family === "wh_question_subject") return 3;
+    return 2;
+  }
+  return family === "wh_question_word" || family === "wh_question_subject" ? 0 : 1;
 }
 
 function rankedCandidates(
@@ -120,9 +168,10 @@ function rankedCandidates(
   state: TruthState
 ) {
   return source.entries
-    .map((_entry, entryIndex) => candidateFor(source, entryIndex, slot, state))
-    .filter((candidate): candidate is WctStandardQuestionCandidate => candidate !== null)
+    .flatMap((_entry, entryIndex) => candidatesFor(source, entryIndex, slot, state))
     .sort((left, right) => {
+      const tier = whCandidateTier(slot, left) - whCandidateTier(slot, right);
+      if (tier !== 0) return tier;
       const leftRank = sha256(
         GENERATOR_VERSION,
         source.lessonKey,
@@ -159,11 +208,21 @@ function materializeCandidate(
     (choice) => choice.id === question.correctChoiceId
   )?.text;
   if (!correctText) throw new Error(`WCT v2 Day ${source.dayNumber} has no correct choice`);
+  const evidenceByText = new Map(candidate.provenance.choiceEvidence.map((evidence) => (
+    [evidence.choiceText, evidence] as const
+  )));
+  const orderedTexts = question.format === "true_false"
+    ? question.choices.map((choice) => choice.text)
+    : orderStandardChoiceTexts(
+        source,
+        slotIndex,
+        question.choices.map((choice) => choice.text)
+      );
   const displayedContent = stableStringify({
     kind: question.kind,
     format: question.format,
     prompt: question.prompt,
-    choices: question.choices.map((choice) => choice.text),
+    choices: orderedTexts,
     correctText,
     explanation: question.explanation,
     feedback: question.feedback
@@ -179,9 +238,9 @@ function materializeCandidate(
     candidate.provenance.exampleId,
     displayedContent
   )}`;
-  const choices = question.choices.map((choice) => ({
-    id: `cv2-${sha256(questionId, choice.text)}`,
-    text: choice.text
+  const choices = orderedTexts.map((text) => ({
+    id: `cv2-${sha256(questionId, text)}`,
+    text
   }));
   const correctChoice = choices.find((choice) => (
     normalizeWctIdentity(choice.text) === normalizeWctIdentity(correctText)
@@ -197,26 +256,81 @@ function materializeCandidate(
       choices,
       correctChoiceId: correctChoice.id
     },
-    provenance: structuredClone(candidate.provenance)
+    provenance: {
+      ...structuredClone(candidate.provenance),
+      choiceEvidence: orderedTexts.map((text) => structuredClone(evidenceByText.get(text)!))
+    }
   };
 }
 
 function composeAutomaticDay(source: WctStandardQuizSource, state: TruthState) {
-  const selected: WctStandardQuestionCandidate[] = [];
-  const usedCandidates = new Set<string>();
-  const usedPrompts = new Set<string>();
-  for (const [slotIndex, slot] of slotsForSource(source).entries()) {
-    const candidate = rankedCandidates(source, slot, slotIndex, state).find((item) => {
-      const key = candidateKey(item);
-      const prompt = normalizeWctIdentity(item.question.prompt);
-      return !usedCandidates.has(key) && !usedPrompts.has(prompt);
-    });
-    if (!candidate) return null;
-    usedCandidates.add(candidateKey(candidate));
-    usedPrompts.add(normalizeWctIdentity(candidate.question.prompt));
-    selected.push(materializeCandidate(source, candidate, slotIndex));
+  const eligibleExamples = eligibleStandardExampleIds(source, state);
+  const rankedCache = new Map<string, WctStandardQuestionCandidate[]>();
+  const candidatesForSlot = (slot: Slot, slotIndex: number) => {
+    const key = `${slotIndex}:${slot.format}:${slot.kind}`;
+    const cached = rankedCache.get(key);
+    if (cached) return cached;
+    const ranked = rankedCandidates(source, slot, slotIndex, state);
+    rankedCache.set(key, ranked);
+    return ranked;
+  };
+  const sourceIdentity = (candidate: WctStandardQuestionCandidate) => (
+    `${candidate.provenance.patternId}\0${candidate.provenance.exampleId}`
+  );
+  const isExactO = (candidate: WctStandardQuestionCandidate) => (
+    candidate.question.format === "true_false"
+    && truthState(candidate) === "O"
+    && candidate.provenance.statementMutation === undefined
+  );
+  const exactOReuseCount = (candidates: readonly WctStandardQuestionCandidate[]) => {
+    const exactO = candidates.find(isExactO);
+    return exactO
+      ? candidates.filter((candidate) => (
+          sourceIdentity(candidate) === sourceIdentity(exactO)
+        )).length - 1
+      : 0;
+  };
+  for (let allowedExactOReuses = 0; allowedExactOReuses < 5; allowedExactOReuses += 1) {
+    for (const slots of slotPlansForSource(source)) {
+      const selected: WctStandardQuestionCandidate[] = [];
+      const usedCandidates = new Set<string>();
+      const usedLearningTargets = new Set<string>();
+      const usedPrompts = new Set<string>();
+      const visit = (slotIndex: number): boolean => {
+        if (slotIndex === slots.length) {
+          return hasBalancedStandardSourceUsage(source, selected, state, eligibleExamples);
+        }
+        for (const candidate of candidatesForSlot(slots[slotIndex], slotIndex)) {
+          const key = candidateKey(candidate);
+          const learningTarget = standardLearningTargetKey(candidate);
+          const prompt = normalizeWctIdentity(candidate.question.prompt);
+          if (usedCandidates.has(key)
+            || usedLearningTargets.has(learningTarget)
+            || usedPrompts.has(prompt)
+            || exactOReuseCount([...selected, candidate]) > allowedExactOReuses
+            || (eligibleExamples.size >= slots.length && selected.some((item) => (
+              item.provenance.exampleId === candidate.provenance.exampleId
+            )))) continue;
+          usedCandidates.add(key);
+          usedLearningTargets.add(learningTarget);
+          usedPrompts.add(prompt);
+          selected.push(candidate);
+          if (visit(slotIndex + 1)) return true;
+          selected.pop();
+          usedCandidates.delete(key);
+          usedLearningTargets.delete(learningTarget);
+          usedPrompts.delete(prompt);
+        }
+        return false;
+      };
+      if (visit(0)) {
+        return selected.map((candidate, index) => (
+          materializeCandidate(source, candidate, index)
+        ));
+      }
+    }
   }
-  return selected;
+  return null;
 }
 
 function truthState(candidate: WctStandardQuestionCandidate): TruthState | null {
@@ -236,8 +350,9 @@ function expectedPrompt(
     return sourceEntry.meaningKo !== null
       && candidate.question.prompt === `"${sourceEntry.meaningKo}"에 맞는 영어 문장을 고르세요.`;
   }
-  return candidate.question.prompt
-    === `"${sourceEntry.patternText}" 패턴에 맞는 영어 문장을 고르세요.`;
+  return sourceEntry.meaningKo !== null
+    && candidate.question.prompt
+      === `"${sourceEntry.patternText}" 패턴을 사용해 "${sourceEntry.meaningKo}"에 맞는 영어 문장을 고르세요.`;
 }
 
 function overrideMatchesSource(
@@ -281,6 +396,15 @@ function materializeOverride(
   const materialized = override.questions.map((candidate, index) => (
     materializeCandidate(source, candidate, index)
   ));
+  const formats = materialized.map((candidate) => candidate.question.format);
+  const kinds = materialized.map((candidate) => candidate.question.kind);
+  const prompts = materialized.map((candidate) => normalizeWctIdentity(
+    candidate.question.prompt
+  ));
+  const overrideState = truthState(materialized.find((candidate) => (
+    candidate.question.format === "true_false"
+  ))!)!;
+  const eligibleExamples = eligibleStandardExampleIds(source, overrideState);
   const draft = {
     lessonKey: source.lessonKey,
     sourceKind: "wct_day" as const,
@@ -290,6 +414,20 @@ function materializeOverride(
     questions: materialized.map((candidate) => candidate.question)
   };
   if (!wctStandardQuizSetCreateSchema.safeParse(draft).success
+    || formats.filter((format) => format === "multiple_choice").length !== 2
+    || formats.filter((format) => format === "fill_blank").length !== 2
+    || formats.filter((format) => format === "true_false").length !== 1
+    || kinds.filter((kind) => kind === "translation").length !== 3
+    || kinds.filter((kind) => kind === "pattern").length !== 2
+    || formats.some((format, index) => index > 0 && format === formats[index - 1])
+    || new Set(prompts).size !== prompts.length
+    || !hasBalancedStandardSourceUsage(
+      source,
+      materialized,
+      overrideState,
+      eligibleExamples
+    )
+    || !hasUniqueStandardLearningTargets(materialized)
     || materialized.filter((candidate) => truthState(candidate) !== null).length !== 1) {
     throw new Error("WCT v2 override must provide one compliant five-question Day");
   }
@@ -304,7 +442,8 @@ function indexOverrides(
     [`${source.level}:${source.dayNumber}`, source] as const
   )));
   const indexed = new Map<string, WctStandardQuestionCandidate[]>();
-  for (const override of overrides) {
+  const level = sources[0]?.level;
+  for (const override of overrides.filter((item) => item.level === level)) {
     const key = `${override.level}:${override.dayNumber}`;
     const source = sourceByKey.get(key);
     if (!source || indexed.has(key)) {
@@ -334,7 +473,11 @@ function truthStatesForPhases(
 
 function allocateTruthStates(
   sources: readonly WctStandardQuizSource[],
-  overrides: ReadonlyMap<string, readonly WctStandardQuestionCandidate[]>
+  overrides: ReadonlyMap<string, readonly WctStandardQuestionCandidate[]>,
+  compose: (
+    source: WctStandardQuizSource,
+    state: TruthState
+  ) => readonly WctStandardQuestionCandidate[] | null
 ) {
   const supportCache = new Map<string, boolean>();
   const supports = (index: number, state: TruthState) => {
@@ -345,28 +488,108 @@ function allocateTruthStates(
     const fixed = overrides.get(`${source.level}:${source.dayNumber}`);
     const supported = fixed
       ? truthState(fixed.find((candidate) => candidate.question.format === "true_false")!) === state
-      : composeAutomaticDay(source, state) !== null;
+      : compose(source, state) !== null;
     supportCache.set(cacheKey, supported);
     return supported;
   };
-  const preferredPhases = ["O", "O", "X"] as const;
-  for (let mask = 0; mask < 8; mask += 1) {
-    const phases = preferredPhases.map((preferred, residue): TruthState => (
-      mask & (1 << residue) ? preferred === "O" ? "X" : "O" : preferred
-    ));
-    const states = truthStatesForPhases(sources.length, phases);
-    const trueCount = states.filter((state) => state === "O").length;
-    const validTotals = trueCount === sources.length / 2;
-    if (validTotals && states.every((state, index) => supports(index, state))) {
-      return states;
+  const preferred = truthStatesForPhases(sources.length, ["O", "O", "X"]);
+  const residuePositions = [0, 1, 2].map((residue) => (
+    Array.from({ length: sources.length }, (_item, index) => index)
+      .filter((index) => index % 3 === residue)
+  ));
+  const targetOptions = residuePositions.map((positions) => {
+    const floor = Math.floor(positions.length / 2);
+    const ceil = Math.ceil(positions.length / 2);
+    const preferredCount = positions.filter((position) => preferred[position] === "O").length;
+    return [...new Set([preferredCount, floor, ceil])];
+  });
+  const groupCache = new Map<string, { states: TruthState[]; cost: number } | null>();
+  const bestGroup = (residue: number, targetO: number) => {
+    const cacheKey = `${residue}:${targetO}`;
+    if (groupCache.has(cacheKey)) return groupCache.get(cacheKey)!;
+    const positions = residuePositions[residue];
+    let best: { states: TruthState[]; cost: number; key: string } | null = null;
+    const states: TruthState[] = [];
+    const visit = (offset: number, countO: number, cost: number) => {
+      const remaining = positions.length - offset;
+      if (countO > targetO || countO + remaining < targetO) return;
+      if (offset === positions.length) {
+        const key = states.join("");
+        if (!best || cost < best.cost || (cost === best.cost && key < best.key)) {
+          best = { states: [...states], cost, key };
+        }
+        return;
+      }
+      const position = positions[offset];
+      const preferredState = preferred[position];
+      const alternatives: TruthState[] = [
+        preferredState,
+        preferredState === "O" ? "X" : "O"
+      ];
+      for (const state of alternatives) {
+        if (!supports(position, state)) continue;
+        states.push(state);
+        visit(
+          offset + 1,
+          countO + (state === "O" ? 1 : 0),
+          cost
+            + (state === preferredState ? 0 : 1)
+            + (states.length > 1 && states[states.length - 2] === state
+              ? sources.length + 1
+              : 0)
+        );
+        states.pop();
+      }
+    };
+    visit(0, 0, 0);
+    const selected = best as { states: TruthState[]; cost: number; key: string } | null;
+    const result = selected ? { states: selected.states, cost: selected.cost } : null;
+    groupCache.set(cacheKey, result);
+    return result;
+  };
+  let bestAllocation: { states: TruthState[]; cost: number; key: string } | null = null;
+  for (const residue0 of targetOptions[0]) {
+    for (const residue1 of targetOptions[1]) {
+      for (const residue2 of targetOptions[2]) {
+        if (residue0 + residue1 + residue2 !== sources.length / 2) continue;
+        const groups = [
+          bestGroup(0, residue0),
+          bestGroup(1, residue1),
+          bestGroup(2, residue2)
+        ];
+        if (groups.some((group) => group === null)) continue;
+        const states = Array<TruthState>(sources.length);
+        for (let residue = 0; residue < groups.length; residue += 1) {
+          residuePositions[residue].forEach((position, index) => {
+            states[position] = groups[residue]!.states[index];
+          });
+        }
+        const cost = groups.reduce((total, group) => total + group!.cost, 0);
+        const key = states.join("");
+        if (!bestAllocation
+          || cost < bestAllocation.cost
+          || (cost === bestAllocation.cost && key < bestAllocation.key)) {
+          bestAllocation = { states, cost, key };
+        }
+      }
     }
   }
+  if (bestAllocation) return bestAllocation.states;
+  const unsupported = sources.flatMap((source, index) => {
+    const supportsO = supports(index, "O");
+    const supportsX = supports(index, "X");
+    return supportsO && supportsX
+      ? []
+      : [`${source.level} Day ${source.dayNumber} (O=${supportsO}, X=${supportsX})`];
+  });
   const unsafeIndex = sources.findIndex((_source, index) => (
     !supports(index, "X") || overrides.has(`${sources[index].level}:${sources[index].dayNumber}`)
   ));
   const failed = unsafeIndex === -1 ? 0 : unsafeIndex;
   throw new Error(
-    `WCT v2 Day ${sources[failed].dayNumber} cannot satisfy alternating O/X allocation`
+    `WCT v2 ${sources[failed].level} Day ${sources[failed].dayNumber} cannot satisfy balanced O/X allocation `
+    + `(O=${supports(failed, "O")}, X=${supports(failed, "X")}); `
+    + `unsupported=${unsupported.join(", ") || "balance-only"}`
   );
 }
 
@@ -395,10 +618,10 @@ function validateInventory(book: WctBook, days: readonly WctDay[]) {
     throw new Error(`WCT v2 ${label} book must contain exactly ${expected} Days`);
   }
   const actual = [...days].map((day) => day.dayNumber).sort((a, b) => a - b);
-  const required = Array.from({ length: expected }, (_item, index) => index + 1);
-  if (actual.length !== required.length
-    || actual.some((dayNumber, index) => dayNumber !== required[index])) {
-    throw new Error(`WCT v2 requires complete Day numbers 1-${expected}`);
+  if (actual.length !== expected
+    || new Set(actual).size !== expected
+    || actual.some((dayNumber) => !Number.isInteger(dayNumber) || dayNumber < 1)) {
+    throw new Error(`WCT v2 requires exactly ${expected} unique positive Day numbers`);
   }
   return level;
 }
@@ -406,7 +629,7 @@ function validateInventory(book: WctBook, days: readonly WctDay[]) {
 export function generateStandardWctQuizBook(
   book: WctBook,
   days: readonly WctDay[],
-  overrides: readonly WctStandardDayOverride[] = STANDARD_WCT_DAY_OVERRIDES
+  overrides?: readonly WctStandardDayOverride[]
 ): WctGeneratedStandardQuizBook {
   const level = validateInventory(book, days);
   const sources = [...days]
@@ -423,11 +646,27 @@ export function generateStandardWctQuizBook(
       throw new Error(`WCT v2 Day ${source.dayNumber} has duplicate source identities`);
     }
   }
-  const indexedOverrides = indexOverrides(sources, overrides);
-  const states = allocateTruthStates(sources, indexedOverrides);
+  if (overrides !== undefined && overrides.some((override) => override.level !== level)) {
+    throw new Error("WCT v2 explicit override level mismatch");
+  }
+  const effectiveOverrides = overrides ?? (
+    PRODUCTION_STANDARD_BOOK_IDS.has(book.id)
+      ? STANDARD_WCT_DAY_OVERRIDES
+      : []
+  );
+  const indexedOverrides = indexOverrides(sources, effectiveOverrides);
+  const compositionCache = new Map<string, readonly WctStandardQuestionCandidate[] | null>();
+  const compose = (source: WctStandardQuizSource, state: TruthState) => {
+    const key = `${source.sourceHash}:${state}`;
+    if (compositionCache.has(key)) return compositionCache.get(key)!;
+    const composed = composeAutomaticDay(source, state);
+    compositionCache.set(key, composed);
+    return composed;
+  };
+  const states = allocateTruthStates(sources, indexedOverrides, compose);
   const sets: WctGeneratedStandardQuizSet[] = sources.map((source, index) => {
     const candidates = indexedOverrides.get(`${source.level}:${source.dayNumber}`)
-      ?? composeAutomaticDay(source, states[index]);
+      ?? compose(source, states[index]);
     if (!candidates) {
       throw new Error(`WCT v2 Day ${source.dayNumber} cannot compose five questions`);
     }

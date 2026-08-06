@@ -124,6 +124,7 @@
 - Why: Standard WCT quizzes need audited, source-faithful button-only variety, and Pop Quiz retakes must change every Day's question and format without breaking v1 compatibility.
 - Scope:
   - Replace only the 44 standard Prenovice/Novice sets with 220 audited v2 questions: every Day has two sentence-choice, two fill-blank, and one O/X question.
+  - Atomically correct the approved eight English/Korean example text fields across six Days with checkpoint B; preserve every other source field and all Premium data.
   - Rotate all 16 Prenovice or 28 Novice Pop Quiz Day questions and formats on retake, reset obsolete targeted progress, and preserve Premium v1 behavior.
   - Release through checkpoint A compatibility deployment followed by checkpoint B atomic data replacement, exact production readback, and authenticated live-route verification.
 - Non-goals: Premium changes; typing, free-text, audio, runtime AI, editors, attempt history, timers, rankings, and unrelated WCT cleanup.

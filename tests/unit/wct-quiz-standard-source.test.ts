@@ -182,7 +182,7 @@ describe("standard WCT quiz source", () => {
       .toHaveLength(1);
   });
 
-  it("preserves missing Korean while limiting it to pattern candidates", () => {
+  it("preserves missing Korean while failing closed for every contextual candidate", () => {
     const target = day({
       patterns: [pattern({
         meaningKo: null,
@@ -192,7 +192,7 @@ describe("standard WCT quiz source", () => {
     const entry = buildStandardWctQuizSource(book(), target).entries[0];
 
     expect(entry.meaningKo).toBeNull();
-    expect(buildMultipleChoiceCandidate(entry, "pattern")).not.toBeNull();
+    expect(buildMultipleChoiceCandidate(entry, "pattern")).toBeNull();
     expect(buildMultipleChoiceCandidate(entry, "translation")).toBeNull();
   });
 

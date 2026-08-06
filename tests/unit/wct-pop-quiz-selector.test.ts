@@ -61,6 +61,23 @@ const formats = [
   "fill_blank"
 ] as const;
 
+const productionNoviceDays = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+  27, 28, 29, 30, 31
+] as const;
+
+function useProductionNoviceDays(book: WctBook) {
+  book.days = book.days.map((day, index) => ({
+    ...day,
+    id: `day-${productionNoviceDays[index]}`,
+    dayNumber: productionNoviceDays[index],
+    shortLabel: `Topic ${productionNoviceDays[index]}`,
+    displayLabel: `Day ${productionNoviceDays[index]}`
+  }));
+  return book;
+}
+
 function createV2Candidates(book: WctBook): WctPopQuizCandidate[] {
   return book.days.flatMap((day) => formats.map((format, index) => {
     const questionId = `${day.id}-${format}-${index + 1}`;
@@ -182,6 +199,21 @@ describe("WCT Pop Quiz selector", () => {
       );
     }
   );
+
+  it("preserves the production Novice Day numbers without requiring a contiguous schedule", () => {
+    const book = useProductionNoviceDays(createBook(28, "Novice"));
+    const selected = selectWctPopQuizQuestions({
+      book,
+      candidates: createV2Candidates(book),
+      seed: "production-novice-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: null
+    });
+
+    expect(selected.map((item) => item.dayNumber)).toEqual(productionNoviceDays);
+    expect(new Set(selected.map((item) => item.dayId)).size).toBe(28);
+    expect(formatCounts(selected).sort((left, right) => left - right)).toEqual([9, 9, 10]);
+  });
 
   it.each([16, 28])("rotates every Day to the next format on a stable %i-Day v2 retake", (dayCount) => {
     const book = createBook(dayCount);

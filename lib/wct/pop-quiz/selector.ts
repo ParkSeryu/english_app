@@ -39,7 +39,11 @@ function signature(questions: WctPopQuizQuestion[]) {
 
 function orderedDays(input: WctPopQuizSelectionInput) {
   const days = [...input.book.days].sort((left, right) => left.dayNumber - right.dayNumber);
-  if (days.some((day, index) => day.dayNumber !== index + 1)) {
+  if (
+    new Set(days.map((day) => day.id)).size !== days.length
+    || new Set(days.map((day) => day.dayNumber)).size !== days.length
+    || days.some((day) => !Number.isInteger(day.dayNumber) || day.dayNumber <= 0)
+  ) {
     throw new Error("Pop Quiz needs one complete quiz version");
   }
   return days;

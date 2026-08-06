@@ -82,7 +82,9 @@ async function prepareCurrentInventory(
   if (
     book.dayCount !== expectedDayCount
     || orderedSummaries.length !== expectedDayCount
-    || orderedSummaries.some((day, index) => day.dayNumber !== index + 1)
+    || new Set(orderedSummaries.map((day) => day.id)).size !== expectedDayCount
+    || new Set(orderedSummaries.map((day) => day.dayNumber)).size !== expectedDayCount
+    || orderedSummaries.some((day) => !Number.isInteger(day.dayNumber) || day.dayNumber <= 0)
   ) {
     return failIncompleteInventory();
   }

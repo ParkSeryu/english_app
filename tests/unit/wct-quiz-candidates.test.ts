@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   auditStandardQuestionCandidate,
   buildFillBlankCandidate,
+  buildFillBlankCandidates,
   buildMultipleChoiceCandidate,
+  buildMultipleChoiceCandidates,
   buildTrueFalseCandidate
 } from "@/lib/wct/quiz/standard/candidates";
 import type {
@@ -37,6 +39,39 @@ function indirectEntry(): WctStandardSourceEntry {
 }
 
 describe("standard WCT format candidates", () => {
+  it.each([
+    [
+      "translation under a mismatched What did pattern",
+      "What did + 주어 + 동사원형?",
+      "Were you playing a game at that time?"
+    ],
+    [
+      "translation under a mismatched What was/were pattern",
+      "What was/were + 주어 + -ing?",
+      "Did he buy a car?"
+    ],
+    [
+      "translation whose verb is outside the declared -ing list",
+      "enjoy/finish/avoid/keep/practice + -ing",
+      "They stopped fighting."
+    ],
+    [
+      "standalone transitive question without an object",
+      "Did + 주어 + 동사원형?",
+      "Did he buy?"
+    ]
+  ])("fails closed for %s even though translation prompts expose the source pattern", (
+    _label,
+    patternText,
+    englishText
+  ) => {
+    const source = modalEntry({ patternText, englishText });
+
+    expect(buildMultipleChoiceCandidate(source, "translation")).toBeNull();
+    expect(buildFillBlankCandidate(source, "translation")).toBeNull();
+    expect(buildTrueFalseCandidate(source, "O", "translation")).toBeNull();
+  });
+
   it("builds multiple choice from the exact source and three same-family mutations", () => {
     const source = modalEntry();
     const candidate = buildMultipleChoiceCandidate(source, "translation");
@@ -64,9 +99,46 @@ describe("standard WCT format candidates", () => {
     expect(candidate!.question.format).toBe("fill_blank");
     expect(candidate!.question.prompt.match(/____/g)).toHaveLength(1);
     expect(candidate!.question.choices).toHaveLength(4);
-    expect(candidate!.provenance.blankSpan).toBeDefined();
+    const blank = candidate!.provenance.blankSpan!;
+    const promptSentence = `${source.englishText.slice(0, blank.start)}____${source.englishText.slice(blank.end)}`;
     expect(candidate!.provenance.choiceEvidence).toHaveLength(4);
+    expect(candidate!.question.prompt).toBe(
+      `"${source.patternText}" 패턴을 사용해 "${source.meaningKo}"에 맞게 빈칸을 채우세요: ${promptSentence}`
+    );
     expect(auditStandardQuestionCandidate(candidate!)).toBe(true);
+  });
+
+  it("keeps kind context and the exact source span in distinct fill prompts", () => {
+    const source = indirectEntry();
+    const translation = buildFillBlankCandidate(source, "translation")!;
+    const pattern = buildFillBlankCandidate(source, "pattern")!;
+
+    expect(translation.question.prompt).toContain(`"${source.meaningKo}"`);
+    expect(pattern.question.prompt).toContain(`"${source.patternText}"`);
+    expect(pattern.question.prompt).toContain(`"${source.meaningKo}"`);
+    expect(translation.question.prompt).not.toBe(pattern.question.prompt);
+    expect(translation.question.prompt).toContain("Could you tell me ____?");
+    expect(auditStandardQuestionCandidate(translation)).toBe(true);
+    expect(auditStandardQuestionCandidate(pattern)).toBe(true);
+  });
+
+  it("enumerates independent same-family source spans as distinct candidates", () => {
+    const source = modalEntry({
+      patternText: "like + 목적어 / love + 목적어",
+      englishText: "I like you and love sports.",
+      meaningKo: "나는 너를 좋아하고 스포츠를 아주 좋아한다."
+    });
+
+    const multipleChoice = buildMultipleChoiceCandidates(source, "pattern");
+    const fillBlank = buildFillBlankCandidates(source, "pattern");
+
+    expect(new Set(multipleChoice.map((candidate) => (
+      candidate.provenance.choiceEvidence.find((evidence) => evidence.mutation)?.mutation?.start
+    ))).size).toBeGreaterThan(1);
+    expect(new Set(fillBlank.map((candidate) => candidate.provenance.blankSpan?.start)).size)
+      .toBeGreaterThan(1);
+    expect(new Set(fillBlank.map((candidate) => candidate.question.prompt)).size)
+      .toBe(fillBlank.length);
   });
 
   it("rejects a fill candidate whose displayed prompt does not match its blank span", () => {
@@ -86,17 +158,67 @@ describe("standard WCT format candidates", () => {
     const source = modalEntry();
     const correct = buildTrueFalseCandidate(source, "O", "pattern");
     const incorrect = buildTrueFalseCandidate(source, "X", "pattern");
+    const translation = buildTrueFalseCandidate(source, "O", "translation");
 
     expect(correct?.question.format).toBe("true_false");
     expect(correct?.question.prompt).toContain(source.englishText);
     expect(correct?.question.choices.map((choice) => choice.text)).toEqual(["O", "X"]);
     expect(correct?.provenance.statementMutation).toBeUndefined();
+    expect(correct?.question.prompt).toContain(`"${source.patternText}" 패턴`);
+    expect(correct?.question.prompt).toContain(`"${source.meaningKo}"`);
+    expect(translation?.question.prompt).toContain(`"${source.meaningKo}"`);
+    expect(translation?.question.prompt).toContain("올바른 영어 문장");
+    expect(translation?.question.prompt).not.toBe(correct?.question.prompt);
     expect(incorrect?.question.choices.map((choice) => choice.text)).toEqual(["O", "X"]);
     expect(incorrect?.provenance.statementMutation).toBeDefined();
     expect(incorrect?.question.prompt).toContain(incorrect!.provenance.statementMutation!.text);
     expect(incorrect?.provenance.statementMutation?.text).not.toBe(source.englishText);
+    for (const candidate of [correct!, incorrect!]) {
+      expect(candidate.question.explanation).not.toMatch(/approved|declared|source sentence/iu);
+      expect(candidate.question.feedback.reason).not.toMatch(/approved|declared|source sentence/iu);
+    }
     expect(auditStandardQuestionCandidate(correct!)).toBe(true);
     expect(auditStandardQuestionCandidate(incorrect!)).toBe(true);
+  });
+
+  it("includes the exact Korean meaning in every pattern-kind judgment criterion", () => {
+    const source = modalEntry();
+    const candidates = [
+      buildMultipleChoiceCandidate(source, "pattern"),
+      buildFillBlankCandidate(source, "pattern"),
+      buildTrueFalseCandidate(source, "O", "pattern"),
+      buildTrueFalseCandidate(source, "X", "pattern")
+    ];
+
+    expect(candidates.every(Boolean)).toBe(true);
+    expect(candidates.every((candidate) => (
+      candidate!.question.prompt.includes(`"${source.patternText}"`)
+      && candidate!.question.prompt.includes(`"${source.meaningKo}"`)
+    ))).toBe(true);
+  });
+
+  it("fails closed for pattern-kind questions when the source has no Korean meaning", () => {
+    const source = modalEntry({ meaningKo: null });
+
+    expect(buildMultipleChoiceCandidate(source, "pattern")).toBeNull();
+    expect(buildFillBlankCandidate(source, "pattern")).toBeNull();
+    expect(buildTrueFalseCandidate(source, "O", "pattern")).toBeNull();
+    expect(buildTrueFalseCandidate(source, "X", "pattern")).toBeNull();
+  });
+
+  it.each([
+    ["in / at / on + 장소", "I am at school.", "나는 학교에 있어요."],
+    ["hear about + 명사", "I heard about the news.", "나는 그 소식을 들었어요."]
+  ])("does not turn a meaning-equivalent preposition into an MC, blank, or X answer", (
+    patternText,
+    englishText,
+    meaningKo
+  ) => {
+    const source = modalEntry({ patternText, englishText, meaningKo });
+
+    expect(buildMultipleChoiceCandidate(source, "pattern")).toBeNull();
+    expect(buildFillBlankCandidate(source, "pattern")).toBeNull();
+    expect(buildTrueFalseCandidate(source, "X", "pattern")).toBeNull();
   });
 
   it("rejects ambiguous, missing, repeated, and unauditable candidates", () => {

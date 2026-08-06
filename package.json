@@ -22,8 +22,12 @@
     "db:migrate": "node scripts/db-migrations.mjs migrate",
     "db:baseline": "node scripts/db-migrations.mjs baseline",
     "db:validate": "node scripts/db-migrations.mjs validate",
-    "wct:quiz-backfill:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts generate --output supabase/migrations/20260728121000_backfill_wct_review_quizzes.sql",
-    "wct:quiz-backfill:verify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts verify"
+    "wct:quiz-backfill:verify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-backfill.ts verify",
+    "wct:quiz-v2:audit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-v2.ts audit",
+    "wct:quiz-v2:approve": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-v2.ts approve",
+    "wct:quiz-v2:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-v2.ts generate",
+    "wct:quiz-v2:fixture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-v2.ts fixture",
+    "wct:quiz-v2:verify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/generate-wct-quiz-v2.ts verify"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

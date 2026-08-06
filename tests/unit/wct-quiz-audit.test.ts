@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { auditStandardWctQuizInventory } from "@/lib/wct/quiz/standard/audit";
-import { buildTrueFalseCandidate } from "@/lib/wct/quiz/standard/candidates";
+import {
+  buildFillBlankCandidate,
+  buildTrueFalseCandidate
+} from "@/lib/wct/quiz/standard/candidates";
+import { standardLearningTargetKey } from "@/lib/wct/quiz/standard/diversity";
 import { generateStandardWctQuizBook } from "@/lib/wct/quiz/standard/generator";
 import type { WctGeneratedStandardQuizBook } from "@/lib/wct/quiz/standard/types";
 import type { WctBook, WctDay, WctPattern } from "@/lib/wct/types";
@@ -28,11 +32,14 @@ function pattern(level: string, dayNumber: number, index: number): WctPattern {
   };
 }
 
-function bookFixture(level: "prenovice" | "novice") {
+function bookFixture(
+  level: "prenovice" | "novice",
+  dayNumbers?: readonly number[]
+) {
   const dayCount = level === "prenovice" ? 16 : 28;
   const bookId = `audit-${level}`;
   const days: WctDay[] = Array.from({ length: dayCount }, (_, index) => {
-    const dayNumber = index + 1;
+    const dayNumber = dayNumbers?.[index] ?? index + 1;
     return {
       id: `${bookId}-source-${dayNumber}`,
       bookId,
@@ -68,6 +75,12 @@ function bookFixture(level: "prenovice" | "novice") {
 function inventory() {
   return [bookFixture("prenovice"), bookFixture("novice")];
 }
+
+const productionNoviceDays = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+  13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+  27, 28, 29, 30, 31
+] as const;
 
 function cloneInventory(input: readonly WctGeneratedStandardQuizBook[]) {
   return structuredClone(input) as WctGeneratedStandardQuizBook[];
@@ -176,6 +189,20 @@ describe("standard WCT release audit", () => {
     }));
   });
 
+  it("audits the gapped production Novice schedule by sorted inventory position", () => {
+    const generated = [
+      bookFixture("prenovice"),
+      bookFixture("novice", productionNoviceDays)
+    ];
+
+    const audit = auditStandardWctQuizInventory(generated);
+
+    expect(audit.failures).toEqual([]);
+    expect(audit.ok).toBe(true);
+    expect(audit.rows.filter((row) => row.level === "novice" && row.slotIndex === 2)
+      .map((row) => row.dayNumber)).toEqual(productionNoviceDays);
+  });
+
   it("reports a distractor mutation that lacks exact evidence", () => {
     const generated = cloneInventory(inventory());
     const set = generated[0].sets[0];
@@ -188,6 +215,81 @@ describe("standard WCT release audit", () => {
     delete evidence.mutation;
 
     expectFailure(generated, "prenovice", 1, candidate.question.id, "mutation_evidence");
+  });
+
+  it("independently rejects source reuse when five eligible examples exist", () => {
+    const generated = cloneInventory(inventory());
+    const set = generated[0].sets[0];
+    const repeatedCandidate = structuredClone(set.candidates[0]);
+    const repeatedQuestion = structuredClone(set.draft.questions[0]);
+    generated[0] = {
+      ...generated[0],
+      sets: generated[0].sets.map((item, index) => index === 0
+        ? {
+            ...item,
+            candidates: item.candidates.map((candidate, candidateIndex) => (
+              candidateIndex === 1 ? repeatedCandidate : candidate
+            )),
+            draft: {
+              ...item.draft,
+              questions: item.draft.questions.map((question, questionIndex) => (
+                questionIndex === 1 ? repeatedQuestion : question
+              ))
+            }
+          }
+        : item)
+    };
+
+    expectFailure(
+      generated,
+      "prenovice",
+      1,
+      repeatedQuestion.id,
+      "source_diversity"
+    );
+  });
+
+  it("release-blocks the same learning target reused across question formats", () => {
+    const generated = cloneInventory(inventory());
+    const set = generated[0].sets[0];
+    const multipleChoice = set.candidates.find((candidate) => (
+      candidate.question.format === "multiple_choice"
+    ))!;
+    const entry = set.source.entries.find((sourceEntry) => (
+      sourceEntry.exampleId === multipleChoice.provenance.exampleId
+    ))!;
+    const duplicateFill = buildFillBlankCandidate(
+      entry,
+      multipleChoice.question.kind as "translation" | "pattern"
+    )!;
+
+    expect(standardLearningTargetKey(multipleChoice))
+      .toBe(standardLearningTargetKey(duplicateFill));
+    generated[0] = {
+      ...generated[0],
+      sets: generated[0].sets.map((item, index) => index === 0
+        ? {
+            ...item,
+            candidates: item.candidates.map((candidate, candidateIndex) => (
+              candidateIndex === 1 ? duplicateFill : candidate
+            )),
+            draft: {
+              ...item.draft,
+              questions: item.draft.questions.map((question, questionIndex) => (
+                questionIndex === 1 ? duplicateFill.question : question
+              ))
+            }
+          }
+        : item)
+    };
+
+    expectFailure(
+      generated,
+      "prenovice",
+      1,
+      duplicateFill.question.id,
+      "learning_target_uniqueness"
+    );
   });
 
   it("reports learner-facing Day metadata from the actual displayed prompt", () => {
@@ -486,7 +588,7 @@ describe("standard WCT release audit", () => {
     );
   });
 
-  it("release-blocks count-preserving corruption of residue alternation", () => {
+  it("accepts nonalternating O/X order when total and residue counts stay balanced", () => {
     const generated = cloneInventory(inventory());
     const group = residueTruthRows(generated, 0);
     const left = group[0];
@@ -497,9 +599,8 @@ describe("standard WCT release audit", () => {
 
     expect(audit.summary.prenoviceTrue).toBe(8);
     expect(audit.summary.prenoviceFalse).toBe(8);
-    expect(audit.failures).toContainEqual(expect.objectContaining({
-      level: "prenovice",
-      rule: "true_false_alternation"
-    }));
+    expect(audit.failures.filter((failure) => (
+      failure.rule === "true_false_balance" || failure.rule === "true_false_alternation"
+    ))).toEqual([]);
   });
 });

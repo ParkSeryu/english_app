@@ -6,6 +6,17 @@ import {
 } from "../../normalization.ts";
 import type { WctQuizQuestion } from "../types.ts";
 import { wctStandardQuizSetCreateSchema } from "../validation.ts";
+import {
+  canBuildStandardKind,
+  standardFillBlankPrompt,
+  standardMultipleChoicePrompt,
+  standardTrueFalsePrompt
+} from "./candidates.ts";
+import {
+  hasBalancedStandardSourceUsage,
+  standardLearningTargetKey
+} from "./diversity.ts";
+import { orderStandardChoiceTexts } from "./generator.ts";
 import type {
   WctGeneratedStandardQuizBook,
   WctMutationEvidence,
@@ -262,6 +273,9 @@ function auditQuestion(
   if (question.kind === "translation" && entry.meaningKo === null) {
     fail("source_membership", "A translation question has no target-source Korean meaning.");
   }
+  if (!canBuildStandardKind(entry, question.kind as "translation" | "pattern")) {
+    fail("source_pattern_alignment", "The source example is not eligible for this question kind.");
+  }
   if (!question.feedback
     || question.feedback.correctSentence !== entry.englishText
     || question.feedback.pattern !== entry.patternText) {
@@ -294,11 +308,9 @@ function auditQuestion(
   }
 
   if (question.format === "multiple_choice") {
-    const expectedPrompt = question.kind === "translation"
-      ? entry.meaningKo === null
-        ? null
-        : `"${entry.meaningKo}"에 맞는 영어 문장을 고르세요.`
-      : `"${entry.patternText}" 패턴에 맞는 영어 문장을 고르세요.`;
+    const expectedPrompt = question.kind === "translation" && entry.meaningKo === null
+      ? null
+      : standardMultipleChoicePrompt(entry, question.kind as "translation" | "pattern");
     if (question.prompt !== expectedPrompt) {
       fail("prompt_provenance", "MC prompt is not the exact target-source prompt.");
     }
@@ -315,22 +327,32 @@ function auditQuestion(
     }
   } else if (question.format === "fill_blank") {
     const markers = question.prompt.match(/____/gu) ?? [];
+    const blank = provenance.blankSpan;
+    const promptSentence = blank
+      ? `${entry.englishText.slice(0, blank.start)}____${entry.englishText.slice(blank.end)}`
+      : null;
     if (markers.length !== 1
       || !answer
-      || question.prompt.replace("____", answer) !== entry.englishText) {
+      || !promptSentence
+      || !question.prompt.endsWith(promptSentence)) {
       fail("blank_reconstruction", "The displayed blank and correct answer do not reconstruct source.");
     }
-    const blank = provenance.blankSpan;
+    const expectedPrompt = promptSentence
+      ? standardFillBlankPrompt(
+          entry,
+          question.kind as "translation" | "pattern",
+          promptSentence
+        )
+      : null;
     if (!blank
       || entry.englishText.slice(blank.start, blank.end) !== blank.correctText
       || blank.correctText !== answer
-      || question.prompt !== `${entry.englishText.slice(0, blank.start)}____${entry.englishText.slice(blank.end)}`) {
+      || `${entry.englishText.slice(0, blank.start)}${answer}${entry.englishText.slice(blank.end)}`
+        !== entry.englishText) {
       fail("blank_evidence", "The blank span is not an exact target-source span.");
     }
-    if (!blank
-      || question.prompt
-        !== `${entry.englishText.slice(0, blank.start)}____${entry.englishText.slice(blank.end)}`) {
-      fail("prompt_provenance", "Blank prompt is not the exact evidenced source replacement.");
+    if (!expectedPrompt || question.prompt !== expectedPrompt) {
+      fail("prompt_provenance", "Blank prompt is not the exact contextual source prompt.");
     }
     for (const [index, evidence] of provenance.choiceEvidence.entries()) {
       if (evidence.role !== "distractor") continue;
@@ -348,7 +370,11 @@ function auditQuestion(
       fail("true_false_choices", "O/X must display exactly O then X with one correct state.");
     }
     if (answer === "O") {
-      const expectedPrompt = `"${entry.englishText}" 이 문장이 패턴에 맞으면 O, 아니면 X를 고르세요.`;
+      const expectedPrompt = standardTrueFalsePrompt(
+        entry,
+        question.kind as "translation" | "pattern",
+        entry.englishText
+      );
       if (provenance.statementMutation || question.prompt !== expectedPrompt) {
         fail("true_false_statement", "An O statement must display the verbatim source sentence.");
       }
@@ -358,7 +384,11 @@ function auditQuestion(
     } else if (!provenance.statementMutation
       || !exactMutation(entry.englishText, provenance.statementMutation)
       || question.prompt
-        !== `"${provenance.statementMutation.text}" 이 문장이 패턴에 맞으면 O, 아니면 X를 고르세요.`) {
+        !== standardTrueFalsePrompt(
+          entry,
+          question.kind as "translation" | "pattern",
+          provenance.statementMutation.text
+        )) {
       fail("mutation_evidence", "An X statement lacks one-span source mutation evidence.");
       fail("prompt_provenance", "X prompt is not the exact evidenced-mutation prompt.");
     }
@@ -396,13 +426,14 @@ export function auditStandardWctQuizInventory(
     ));
     const actualDays = sets.map((set) => set.source.dayNumber);
     if (sets.length !== expectedDayCount
-      || actualDays.some((dayNumber, index) => dayNumber !== index + 1)) {
+      || new Set(actualDays).size !== expectedDayCount
+      || actualDays.some((dayNumber) => !Number.isInteger(dayNumber) || dayNumber <= 0)) {
       failures.push({
         level: book.level,
         dayNumber: 0,
         questionId: "inventory",
         rule: "day_inventory",
-        reason: `${book.level} must contain exactly Days 1-${expectedDayCount}.`
+        reason: `${book.level} must contain ${expectedDayCount} uniquely numbered Days.`
       });
     }
     for (const set of sets) {
@@ -494,6 +525,20 @@ export function auditStandardWctQuizInventory(
           "Question IDs must be unique within a Day."
         );
       }
+      const targetCounts = new Map<string, number>();
+      for (const candidate of set.candidates) {
+        const target = standardLearningTargetKey(candidate);
+        targetCounts.set(target, (targetCounts.get(target) ?? 0) + 1);
+      }
+      for (const candidate of set.candidates) {
+        if ((targetCounts.get(standardLearningTargetKey(candidate)) ?? 0) > 1) {
+          addFailure(
+            candidate.question.id,
+            "learning_target_uniqueness",
+            "A Day cannot assess the same source span and rule more than once."
+          );
+        }
+      }
       if (stableStringify(formatCounts(questions)) !== stableStringify({
         multiple_choice: 2,
         fill_blank: 2,
@@ -510,6 +555,15 @@ export function auditStandardWctQuizInventory(
       for (const [index, question] of questions.entries()) {
         if (index > 0 && question.format === questions[index - 1].format) {
           addFailure(question.id, "adjacent_format", "Adjacent questions repeat a format.");
+        }
+        if (question.format !== "true_false"
+          && stableStringify(question.choices.map((choice) => choice.text))
+            !== stableStringify(orderStandardChoiceTexts(
+              source,
+              index,
+              question.choices.map((choice) => choice.text)
+            ))) {
+          addFailure(question.id, "choice_order", "Choice order is not the deterministic v2 order.");
         }
         const candidates = set.candidates.filter((candidate) => (
           candidate.question.id === question.id
@@ -555,26 +609,33 @@ export function auditStandardWctQuizInventory(
           }
         });
       }
+      const trueFalseCandidate = set.candidates.find((candidate) => (
+        candidate.question.format === "true_false"
+      ));
+      const state = trueFalseCandidate
+        ? correctChoice(trueFalseCandidate.question)?.text
+        : null;
+      if ((state === "O" || state === "X")
+        && !hasBalancedStandardSourceUsage(source, set.candidates, state)) {
+        addFailure(
+          setQuestionId,
+          "source_diversity",
+          "Questions must use all eligible examples with the minimum possible repetition."
+        );
+      }
     }
     const bookRows = rows.slice(firstBookRow);
     const trueFalseRows = bookRows.filter((row) => row.format === "true_false");
+    const dayPosition = new Map(sets.map((set, index) => [set.source.dayNumber, index]));
     const half = expectedDayCount / 2;
     const hasExactTotal = trueFalseRows.filter((row) => row.correctAnswer === "O").length === half
       && trueFalseRows.filter((row) => row.correctAnswer === "X").length === half;
     const hasBalancedResidues = [0, 1, 2].every((residue) => {
-      const group = trueFalseRows.filter((row) => (row.dayNumber - 1) % 3 === residue);
+      const group = trueFalseRows.filter((row) => dayPosition.get(row.dayNumber)! % 3 === residue);
       return Math.abs(
         group.filter((row) => row.correctAnswer === "O").length
         - group.filter((row) => row.correctAnswer === "X").length
       ) <= 1;
-    });
-    const alternatingResidues = [0, 1, 2].filter((residue) => {
-      const group = trueFalseRows
-        .filter((row) => (row.dayNumber - 1) % 3 === residue)
-        .sort((left, right) => left.dayNumber - right.dayNumber);
-      return group.some((row, index) => (
-        index > 0 && row.correctAnswer === group[index - 1].correctAnswer
-      ));
     });
     if (!hasExactTotal || !hasBalancedResidues) {
       for (const row of trueFalseRows) {
@@ -587,22 +648,6 @@ export function auditStandardWctQuizInventory(
           questionId: row.questionId,
           rule: "true_false_balance",
           reason: "The book does not have exact total and residue-balanced O/X allocation."
-        });
-      }
-    }
-    for (const residue of alternatingResidues) {
-      for (const row of trueFalseRows.filter((item) => (
-        (item.dayNumber - 1) % 3 === residue
-      ))) {
-        const key = `${row.level}:${row.dayNumber}:${row.questionId}:true_false_alternation`;
-        if (failureKeys.has(key)) continue;
-        failureKeys.add(key);
-        failures.push({
-          level: row.level,
-          dayNumber: row.dayNumber,
-          questionId: row.questionId,
-          rule: "true_false_alternation",
-          reason: "The zero-based residue sequence does not strictly alternate O/X."
         });
       }
     }

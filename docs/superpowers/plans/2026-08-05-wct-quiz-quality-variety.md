@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Scope is standard WCT Prenovice 16 Days and Novice 28 Days: 44 sets and 220 questions.
-- Production target book IDs are immutable release constants: Prenovice `740b33b4-4338-4d43-8287-6edaa7bd0635` and Novice `aa2233e4-6eca-4716-94d6-78e605eb1523`; hosted tooling must select by these IDs and then verify title/level/count, never select by title alone.
+- Production target book IDs are immutable release constants: Prenovice `4a71e072-96de-4722-8874-c35b3ca97ec1` and Novice `c4ab0760-3c31-4533-9631-0e2ead3bfe90`; hosted tooling must select by these IDs and then verify title/level/count, never select by title alone. These replace the deleted pre-recreation IDs after a verified read-only main inventory check on 2026-08-05.
 - WCT Premium remains `wct-review-v1`; its questions, progress, routes, and learner behavior do not change.
 - Standard sets use `wct-review-v2` and exactly five questions: two `multiple_choice`, two `fill_blank`, and one `true_false`.
 - Every standard set has three `translation` and two `pattern` semantic kinds, with no adjacent identical formats.
@@ -25,7 +25,7 @@
 - Pop Quiz stays one question per Day: 16 Prenovice and 28 Novice, ascending by Day.
 - First v2 Pop attempts use a balanced three-format schedule. Retakes rotate each previous format with `multiple_choice → fill_blank → true_false → multiple_choice`, and every Day must change both format and question ID.
 - Refresh/resume preserves the stored attempt. Day/topic remains hidden until `정답 확인` and then appears with correct sentence, original pattern, and exact reason.
-- Existing standard Day scores and targeted Prenovice/Novice Pop attempts are reset once when v2 data replaces v1. WCT source rows and Premium rows are untouched.
+- Existing standard Day scores and targeted Prenovice/Novice Pop attempts are reset once when v2 data replaces v1. Checkpoint B also applies the exact approved eight-field source correction manifest; every other source field and every Premium row remain untouched.
 - Standard sync idempotence is keyed by generator version plus source hash. If those match but canonical question JSON differs, fail as a generator/version integrity collision; do not overwrite or reset progress until the generator version or source hash legitimately changes.
 - The sole hosted target is main/production Supabase project `ccawzrrkxuirrwvaecvw`; verify `.env.local` before every hosted read or write.
 - Every migration-managed hosted schema/data release write uses `npm run db:migrate -- --confirm-production` with fresh explicit confirmation immediately before execution. Any separate learner/API smoke action that would write production rows needs its own immediately-before confirmation, exact test-user scope, and rollback or narrowly identified cleanup; it does not bypass or masquerade as a migration.
@@ -1362,9 +1362,9 @@ npm run wct:quiz-v2:fixture -- --artifact docs/prd/active/wct-quiz-quality-varie
 npm run wct:quiz-v2:verify -- --artifact docs/prd/active/wct-quiz-quality-variety/question-artifact.json
 ```
 
-Before any hosted read, load `.env.local`, parse the Supabase URL, and print the verified ref. Reject every ref except `ccawzrrkxuirrwvaecvw`. `audit` reads Prenovice `740b33b4-4338-4d43-8287-6edaa7bd0635` and Novice `aa2233e4-6eca-4716-94d6-78e605eb1523` directly, verifies their title/level/owner, loads their complete current Days, and records canonical Premium-set identity/version/source/question rows plus their snapshot hash (never Premium progress). It refuses duplicate/missing/extra Days, pending-review content, wrong level/day count, or any failed audit row. It writes only the requested local artifacts.
+Before any hosted read, load `.env.local`, parse the Supabase URL, and print the verified ref. Reject every ref except `ccawzrrkxuirrwvaecvw`. `audit` reads Prenovice `4a71e072-96de-4722-8874-c35b3ca97ec1` and Novice `c4ab0760-3c31-4533-9631-0e2ead3bfe90` directly, verifies their title/level/owner, loads their complete current Days, and records canonical Premium-set identity/version/source/question rows plus their snapshot hash (never Premium progress). It refuses duplicate/missing/extra Days, pending-review content, wrong level/day count, or any failed audit row. It writes only the requested local artifacts.
 
-`approve` requires the literal guard, exactly 44 Days/220 rows, zero failed rules, and records generator version, source inventory hash, question artifact hash, Premium-set snapshot hash, reviewer, reviewed row count, approval timestamp, and `approved: true`. The Premium-set hash covers only Premium set identity/version/source/question payload, never mutable learner progress. `generate` re-reads the current main source and Premium sets, recomputes every content hash, and refuses SQL output unless those live hashes match both artifact and approval. `fixture` revalidates the same approval but never reads or writes hosted data; it renders exact target IDs/source graph plus 44 valid v1 sets, target Day/Pop progress, and Premium set/progress sentinels for a temporary PostgreSQL test. `verify` is read-only and compares production v2 rows semantically to the approved artifact, then reports source/Premium-set hashes and reset counts.
+`approve` requires the literal guard, exactly 44 Days/220 rows, zero failed rules, and records generator version, the sorted eight-entry source-correction manifest/hash, pre/post source inventory hashes, question artifact hash, Premium-set snapshot hash, reviewer, reviewed row count, approval timestamp, and `approved: true`. The Premium-set hash covers only Premium set identity/version/source/question payload, never mutable learner progress. `audit` verifies the live preimage and projects the correction manifest only in memory. `generate` re-reads current main source and Premium sets, recomputes every preimage/postimage/content hash, and refuses SQL output unless they match both artifact and approval. `fixture` revalidates the same approval but never reads or writes hosted data; it renders the old source preimage, 44 valid v1 sets, target Day/Pop progress, and Premium set/progress sentinels for a temporary PostgreSQL test. `verify` requires the exact postimage and compares production v2 rows semantically to the approved artifact, then reports source/Premium-set hashes and reset counts.
 
 - [ ] **Step 4: Replace the unsafe historical package entry point**
 
@@ -1528,7 +1528,7 @@ Verify project ref `ccawzrrkxuirrwvaecvw`, checkpoint-A deployment health, no un
 npm run wct:quiz-v2:audit -- --json docs/prd/active/wct-quiz-quality-variety/question-artifact.json --markdown docs/prd/active/wct-quiz-quality-variety/question-audit.md
 ```
 
-The artifacts must report exactly Prenovice 16, Novice 28, 44 sets, 220 questions, format/kind rules, O/X 8/8 and 14/14, zero audit failures, the current source inventory hash, question artifact hash, and unchanged Premium-set snapshot hash. Do not include mutable Premium progress in the approval hash.
+The artifacts must report exactly Prenovice 16, Novice 28, 44 sets, 220 questions, format/kind rules, O/X 8/8 and 14/14, zero audit failures, the sorted eight-entry correction manifest/hash, exact pre/post source inventory hashes, question artifact hash, and unchanged Premium-set snapshot hash. Do not include mutable Premium progress in the approval hash.
 
 - [ ] **Step 2: Perform the final row-by-row editorial review**
 
@@ -1555,7 +1555,7 @@ Assert the migration is fail-closed and contains:
 - one call to the already-deployed batch sync RPC containing both books;
 - transaction-level source-table locks acquired before inventory hashing so a concurrent approved import either commits before the assertions or waits until after conversion;
 - pre/post assertions for 44 v2 sets, 220 questions, format/kind/choice rules, generator/source hashes, and zero affected progress/Pop rows;
-- assertions that WCT source and Premium rows are not mutated;
+- assertions that exactly the eight allowlisted example text fields change and every other WCT source field and Premium row is unchanged;
 - no direct update to applied migrations or broad delete.
 - an executable temporary-PostgreSQL path that applies migrations through checkpoint A, loads the approved `fixture` SQL, executes checkpoint B inside a transaction, and checks all success effects plus a separate corrupted-inventory rollback case.
 
@@ -1575,9 +1575,9 @@ Run:
 npm run wct:quiz-v2:generate -- --artifact docs/prd/active/wct-quiz-quality-variety/question-artifact.json --approval docs/prd/active/wct-quiz-quality-variety/audit-approval.json --output supabase/migrations/20260805130000_replace_wct_standard_quizzes_v2.sql
 ```
 
-The generated transaction must fail when either or both target books are absent in every normal session. To keep blank local migration replay executable, make `scripts/verify-rls-local.sh` set a session-only marker such as `app.wct_v2_allow_empty_fixture=on` before applying migrations; only the exact combination of that marker and zero matching target books may return without mutation. The production migration runner never sets the marker, and the static/executable tests must prove zero-target production behavior raises. With real targets, run `lock table public.wct_books, public.wct_days, public.wct_patterns, public.wct_examples in share mode` before inventory hashing so reads continue but concurrent source DML waits until commit. Then require the single expected owner, both exact book IDs, complete 16/28 current-Day inventories, 44 matching v1 target sets, and matching source/approval hashes. The sync RPC's sorted owner/book advisory locks serialize Pop start and standard submission while the conversion/reset runs. Pass both books to that RPC inside the ledger transaction, then assert 44 v2 sets/220 approved questions, preserved set UUIDs, zero targeted Day progress, zero targeted Pop attempts, unchanged source rows, and unchanged Premium rows. Any failed assertion rolls back everything.
+The generated transaction must fail when either or both target books are absent in every normal session. To keep blank local migration replay executable, make `scripts/verify-rls-local.sh` set a session-only marker such as `app.wct_v2_allow_empty_fixture=on` before applying migrations; only the exact combination of that marker and zero matching target books may return without mutation. The production migration runner never sets the marker, and the static/executable tests must prove zero-target production behavior raises. With real targets, take the RPC-compatible sorted advisory locks and lock the source tables before inventory hashing so concurrent source DML waits until commit. Then require the single expected owner, both exact book IDs, complete 16/28 current-Day inventories, 44 matching v1 target sets, matching approval hashes, and all eight exact source parents/preimages. Apply only the allowlisted one-field edits, require eight exact postimages plus the approved post-source hash, and prove every non-allowlisted source field is unchanged. Pass both books to the sync RPC exactly once inside the same transaction, then assert 44 v2 sets/220 approved questions, preserved set UUIDs, zero targeted Day progress, zero targeted Pop attempts, and unchanged Premium rows. Any failed assertion rolls back the source edits, set changes, and progress deletion together.
 
-Create `scripts/verify-wct-quiz-v2-data-migration.sh` as the production-branch executable test. It starts an isolated temporary PostgreSQL container, installs the auth stubs/roles, applies migrations only through checkpoint A, calls `wct:quiz-v2:fixture` into a temporary SQL file, and loads it. In database one, snapshot set UUIDs/source/Premium rows, apply checkpoint B without the empty-fixture marker, and assert exact 44/220 conversion, UUID preservation, target progress deletion, exact source/Premium scalar/text-field preservation, semantic JSON hashes, and Korean equality. In a fresh database two, load the same fixture, remove or corrupt one required target row, run checkpoint B expecting nonzero exit, then prove every pre-state set/progress/source/Premium hash is unchanged. Use bounded waits and always remove the container/temp files. Update `package.json` so `verify:rls` runs the existing policy replay and then this executable migration-effect/rollback test once checkpoint B exists.
+Create `scripts/verify-wct-quiz-v2-data-migration.sh` as the production-branch executable test. It starts an isolated temporary PostgreSQL container, installs the auth stubs/roles, applies migrations only through checkpoint A, calls `wct:quiz-v2:fixture` into a temporary SQL file, and loads the old source preimage. In database one, snapshot set UUIDs/source/Premium rows, apply checkpoint B without the empty-fixture marker, and assert the exact eight-field source delta, exact 44/220 conversion, UUID preservation, target progress deletion, non-allowlisted source/Premium preservation, semantic JSON hashes, and Korean equality. In fresh failure databases, corrupt one required source preimage/parent and force one post-update assertion failure, run checkpoint B expecting nonzero exit, then prove every pre-state source/set/progress/Premium hash is unchanged. Use bounded waits and always remove the container/temp files. Update `package.json` so `verify:rls` runs the existing policy replay and then this executable migration-effect/rollback test once checkpoint B exists.
 
 - [ ] **Step 6: Verify checkpoint B locally without applying it**
 
@@ -1618,7 +1618,7 @@ Do not push this commit while checkpoint B remains unapplied; production must ne
 
 **Interfaces:**
 - Consumes: committed approved checkpoint-B artifacts, healthy checkpoint A, fresh explicit production-write confirmation, and exact pre-migration snapshots.
-- Produces: reviewed v2 data live on main/production, compatible app/deployment verified, target progress reset, Premium/source unchanged, completed PRD evidence, and a clean synchronized `main`.
+- Produces: reviewed v2 data live on main/production, compatible app/deployment verified, exact eight-field source correction, target progress reset, every other source field and Premium row unchanged, completed PRD evidence, and a clean synchronized `main`.
 
 - [ ] **Step 1: Take fresh pre-write snapshots and validate the ledger**
 
@@ -1633,7 +1633,7 @@ Require exactly `20260805130000_replace_wct_standard_quizzes_v2.sql` pending.
 
 - [ ] **Step 2: Pause for explicit checkpoint-B production-write confirmation**
 
-Immediately before execution, state that this transaction replaces all 44 standard Prenovice/Novice sets with the approved 220 v2 questions, preserves set UUIDs, deletes existing scores for those Days, deletes targeted Prenovice/Novice Pop attempts, and leaves Premium/source data untouched. Ask for explicit approval to run:
+Immediately before execution, state that this transaction applies the exact eight approved source-example text corrections, replaces all 44 standard Prenovice/Novice sets with the approved 220 v2 questions, preserves set UUIDs, deletes existing scores for those Days, deletes targeted Prenovice/Novice Pop attempts, leaves every other source field and all Premium data untouched, and rolls every effect back together on failure. Ask for explicit approval to run:
 
 ```bash
 npm run db:migrate -- --confirm-production
@@ -1651,7 +1651,7 @@ npm run db:validate
 npm run wct:quiz-v2:verify -- --artifact docs/prd/active/wct-quiz-quality-variety/question-artifact.json
 ```
 
-Verify 44 v2 sets, 220 semantic question matches, exact 2/2/1 and 3/2 rules per Day, O/X balances, preserved target set UUIDs, every recorded pre-migration target Day/Pop row absent, exact source inventory hash, exact Premium-set hash, unchanged immediately-before Premium-progress rows, and exact Korean field equality. The migration's in-transaction postcondition proves zero targeted progress at conversion time; if a legitimate new v2 attempt appears after commit, require its timestamp to be later than the migration and validate it separately rather than misclassifying it as stale v1 data. Treat `???`, replacement characters, hash drift, or any row mismatch as a failed release and stop before push.
+Verify the exact eight-field source postimage and unchanged non-allowlisted source fields, 44 v2 sets, 220 semantic question matches, exact 2/2/1 and 3/2 rules per Day, O/X balances, preserved target set UUIDs, every recorded pre-migration target Day/Pop row absent, exact post-source inventory hash, exact Premium-set hash, unchanged immediately-before Premium-progress rows, and byte-exact intended Korean/English text. The migration's in-transaction postcondition proves zero targeted progress at conversion time; if a legitimate new v2 attempt appears after commit, require its timestamp to be later than the migration and validate it separately rather than misclassifying it as stale v1 data. Treat `???`, replacement characters, normalization/hash drift, or any row mismatch as a failed release and stop before push.
 
 - [ ] **Step 4: Push checkpoint B and wait for the matching production deployment**
 
@@ -1685,7 +1685,7 @@ After production behavior is verified, move the active folder to complete and up
 - the exact lint/typecheck/test/RLS/build/E2E commands and results;
 - checkpoint-A/B migration ledger results and production project ref;
 - local and production route URLs/flows exercised;
-- 44/220 counts, hashes, Korean readback, progress reset, source/Premium preservation;
+- exact eight-field source delta, 44/220 counts, hashes, Korean readback, progress reset, non-allowlisted source/Premium preservation;
 - deployed commits and any remaining risk.
 
 Use `apply_patch` for the tracker/README text and `git mv` for the PRD folder so the tracked Active deletions are explicit and recoverable.

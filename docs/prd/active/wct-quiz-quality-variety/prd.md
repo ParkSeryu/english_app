@@ -25,6 +25,10 @@ mixing old and new production contracts.
   Prenovice or 28 Novice Days.
 - Reset existing standard Day progress and targeted Prenovice/Novice Pop Quiz
   progress when v2 data replaces the v1 questions.
+- Correct exactly eight reviewed English/Korean example text fields across six
+  source Days in the same checkpoint-B transaction as the v2 replacement;
+  preserve every source ID, relationship, pattern, sort order, and all other
+  source fields.
 - Keep Premium on `wct-review-v1`; Premium questions, progress, routes, and
   learner behavior are excluded from this work.
 
@@ -36,7 +40,8 @@ The sole hosted target is main/production Supabase project
 1. Checkpoint A deploys only the additive compatibility schema/RPC migration
    and dual-read application code, then verifies the still-v1 production
    quizzes.
-2. After checkpoint A is healthy, checkpoint B adds the reviewed 44-set v2
+2. After checkpoint A is healthy, checkpoint B atomically applies the exact
+   eight-field source correction manifest and the reviewed 44-set v2
    data/reset migration, reads production data back exactly, and runs
    authenticated production route smoke checks.
 
@@ -46,7 +51,8 @@ The checkpoint-B data migration must not exist when checkpoint A is applied.
 
 - Free-text input, audio, speech, runtime model calls, a quiz editor, attempt
   history, timers, rankings, or unrelated WCT cleanup.
-- Changes to WCT source rows or any Premium row.
+- Any WCT source change outside the approved eight-field correction manifest,
+  or any Premium row change.
 
 ## Acceptance criteria
 
@@ -54,6 +60,10 @@ The feature is accepted when all 44 standard sets are audited v2 payloads,
 every Day quiz has the 2/2/1 button-only format mix, every Pop retake changes
 format and question for all 16 or 28 Days, old targeted progress is reset,
 Premium remains v1, and production readback plus live routes pass.
+
+The production source delta must equal the approved eight-field manifest
+exactly; checkpoint B must roll those edits back together with quiz/progress
+changes on any failed assertion.
 
 - [ ] All 44 standard sets and 220 questions pass source, composition, and
   audit validation before any production replacement is generated.

@@ -384,18 +384,24 @@ repository migration ledger and require the project's explicit production
 confirmation guard immediately before application.
 
 A generator script reads the two target books, asserts one current WCT owner,
-asserts the 16/28 Day inventory, builds and audits all 44 v2 sets, and emits a
-new timestamped data migration. That migration contains the reviewed payloads
-and, inside one ledger-managed transaction:
+asserts the 16/28 Day inventory and exact eight-entry source-correction
+preimage, projects that manifest in memory, builds and audits all 44 v2 sets,
+and emits a new timestamped data migration. The artifact and approval bind the
+manifest hash plus the pre- and post-correction source hashes. The migration
+contains the reviewed payloads and, inside one ledger-managed transaction:
 
 1. asserts the expected owner, books, Days, source rows, and all 44 target quiz
    sets before mutation;
-2. updates those standard set rows in place to v2 payloads and hashes;
-3. deletes all `wct_quiz_progress` rows for those 44 set IDs;
-4. deletes all `wct_pop_quiz_progress` rows for the target Prenovice and Novice
+2. verifies all eight exact old English/Korean values and parent relationships,
+   then changes only the one allowlisted text field in each example;
+3. verifies the exact post-correction source hash and unchanged non-allowlisted
+   source fields;
+4. updates those standard set rows in place to v2 payloads and hashes;
+5. deletes all `wct_quiz_progress` rows for those 44 set IDs;
+6. deletes all `wct_pop_quiz_progress` rows for the target Prenovice and Novice
    book IDs;
-5. leaves WCT book/Day/pattern/example rows and every Premium row untouched;
-6. asserts 44 v2 sets, 220 valid questions, per-set format counts, and zero
+7. leaves every non-allowlisted WCT source field and every Premium row untouched;
+8. asserts 44 v2 sets, 220 valid questions, per-set format counts, and zero
    remaining targeted progress rows after mutation.
 
 Any failed assertion rolls back the migration and ledger entry. Applied
@@ -532,7 +538,8 @@ attempt totals and v2 feedback are visible.
 - Day/topic appear in confirmed-answer feedback, not in Pop question prompts or
   choices.
 - Existing targeted Day scores and Pop attempts are reset once during the v2
-  production replacement; WCT source content and Premium data are unchanged.
+  production replacement; the exact eight approved example text fields change
+  atomically, while all other WCT source content and Premium data are unchanged.
 - Production data is semantically equal to the reviewed 44-set JSON payload by
   canonical hash after the migration, with exact intact Korean strings.
 - Lint, typecheck, tests, build, RLS, local live routes, and deployed production

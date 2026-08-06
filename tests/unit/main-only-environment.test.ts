@@ -24,4 +24,28 @@ describe("main-only environment CLIs", () => {
       "dev"
     ])).toThrow("Unknown option: --env");
   });
+
+  it("keeps audit, generate, and verify on the exact main project", async () => {
+    const releaseModule = await import(
+      "@/scripts/generate-wct-quiz-v2.ts"
+    );
+    const usage = releaseModule.wctV2QuizUsage();
+
+    expect(usage).toContain(".env.local");
+    expect(usage).toContain("ccawzrrkxuirrwvaecvw.supabase.co");
+    expect(usage).toContain("audit, generate, and verify read main/production");
+    expect(usage).not.toContain("--env");
+  });
+
+  it("keeps approve and fixture local-file-only", async () => {
+    const releaseModule = await import(
+      "@/scripts/generate-wct-quiz-v2.ts"
+    );
+
+    expect(releaseModule.commandUsesHostedReads("audit")).toBe(true);
+    expect(releaseModule.commandUsesHostedReads("generate")).toBe(true);
+    expect(releaseModule.commandUsesHostedReads("verify")).toBe(true);
+    expect(releaseModule.commandUsesHostedReads("approve")).toBe(false);
+    expect(releaseModule.commandUsesHostedReads("fixture")).toBe(false);
+  });
 });
