@@ -651,6 +651,15 @@ begin
     if sqlerrm not like '%Unknown WCT Pop Quiz source question%' then raise; end if;
   end;
 
+  select jsonb_agg(item order by (item->>'dayNumber')::integer desc)
+  into v_cycle
+  from jsonb_array_elements(v_cycle) item;
+
+  if (v_cycle->0->>'dayNumber')::integer
+    <= (v_cycle->(jsonb_array_length(v_cycle) - 1)->>'dayNumber')::integer then
+    raise exception 'v2 Pop shuffled-order fixture was not descending';
+  end if;
+
   v_result := public.start_wct_pop_quiz(
     '64000000-0000-4000-8000-0000000000aa',
     'v2-cycle',
@@ -658,6 +667,39 @@ begin
   );
   if v_result->'questions' <> v_cycle then
     raise exception 'valid cyclic v2 retake did not preserve its snapshot';
+  end if;
+  v_attempt_id := (v_result->>'attempt_id')::uuid;
+  for v_item in
+    select item
+    from jsonb_array_elements(v_cycle)
+      with ordinality questions(item, position)
+    order by position
+  loop
+    perform public.confirm_wct_pop_quiz_answer(
+      '64000000-0000-4000-8000-0000000000aa',
+      v_attempt_id,
+      v_item->'question'->>'id',
+      v_item->'question'->>'correctChoiceId'
+    );
+  end loop;
+  v_result := public.complete_wct_pop_quiz(
+    '64000000-0000-4000-8000-0000000000aa',
+    v_attempt_id
+  );
+  if (v_result->>'score')::integer <> jsonb_array_length(v_cycle)
+    or (v_result->>'total')::integer <> jsonb_array_length(v_cycle) then
+    raise exception 'shuffled v2 Pop completion score was wrong: %', v_result;
+  end if;
+
+  select to_jsonb(progress)
+  into v_result
+  from public.wct_pop_quiz_progress progress
+  where owner_id = '00000000-0000-4000-8000-0000000000aa'
+    and book_id = '64000000-0000-4000-8000-0000000000aa';
+  if v_result->>'status' <> 'completed'
+    or (v_result->>'current_index')::integer <> jsonb_array_length(v_cycle)
+    or (v_result->>'latest_score')::integer <> jsonb_array_length(v_cycle) then
+    raise exception 'shuffled v2 Pop persisted completion was wrong: %', v_result;
   end if;
   perform set_config('test.wct_stale_pop_questions', v_cycle::text, false);
 end $$;
