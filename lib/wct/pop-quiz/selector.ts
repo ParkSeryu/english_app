@@ -49,6 +49,32 @@ function orderedDays(input: WctPopQuizSelectionInput) {
   return days;
 }
 
+function dayRank(seed: string, day: WctDaySummary) {
+  return createHash("sha256")
+    .update(`${seed}\0day\0${day.id}`)
+    .digest("hex");
+}
+
+function rotateOnce<T>(items: T[]) {
+  return items.length < 2 ? [...items] : [...items.slice(1), items[0]!];
+}
+
+function shuffledV2Days(
+  input: WctPopQuizSelectionInput,
+  canonicalDays: WctDaySummary[]
+) {
+  let shuffled = [...canonicalDays].sort((left, right) => (
+    dayRank(input.seed, left).localeCompare(dayRank(input.seed, right))
+  ));
+  const blockedDayIds = input.previousQuestions
+    ? input.previousQuestions.map((item) => item.dayId)
+    : canonicalDays.map((day) => day.id);
+  if (shuffled.every((day, index) => day.id === blockedDayIds[index])) {
+    shuffled = rotateOnce(shuffled);
+  }
+  return shuffled;
+}
+
 function selectLegacyForSeed(input: WctPopQuizSelectionInput, seed: string) {
   const bandByDayId = buildBandByDayId(input.book.days);
   return orderedDays(input).map((day) => {
@@ -122,9 +148,10 @@ function previousV2QuestionsByDay(
 }
 
 function selectV2(input: WctPopQuizSelectionInput) {
-  const days = orderedDays(input);
-  const bandByDayId = buildBandByDayId(days);
-  const previousByDayId = previousV2QuestionsByDay(input, days);
+  const canonicalDays = orderedDays(input);
+  const bandByDayId = buildBandByDayId(canonicalDays);
+  const previousByDayId = previousV2QuestionsByDay(input, canonicalDays);
+  const days = shuffledV2Days(input, canonicalDays);
   const offset = seedOffset(input.seed);
 
   return days.map((day, index) => {

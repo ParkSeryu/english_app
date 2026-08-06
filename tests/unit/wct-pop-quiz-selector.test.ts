@@ -115,6 +115,10 @@ function formatCounts(items: Array<{ question: { format?: WctQuizQuestionFormat 
   ));
 }
 
+function dayNumbers(items: Array<{ dayNumber: number }>) {
+  return items.map((item) => item.dayNumber);
+}
+
 function expectOneLegacyQuestionPerDay(dayCount: number) {
   const book = createBook(dayCount);
   const selected = selectWctPopQuizQuestions({
@@ -182,7 +186,7 @@ describe("WCT Pop Quiz selector", () => {
   });
 
   it.each([[16, [5, 5, 6]], [28, [9, 9, 10]]] as const)(
-    "balances formats and preserves ordered Days on the first %i-Day v2 attempt",
+    "balances formats and shuffles Days on the first %i-Day v2 attempt",
     (dayCount, expectedCounts) => {
       const book = createBook(dayCount);
       const selected = selectWctPopQuizQuestions({
@@ -193,10 +197,22 @@ describe("WCT Pop Quiz selector", () => {
         previousQuestions: null
       });
 
+      const canonical = Array.from({ length: dayCount }, (_, index) => index + 1);
+
+      expect([...dayNumbers(selected)].sort((left, right) => left - right)).toEqual(canonical);
+      expect(dayNumbers(selected)).not.toEqual(canonical);
       expect(formatCounts(selected).sort((left, right) => left - right)).toEqual(expectedCounts);
-      expect(selected.map((item) => item.dayNumber)).toEqual(
-        Array.from({ length: dayCount }, (_, index) => index + 1)
-      );
+
+      const earlyLength = Math.ceil(dayCount / 3);
+      const middleLength = Math.ceil((dayCount - earlyLength) / 2);
+      const canonicalIndexByDayId = new Map(book.days.map((day, index) => [day.id, index]));
+      for (const item of selected) {
+        const index = canonicalIndexByDayId.get(item.dayId)!;
+        const expectedBand = index < earlyLength
+          ? "early"
+          : index < earlyLength + middleLength ? "middle" : "late";
+        expect(item.band).toBe(expectedBand);
+      }
     }
   );
 
@@ -210,7 +226,8 @@ describe("WCT Pop Quiz selector", () => {
       previousQuestions: null
     });
 
-    expect(selected.map((item) => item.dayNumber)).toEqual(productionNoviceDays);
+    expect([...dayNumbers(selected)].sort((left, right) => left - right)).toEqual([...productionNoviceDays]);
+    expect(dayNumbers(selected)).not.toEqual([...productionNoviceDays]);
     expect(new Set(selected.map((item) => item.dayId)).size).toBe(28);
     expect(formatCounts(selected).sort((left, right) => left - right)).toEqual([9, 9, 10]);
   });
@@ -235,10 +252,54 @@ describe("WCT Pop Quiz selector", () => {
     const next = selectWctPopQuizQuestions(input);
 
     expect(selectWctPopQuizQuestions(input)).toEqual(next);
-    next.forEach((item, index) => {
-      expect(item.question.id).not.toBe(first[index].question.id);
-      expect(item.question.format).toBe(nextWctQuizFormat(first[index].question.format!));
+    const firstByDay = new Map(first.map((item) => [item.dayId, item]));
+    expect(next.map((item) => item.dayId)).not.toEqual(first.map((item) => item.dayId));
+    for (const item of next) {
+      const previous = firstByDay.get(item.dayId)!;
+      expect(item.question.id).not.toBe(previous.question.id);
+      expect(item.question.format).toBe(nextWctQuizFormat(previous.question.format!));
+    }
+  });
+
+  it("rotates a first v2 attempt when the seeded order equals canonical order", () => {
+    const book = createBook(2);
+    const selected = selectWctPopQuizQuestions({
+      book,
+      candidates: createV2Candidates(book),
+      seed: "fallback-seed-1",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: null
     });
+
+    expect(dayNumbers(selected)).toEqual([2, 1]);
+  });
+
+  it("rotates a v2 retake when its seeded order equals the previous order", () => {
+    const book = createBook(2);
+    const candidates = createV2Candidates(book);
+    const previousQuestions = selectWctPopQuizQuestions({
+      book,
+      candidates,
+      seed: "first-attempt-seed",
+      sourceVersion: "wct-review-v2",
+      previousQuestions: null
+    }).sort((left, right) => left.dayNumber - right.dayNumber);
+    const next = selectWctPopQuizQuestions({
+      book,
+      candidates,
+      seed: "fallback-seed-1",
+      sourceVersion: "wct-review-v2",
+      previousQuestions
+    });
+
+    expect(dayNumbers(previousQuestions)).toEqual([1, 2]);
+    expect(dayNumbers(next)).toEqual([2, 1]);
+    const previousByDay = new Map(previousQuestions.map((item) => [item.dayId, item]));
+    for (const item of next) {
+      const previous = previousByDay.get(item.dayId)!;
+      expect(item.question.id).not.toBe(previous.question.id);
+      expect(item.question.format).toBe(nextWctQuizFormat(previous.question.format!));
+    }
   });
 
   it("rejects a duplicate v2 previous Day even when Map collapse leaves complete coverage", () => {
