@@ -81,6 +81,16 @@ export class MemoryWctStore implements WctStore {
     return null;
   }
 
+  async getDays(dayIds: string[]): Promise<WctDay[]> {
+    if (dayIds.length === 0) return [];
+    const requested = new Set(dayIds);
+    return [...getState().books.values()]
+      .filter((book) => book.ownerId === this.user.id)
+      .flatMap((book) => book.days)
+      .filter((day) => requested.has(day.id))
+      .map((day) => clone(sortDayChildren(day)));
+  }
+
   async findDuplicateDays(bookTitle: string, dayNumbers: number[]): Promise<WctDuplicate[]> {
     const normalizedTitle = normalizeWctIdentity(bookTitle);
     const requestedDays = new Set(dayNumbers);

@@ -23,6 +23,18 @@ type SupabaseLike =
 
 const DAY_SUMMARY_SELECT =
   "id,book_id,day_number,short_label,source_page_start,source_page_end,source_needs_review";
+const DAY_SELECT = `
+  id,book_id,day_number,short_label,learning_summary,
+  source_page_start,source_page_end,source_needs_review,
+  wct_day_concepts(id,text,source_kind,sort_order),
+  wct_patterns(
+    id,pattern_text,meaning_ko,usage_note,usage_source,
+    source_page,source_needs_review,sort_order,
+    wct_examples(id,english_text,meaning_ko,source_page,source_needs_review,sort_order)
+  ),
+  wct_important_notes(id,pattern_id,note_text,source_page,sort_order),
+  wct_practice_prompts(id,pattern_id,prompt_text,meaning_ko,source_page,sort_order)
+`;
 
 export class SupabaseWctStore implements WctStore {
   constructor(
@@ -58,22 +70,21 @@ export class SupabaseWctStore implements WctStore {
   async getDay(dayId: string): Promise<WctDay | null> {
     const { data, error } = await (await this.client())
       .from("wct_days")
-      .select(`
-        id,book_id,day_number,short_label,learning_summary,
-        source_page_start,source_page_end,source_needs_review,
-        wct_day_concepts(id,text,source_kind,sort_order),
-        wct_patterns(
-          id,pattern_text,meaning_ko,usage_note,usage_source,
-          source_page,source_needs_review,sort_order,
-          wct_examples(id,english_text,meaning_ko,source_page,source_needs_review,sort_order)
-        ),
-        wct_important_notes(id,pattern_id,note_text,source_page,sort_order),
-        wct_practice_prompts(id,pattern_id,prompt_text,meaning_ko,source_page,sort_order)
-      `)
+      .select(DAY_SELECT)
       .eq("id", dayId)
       .maybeSingle();
     if (error) throw new Error(`WCT Day query failed: ${error.message}`);
     return data ? mapWctDay(data) : null;
+  }
+
+  async getDays(dayIds: string[]): Promise<WctDay[]> {
+    if (dayIds.length === 0) return [];
+    const { data, error } = await (await this.client())
+      .from("wct_days")
+      .select(DAY_SELECT)
+      .in("id", dayIds);
+    if (error) throw new Error(`WCT Day query failed: ${error.message}`);
+    return (data ?? []).map((row) => mapWctDay(row));
   }
 
   async findDuplicateDays(bookTitle: string, dayNumbers: number[]): Promise<WctDuplicate[]> {

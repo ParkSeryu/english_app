@@ -60,6 +60,28 @@ describe("MemoryWctStore", () => {
     expect(await ownerB.getDay(inserted.operations[0].dayId)).toBeNull();
   });
 
+  it("bulk-loads only owned matching Days as defensive clones", async () => {
+    const input = importInput({ idempotencyKey: "bulk" });
+    input.days.push({
+      ...structuredClone(input.days[0]),
+      dayNumber: 2,
+      shortLabel: "가정법",
+      duplicateAction: "create"
+    });
+    const ownerA = new MemoryWctStore({ id: USER_A });
+    const ownerB = new MemoryWctStore({ id: USER_B });
+    const inserted = await ownerA.importApprovedBatch(input);
+    const requestedIds = inserted.operations.map((item) => item.dayId).reverse();
+
+    const loaded = await ownerA.getDays([...requestedIds, "missing-day"]);
+
+    expect(loaded.map((day) => day.id).sort()).toEqual([...requestedIds].sort());
+    expect(await ownerB.getDays(requestedIds)).toEqual([]);
+    loaded[0].patterns[0].patternText = "mutated test value";
+    expect((await ownerA.getDays([loaded[0].id]))[0].patterns[0].patternText)
+      .not.toBe("mutated test value");
+  });
+
   it("replays the same key and hash without inserting twice", async () => {
     const store = new MemoryWctStore({ id: USER_A });
     const input = importInput({ idempotencyKey: "same", payloadHash: "hash-a" });
