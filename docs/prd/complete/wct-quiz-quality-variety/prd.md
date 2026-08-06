@@ -2,7 +2,7 @@
 
 ## Status
 
-Active
+Complete
 
 ## User problem
 
@@ -65,11 +65,11 @@ The production source delta must equal the approved eight-field manifest
 exactly; checkpoint B must roll those edits back together with quiz/progress
 changes on any failed assertion.
 
-- [ ] All 44 standard sets and 220 questions pass source, composition, and
+- [x] All 44 standard sets and 220 questions pass source, composition, and
   audit validation before any production replacement is generated.
-- [ ] Each v2 Day set has the required 2/2/1 format mix, three translation and
+- [x] Each v2 Day set has the required 2/2/1 format mix, three translation and
   two pattern questions, and no adjacent identical formats.
-- [ ] Every v2 Pop retake changes both format and question ID for every Day.
-- [ ] Checkpoint A and checkpoint B complete in the required order, with exact
+- [x] Every v2 Pop retake changes both format and question ID for every Day.
+- [x] Checkpoint A and checkpoint B complete in the required order, with exact
   production readback and authenticated live-route verification after v2
   replacement.

@@ -20,4 +20,8 @@
 | Mobile E2E | Mobile Chromium completes a three-format standard quiz and both 16-question and 28-question Pop flows, including refresh/resume and retake rotation. |
 | Local routes | The built app on `0.0.0.0` serves affected standard and Pop routes over localhost and reachable machine IP without fatal server errors. |
 | Production readback | Main/production readback confirms the exact eight-field source delta with intact UTF-8, 44 v2 payloads, semantic JSON/hash equality, pre/post source hashes, and cleared targeted progress. |
-| Deployed smoke | Authenticated production routes show v2 feedback and correct attempt totals after checkpoint B. |
+| Deployed smoke | Authenticated production routes show v2 feedback, correct attempt totals, and an immediate question-1 remount on same-route retake after checkpoint B. |
+
+All specification rows passed before lifecycle closure on 2026-08-06. The
+approved production smoke residue was removed afterward and the complete
+inventory/source/Premium snapshot was revalidated unchanged.

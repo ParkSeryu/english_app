@@ -107,39 +107,6 @@
 
 ## Active
 
-### T-011: WCT Quiz Quality and Variety
-
-- Status: Active
-- Priority: High
-- Workstream: Course Reference
-- Surface: Standard WCT Prenovice/Novice Day quiz and Pop Quiz selection/retakes, quiz UI feedback, quiz set/progress stores, import/route guards, Supabase RPC/RLS, release tooling, and production data migrations.
-- Migrations:
-  - `supabase/migrations/20260805120000_add_wct_quiz_v2_compatibility.sql` (checkpoint A)
-  - `supabase/migrations/20260805130000_replace_wct_standard_quizzes_v2.sql` (checkpoint B; created only after checkpoint A is deployed and healthy)
-- Artifacts:
-  - README: `docs/prd/active/wct-quiz-quality-variety/README.md`
-  - PRD: `docs/prd/active/wct-quiz-quality-variety/prd.md`
-  - Test spec: `docs/prd/active/wct-quiz-quality-variety/test-spec.md`
-  - Implementation plan: `docs/prd/active/wct-quiz-quality-variety/implementation-plan.md`
-- Why: Standard WCT quizzes need audited, source-faithful button-only variety, and Pop Quiz retakes must change every Day's question and format without breaking v1 compatibility.
-- Scope:
-  - Replace only the 44 standard Prenovice/Novice sets with 220 audited v2 questions: every Day has two sentence-choice, two fill-blank, and one O/X question.
-  - Atomically correct the approved eight English/Korean example text fields across six Days with checkpoint B; preserve every other source field and all Premium data.
-  - Rotate all 16 Prenovice or 28 Novice Pop Quiz Day questions and formats on retake, reset obsolete targeted progress, and preserve Premium v1 behavior.
-  - Release through checkpoint A compatibility deployment followed by checkpoint B atomic data replacement, exact production readback, and authenticated live-route verification.
-- Non-goals: Premium changes; typing, free-text, audio, runtime AI, editors, attempt history, timers, rankings, and unrelated WCT cleanup.
-- Acceptance criteria:
-  - [ ] All 44 standard v2 sets and 220 questions pass the full audit and every Day satisfies the 2/2/1 button-only format mix.
-  - [ ] Every Pop retake changes both format and question for all 16 or 28 Days; old targeted progress is reset; Premium remains v1.
-  - [ ] Production readback and authenticated deployed standard/Pop routes pass after the two checkpoints in order.
-- Verification:
-  - [ ] Run contract, generator, store/RPC, component, migration, and mobile E2E coverage; then lint, typecheck, build, and RLS verification.
-  - [ ] Verify built `0.0.0.0` standard and Pop routes locally and by reachable machine IP; scan server output for fatal errors.
-  - [ ] Read main/production payloads back exactly and run authenticated deployed-route smoke checks after checkpoint B.
-- Notes / links:
-  - Approved design: `docs/superpowers/specs/2026-08-05-wct-quiz-quality-variety-design.md`
-  - Canonical plan: `docs/superpowers/plans/2026-08-05-wct-quiz-quality-variety.md`
-
 ## Backlog
 
 ## Blocked
@@ -147,6 +114,63 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-08-06 — T-011: WCT Quiz Quality and Variety
+
+- Status: Complete
+- Priority: High
+- Workstream: Course Reference
+- Surface: Standard WCT Prenovice/Novice Day and Pop Quiz UI/routes/actions,
+  selection/retakes, quiz set/progress persistence, Supabase RPC/RLS, release
+  tooling, and production data migrations.
+- Surface classification: mixed UI/routes/server actions/API/persistence/schema
+  => runtime-facing.
+- Result:
+  - [x] Replaced 44 standard sets with 220 audited `wct-review-v2` questions;
+    every Day uses the 2/2/1 button-only format mix and typing count is zero.
+  - [x] Every 16-Day Prenovice and 28-Day Novice Pop retake changes question ID
+    and format for every available Day; same-route retakes remount immediately.
+  - [x] Applied exactly eight approved UTF-8 source-field corrections while
+    preserving all other source fields and Premium `wct-review-v1` data.
+  - [x] Completed ordered checkpoint A/B deployment, exact production readback,
+    authenticated route smoke, approved three-row smoke cleanup, and redeploy.
+- Artifacts:
+  - README: `docs/prd/complete/wct-quiz-quality-variety/README.md`
+  - PRD: `docs/prd/complete/wct-quiz-quality-variety/prd.md`
+  - Test spec: `docs/prd/complete/wct-quiz-quality-variety/test-spec.md`
+  - Implementation plan: `docs/prd/complete/wct-quiz-quality-variety/implementation-plan.md`
+  - Approved design: `docs/superpowers/specs/2026-08-05-wct-quiz-quality-variety-design.md`
+  - Canonical plan: `docs/superpowers/plans/2026-08-05-wct-quiz-quality-variety.md`
+- Changed files: the 91-path implementation inventory for range
+  `423088e..2d5b447` is grouped in the
+  [completed README](complete/wct-quiz-quality-variety/README.md#changed-files).
+- Verification commands passed:
+
+  ```bash
+  npm run lint
+  npm run typecheck
+  npm test
+  npm run build
+  npm run verify:rls
+  npm run test:e2e -- e2e/wct-day-review-quiz.spec.ts e2e/wct-pop-quiz.spec.ts --project=mobile-chromium
+  npm run wct:quiz-v2:verify -- --artifact docs/prd/complete/wct-quiz-quality-variety/question-artifact.json
+  npm run db:status
+  npm run db:validate
+  ```
+
+  Full Vitest passed 708 with 2 skipped; full mobile WCT E2E passed 10/10;
+  focused same-route retake passed 1/1. Local `0.0.0.0:3001` root checks
+  passed over `127.0.0.1` and `172.22.48.149`. Main/production
+  `ccawzrrkxuirrwvaecvw` has 39 applied migrations, pending 0, mismatch 0,
+  and exact 44-set/220-question readback. Production authenticated Day and
+  16/28 Pop first/retake flows passed with zero 5xx/page errors.
+- Deployment: `https://english-phi-drab.vercel.app` is healthy; same-route
+  retake fix deployment `9PhEoJfQaDvUMACRZnatG36ZHkh7` is Ready.
+- Cleanup: explicit user approval removed exactly one Day progress row and two
+  Pop progress rows. Post-cleanup Day/Pop/Premium progress counts are 0/0/0;
+  standard inventory, source, correction, and Premium hashes are unchanged.
+- Remaining risk: none known for WCT. Three unrelated legacy all-app E2E
+  expectations remain outside T-011; the complete WCT suite is green.
 
 ### 2026-08-03 — WCT Pop Quiz
 
