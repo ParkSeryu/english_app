@@ -107,40 +107,7 @@
 
 ## Active
 
-### T-013: WCT Pop Quiz Bulk Day Loading
-
-- Status: Active
-- Priority: High
-- Workstream: Course Reference
-- Surface: WCT Pop Quiz shared Day store, server action, and dynamic quiz route loading path.
-- Surface classification: shared store/server-action/dynamic-route loading path => runtime-facing.
-- Pull readiness:
-  - [x] User value is clear.
-  - [x] Acceptance criteria are testable.
-  - [x] Required data/schema changes are identified: none.
-  - [x] Required live route/action checks are identified.
-- Artifacts:
-  - README: `docs/prd/active/wct-pop-quiz-bulk-day-loading/README.md`
-  - PRD: `docs/prd/active/wct-pop-quiz-bulk-day-loading/prd.md`
-  - Test spec: `docs/prd/active/wct-pop-quiz-bulk-day-loading/test-spec.md`
-  - Implementation plan: `docs/prd/active/wct-pop-quiz-bulk-day-loading/implementation-plan.md`
-  - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-bulk-day-loading-design.md`
-  - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-bulk-day-loading.md`
-- Why: Reduce the wait after a learner starts or resumes a WCT Pop Quiz by
-  replacing the current one-request-per-Day inventory load with one bulk Day query.
-- Scope: Bulk-load the full Days once, normalize returned rows to canonical
-  Day-summary order, and retain existing inventory validation before attempts mutate.
-- Non-goals: UI/copy, selector rules, persistence/RPC, schema/migration, production data, standard Day quiz, and Premium changes.
-- Acceptance criteria:
-  - [ ] Every Pop inventory validation uses one bulk full-Day store read instead of 16/28 single-Day reads.
-  - [ ] Unordered bulk rows are normalized to canonical Day-summary order before existing source validation.
-  - [ ] Missing, duplicate, foreign, mismatched, and stale inventory still fails closed before attempt mutation.
-  - [ ] Existing shuffle, resume, retake, persistence, scoring, v1, standard Day quiz, and Premium behavior remains unchanged.
-  - [ ] Full verification, live routes, exact production deployment, and clean main synchronization pass.
-- Verification:
-  - [ ] Run focused store and Pop Quiz service tests, then lint, typecheck, full tests, build, RLS, mobile E2E, and localhost/LAN route checks.
-  - [ ] Verify the exact production deployment and clean `main` synchronization.
-- Notes / links: Approved design and canonical plan listed above.
+_No active work items._
 
 ## Backlog
 
@@ -149,6 +116,66 @@
 _막힌 작업과 필요한 결정을 여기에 둡니다._
 
 ## Complete
+
+### 2026-08-06 — T-013: WCT Pop Quiz Bulk Day Loading
+
+- Status: Complete (local verification gate passed; production integration remains controller-owned follow-up).
+- Priority: High
+- Workstream: Course Reference
+- Surface: WCT Pop Quiz shared Day store, server action, and dynamic quiz route loading path.
+- Surface classification: shared store/server-action/dynamic-route loading path => runtime-facing.
+- Result:
+  - [x] Every Pop inventory validation uses one bulk full-Day store read rather than 16 Prenovice or 28 Novice single-Day reads.
+  - [x] Bulk rows are restored to canonical Day-summary order before the existing source/snapshot validation.
+  - [x] Missing, duplicate, foreign, mismatched, and stale inventory still fails closed before attempt mutation.
+  - [x] Shuffle, resume, retake, persistence, scoring, v1, standard Day quiz, and Premium behavior passed focused/full verification.
+- Artifacts:
+  - README: `docs/prd/complete/wct-pop-quiz-bulk-day-loading/README.md`
+  - PRD: `docs/prd/complete/wct-pop-quiz-bulk-day-loading/prd.md`
+  - Test spec: `docs/prd/complete/wct-pop-quiz-bulk-day-loading/test-spec.md`
+  - Implementation plan: `docs/prd/complete/wct-pop-quiz-bulk-day-loading/implementation-plan.md`
+  - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-bulk-day-loading-design.md`
+  - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-bulk-day-loading.md`
+- Changed files: exact pre-completion 15-path inventory is recorded in the
+  [completed README](complete/wct-pop-quiz-bulk-day-loading/README.md#changed-files):
+  T-013 lifecycle docs, approved design/plan, three WCT store files, the Pop
+  Quiz service, and three focused store/service tests.
+- Verification commands passed at runtime commit `10c367db02989cc5685007690f3661a8815256d7`:
+
+  ```bash
+  npm run lint
+  npm run typecheck
+  npm test -- tests/unit/wct-supabase-store.test.ts tests/integration/memory-wct-store.test.ts tests/unit/wct-pop-quiz-service.test.ts tests/unit/wct-pop-quiz-actions.test.ts tests/unit/wct-pop-quiz-selector.test.ts tests/unit/wct-pop-quiz-validation.test.ts tests/integration/memory-wct-pop-quiz-store.test.ts tests/components/wct-pop-quiz-runner.test.tsx
+  npm test
+  npm run build
+  npm run verify:rls
+  npm run test:e2e -- e2e/wct-pop-quiz.spec.ts --project=mobile-chromium
+  git diff --check origin/main...HEAD
+  ```
+
+  All commands exited 0. Focused Vitest: 8 files / 95 tests. Full Vitest:
+  87 files / 717 tests passed, with 1 file / 2 tests skipped. Mobile E2E: 2/2
+  passed. Build compiled, type-validated, generated 18/18 static pages,
+  optimized, and collected traces. RLS, WCT Pop Quiz, v2 Pop Quiz,
+  concurrency, and checkpoint-B rollback verification passed. A clean sandbox
+  build initially encountered only transient `next/font` DNS `EAI_AGAIN`; the
+  unchanged commit passed with network access after reverting the temporary
+  diagnostic config change.
+- Live runtime evidence: a fresh `0.0.0.0:3001` server was ready in 1363ms.
+  Root returned 200 at `http://127.0.0.1:3001/` and
+  `http://172.22.48.149:3001/`. Prenovice
+  `/lessons/books/64000000-0000-4000-8000-0000000000aa/pop-quiz` and Novice
+  `/lessons/books/64000000-0000-4000-8000-0000000000bb/pop-quiz` returned 307
+  login redirects with the exact encoded route over both localhost and LAN.
+  Server output had no 500, `InternalServerError`, missing module/chunk,
+  schema, or failed server-action error.
+- Database: no schema/migration, hosted Supabase write, progress reset,
+  authentication mutation, or production WCT data change. The relevant hosted
+  target remains main/production project `ccawzrrkxuirrwvaecvw`.
+- Remaining intentional cost: the server action and redirected dynamic page
+  each validate inventory, but each now uses one bulk Day query rather than
+  16/28 Day queries. Exact production deployment and clean `main`
+  synchronization are still controller-owned integration checks.
 
 ### 2026-08-06 — T-012: WCT Pop Quiz Day Order Shuffle
 
