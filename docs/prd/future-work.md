@@ -107,6 +107,44 @@
 
 ## Active
 
+### T-012: WCT Pop Quiz Day Order Shuffle
+
+- Status: Active
+- Priority: High
+- Workstream: Course Reference
+- Surface: WCT Pop Quiz v2 selection, server action, persisted attempt
+  validation, and learner UI flow.
+- Surface classification: mixed selection logic/server action/persistence validation/UI flow => runtime-facing.
+- Pull readiness:
+  - [x] User value is clear.
+  - [x] Acceptance criteria are testable.
+  - [x] Required data/schema changes are identified: none.
+  - [x] Required live route/action checks are identified.
+- Artifacts:
+  - README: `docs/prd/active/wct-pop-quiz-day-order-shuffle/README.md`
+  - PRD: `docs/prd/active/wct-pop-quiz-day-order-shuffle/prd.md`
+  - Test spec: `docs/prd/active/wct-pop-quiz-day-order-shuffle/test-spec.md`
+  - Implementation plan: `docs/prd/active/wct-pop-quiz-day-order-shuffle/implementation-plan.md`
+  - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-day-order-shuffle-design.md`
+  - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-day-order-shuffle.md`
+- Why: Learners should not be able to anticipate the next source Day in a new
+  v2 WCT Pop Quiz attempt.
+- Scope: Deterministically shuffle and persist the Day order for new v2
+  Prenovice and Novice attempts and retakes while preserving per-Day v2
+  question and format rotation and stored resume order.
+- Non-goals: schema/data migration, Premium, standard Day quiz, lesson content, feedback copy/timing, scoring, and v1 behavior changes.
+- Acceptance criteria:
+  - [ ] New v2 16/28-Day attempts contain every Day once in a non-canonical seeded order.
+  - [ ] A v2 retake changes Day order plus every Day's question ID and format.
+  - [ ] Resume preserves the stored order; v1 and Premium behavior stay unchanged.
+  - [ ] Local live routes, mobile E2E, RLS, build, and production deployment checks pass.
+- Verification:
+  - [ ] Run selector, service, store/RPC, mobile E2E, lint, typecheck, build,
+    RLS, and local/production live-route checks from the approved design and
+    canonical plan.
+- Notes / links: v2 uses a deterministic seed-based Day permutation; no schema
+  or production data migration is required.
+
 ## Backlog
 
 ## Blocked
