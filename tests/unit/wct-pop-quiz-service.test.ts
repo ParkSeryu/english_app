@@ -196,7 +196,13 @@ function stores(book: WctBook, days: WctDay[], sets: WctQuizSet[]) {
   return {
     wctStore: {
       getBook: vi.fn().mockResolvedValue(book),
-      getDay: vi.fn(async (dayId: string) => days.find((day) => day.id === dayId) ?? null)
+      getDay: vi.fn(async (dayId: string) => days.find((day) => day.id === dayId) ?? null),
+      getDays: vi.fn(async (dayIds: string[]) => (
+        dayIds
+          .map((dayId) => days.find((day) => day.id === dayId))
+          .filter((day): day is WctDay => Boolean(day))
+          .reverse()
+      ))
     },
     wctQuizStore: { listSetsByLessonKeys: vi.fn().mockResolvedValue(sets) }
   };
@@ -227,7 +233,9 @@ describe("WCT Pop Quiz service", () => {
       selectQuestions
     }, { bookId: book.id, mode: "start" });
 
-    expect(deps.wctStore.getDay).toHaveBeenCalledTimes(book.days.length);
+    expect(deps.wctStore.getDays).toHaveBeenCalledTimes(1);
+    expect(deps.wctStore.getDays).toHaveBeenCalledWith(book.days.map((day) => day.id));
+    expect(deps.wctStore.getDay).not.toHaveBeenCalled();
     expect(deps.wctQuizStore.listSetsByLessonKeys).toHaveBeenCalledWith(
       book.days.map((day) => standardWctLessonKey(book.title, day.dayNumber))
     );
@@ -238,6 +246,9 @@ describe("WCT Pop Quiz service", () => {
         expect.objectContaining({ dayNumber: 1, dayTopic: book.days[0].shortLabel })
       ])
     }));
+    expect(selectQuestions.mock.calls[0][0].candidates.map(
+      (item: { dayId: string }) => item.dayId
+    )).toEqual(book.days.flatMap((day) => Array(5).fill(day.id)));
     expect(started.questions).toEqual(currentSnapshot);
   });
 
@@ -284,7 +295,9 @@ describe("WCT Pop Quiz service", () => {
       wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(existing), startAttempt }
     }, { bookId: book.id, mode: "start" })).resolves.toEqual(existing);
 
-    expect(deps.wctStore.getDay).toHaveBeenCalledTimes(16);
+    expect(deps.wctStore.getDays).toHaveBeenCalledTimes(1);
+    expect(deps.wctStore.getDays).toHaveBeenCalledWith(book.days.map((day) => day.id));
+    expect(deps.wctStore.getDay).not.toHaveBeenCalled();
     expect(deps.wctQuizStore.listSetsByLessonKeys).toHaveBeenCalledTimes(1);
     expect(startAttempt).not.toHaveBeenCalled();
   });
@@ -600,6 +613,26 @@ describe("WCT Pop Quiz service", () => {
     expect(startAttempt).not.toHaveBeenCalled();
   });
 
+  it("rejects duplicate bulk Day rows before attempt mutation", async () => {
+    const book = createBook();
+    const days = createFullDays(book);
+    const sets = createV2Sets(book, days);
+    const startAttempt = vi.fn();
+    const deps = stores(book, days, sets);
+    deps.wctStore.getDays.mockResolvedValue([
+      ...days.slice(0, -1),
+      structuredClone(days[0])
+    ]);
+    const { startWctPopQuiz } = await service();
+
+    await expect(startWctPopQuiz({
+      ...deps,
+      wctPopQuizStore: { getAttempt: vi.fn().mockResolvedValue(null), startAttempt }
+    }, { bookId: book.id, mode: "start" }))
+      .rejects.toThrow("Pop Quiz needs one complete quiz version");
+    expect(startAttempt).not.toHaveBeenCalled();
+  });
+
   it.each(["shortLabel", "displayLabel"] as const)(
     "rejects a full-Day %s that differs from its book summary",
     async (field) => {
@@ -667,7 +700,7 @@ describe("WCT Pop Quiz service", () => {
         ...baseDeps,
         wctStore: {
           getBook: vi.fn().mockResolvedValue(book),
-          getDay: vi.fn()
+          getDays: vi.fn()
         }
       }, { bookId: "11111111-1111-4111-8111-111111111111", mode: "start" }))
         .rejects.toThrow("Pop Quiz is available for Prenovice and Novice only");

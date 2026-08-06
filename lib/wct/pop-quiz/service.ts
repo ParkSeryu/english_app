@@ -29,7 +29,7 @@ const ineligibleBookMessage = "Pop Quiz is available for Prenovice and Novice on
 const incompleteInventoryMessage = "Pop Quiz needs one complete quiz version";
 
 type InventoryDependencies = {
-  wctStore: Pick<WctStore, "getBook" | "getDay">;
+  wctStore: Pick<WctStore, "getBook" | "getDays">;
   wctQuizStore: Pick<WctQuizStore, "listSetsByLessonKeys">;
 };
 
@@ -89,12 +89,20 @@ async function prepareCurrentInventory(
     return failIncompleteInventory();
   }
 
-  const loadedDays = await Promise.all(
-    orderedSummaries.map((summary) => deps.wctStore.getDay(summary.id))
+  const loadedDays = await deps.wctStore.getDays(
+    orderedSummaries.map((summary) => summary.id)
   );
-  if (loadedDays.some((day) => !day)) return failIncompleteInventory();
-  const allDays = loadedDays as WctDay[];
-  if (allDays.some((day, index) => (
+  const dayById = new Map(loadedDays.map((day) => [day.id, day]));
+  if (
+    loadedDays.length !== orderedSummaries.length
+    || dayById.size !== orderedSummaries.length
+  ) {
+    return failIncompleteInventory();
+  }
+  const allDays = orderedSummaries.map((summary) => dayById.get(summary.id));
+  if (allDays.some((day) => !day)) return failIncompleteInventory();
+  const exactDays = allDays as WctDay[];
+  if (exactDays.some((day, index) => (
     day.id !== orderedSummaries[index].id
     || day.bookId !== book.id
     || day.dayNumber !== orderedSummaries[index].dayNumber
@@ -139,8 +147,8 @@ async function prepareCurrentInventory(
     });
     if (!parsed.success || !isCurrentStandardWctQuizSet({
       book,
-      day: allDays[index],
-      allDays,
+      day: exactDays[index],
+      allDays: exactDays,
       quizSet: set
     })) {
       return failIncompleteInventory();
