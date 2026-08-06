@@ -90,6 +90,10 @@ async function startAndCollectSignature(
   signature.push(await answerAndConfirm(page, level));
   await page.reload();
   await expect(page.getByText(`2 / ${total}`, { exact: true })).toBeVisible();
+  const resumedQuestion = await currentQuestion(page, level);
+  await page.reload();
+  await expect(page.getByText(`2 / ${total}`, { exact: true })).toBeVisible();
+  expect((await currentQuestion(page, level)).id).toBe(resumedQuestion.id);
 
   for (let questionNumber = 2; questionNumber <= total; questionNumber += 1) {
     signature.push(await answerAndConfirm(page, level));
@@ -157,8 +161,10 @@ test("completes and retakes mobile Pop Quiz journeys for Prenovice and Novice", 
     const firstSignature = await startAndCollectSignature(page, bookId, level, total);
     expect(firstSignature).toHaveLength(total);
     expect(new Set(firstSignature.map((question) => question.dayId)).size).toBe(total);
-    expect(firstSignature.map((question) => question.dayNumber))
-      .toEqual(Array.from({ length: total }, (_item, index) => index + 1));
+    const firstDayNumbers = firstSignature.map((question) => question.dayNumber);
+    const canonicalDayNumbers = Array.from({ length: total }, (_item, index) => index + 1);
+    expect([...firstDayNumbers].sort((left, right) => left - right)).toEqual(canonicalDayNumbers);
+    expect(firstDayNumbers).not.toEqual(canonicalDayNumbers);
     expect(formatCounts(firstSignature)).toEqual(total === 16 ? [6, 5, 5] : [10, 9, 9]);
     expect(firstSignature.every((question) => !/\bwct\b|\bday\s*#?\s*\d+\b|\b(?:pre\s*novice|prenovice|novice|premium)\b/iu.test(
       `${question.prompt} ${question.choiceTexts.join(" ")}`
@@ -182,6 +188,7 @@ test("completes and retakes mobile Pop Quiz journeys for Prenovice and Novice", 
     const retakeSignature = await collectRetakeSignature(page, level, total);
     expect(retakeSignature).toHaveLength(total);
     expect(new Set(retakeSignature.map((question) => question.dayId))).toEqual(new Set(wrongDayIds));
+    expect(retakeSignature.map((question) => question.dayId)).not.toEqual(wrongDayIds);
     const firstByDay = new Map(firstSignature.map((question) => [question.dayId, question]));
     expect(retakeSignature.every((question) => {
       const previous = firstByDay.get(question.dayId);
