@@ -107,6 +107,41 @@
 
 ## Active
 
+### T-013: WCT Pop Quiz Bulk Day Loading
+
+- Status: Active
+- Priority: High
+- Workstream: Course Reference
+- Surface: WCT Pop Quiz shared Day store, server action, and dynamic quiz route loading path.
+- Surface classification: shared store/server-action/dynamic-route loading path => runtime-facing.
+- Pull readiness:
+  - [x] User value is clear.
+  - [x] Acceptance criteria are testable.
+  - [x] Required data/schema changes are identified: none.
+  - [x] Required live route/action checks are identified.
+- Artifacts:
+  - README: `docs/prd/active/wct-pop-quiz-bulk-day-loading/README.md`
+  - PRD: `docs/prd/active/wct-pop-quiz-bulk-day-loading/prd.md`
+  - Test spec: `docs/prd/active/wct-pop-quiz-bulk-day-loading/test-spec.md`
+  - Implementation plan: `docs/prd/active/wct-pop-quiz-bulk-day-loading/implementation-plan.md`
+  - Approved design: `docs/superpowers/specs/2026-08-06-wct-pop-quiz-bulk-day-loading-design.md`
+  - Canonical plan: `docs/superpowers/plans/2026-08-06-wct-pop-quiz-bulk-day-loading.md`
+- Why: Reduce the wait after a learner starts or resumes a WCT Pop Quiz by
+  replacing the current one-request-per-Day inventory load with one bulk Day query.
+- Scope: Bulk-load the full Days once, normalize returned rows to canonical
+  Day-summary order, and retain existing inventory validation before attempts mutate.
+- Non-goals: UI/copy, selector rules, persistence/RPC, schema/migration, production data, standard Day quiz, and Premium changes.
+- Acceptance criteria:
+  - [ ] Every Pop inventory validation uses one bulk full-Day store read instead of 16/28 single-Day reads.
+  - [ ] Unordered bulk rows are normalized to canonical Day-summary order before existing source validation.
+  - [ ] Missing, duplicate, foreign, mismatched, and stale inventory still fails closed before attempt mutation.
+  - [ ] Existing shuffle, resume, retake, persistence, scoring, v1, standard Day quiz, and Premium behavior remains unchanged.
+  - [ ] Full verification, live routes, exact production deployment, and clean main synchronization pass.
+- Verification:
+  - [ ] Run focused store and Pop Quiz service tests, then lint, typecheck, full tests, build, RLS, mobile E2E, and localhost/LAN route checks.
+  - [ ] Verify the exact production deployment and clean `main` synchronization.
+- Notes / links: Approved design and canonical plan listed above.
+
 ## Backlog
 
 ## Blocked
